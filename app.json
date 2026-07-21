@@ -63,7 +63,7 @@
       "output": "static"
     },
     "extra": {
-      "apiBase": "http://192.168.43.245:4102",
+      "apiBase": "https://skorlig87.onrender.com",
       "defaultCompetitionId": "COMP_GLOBAL_2025",
       "adminUserIds": "demo1,xXhSFvM1SFYN3kUYAdMGRaUkPp53",
       "features": {
