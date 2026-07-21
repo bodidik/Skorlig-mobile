@@ -1,0 +1,101 @@
+{
+  "expo": {
+    "name": "SkorLig",
+    "slug": "skorlig",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "skorlig",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#111827"
+    },
+    "android": {
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "pathPrefix": "/predict",
+              "host": "",
+              "scheme": "skorlig"
+            }
+          ],
+          "action": "VIEW",
+          "autoVerify": false
+        },
+        {
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "pathPrefix": "/predict",
+              "host": "",
+              "scheme": "skorlig"
+            }
+          ],
+          "action": "VIEW",
+          "autoVerify": false
+        }
+      ],
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "package": "com.skorlig",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#111827"
+      }
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "static"
+    },
+    "extra": {
+      "apiBase": "http://192.168.43.245:4102",
+      "defaultCompetitionId": "COMP_GLOBAL_2025",
+      "adminUserIds": "demo1,xXhSFvM1SFYN3kUYAdMGRaUkPp53",
+      "features": {
+        "enableCoupons": false,
+        "showProfile": true,
+        "mode": "GS_ONLY",
+        "showLeaderboard": false
+      },
+      "scoring": {
+        "K_outcome": 10,
+        "useProbabilityEngine": false,
+        "startBalance": 500,
+        "epsilon": 0.05
+      },
+      "apiFootball": {
+        "base": "https://v3.football.api-sports.io",
+        "key": ""
+      },
+      "appTeam": {
+        "name": "Galatasaray"
+      },
+      "router": {},
+      "eas": {
+        "projectId": "1c06a877-40a7-4bb8-a3da-454d54ce5617"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-web-browser",
+      "@react-native-google-signin/google-signin"
+    ],
+    "icon": "assets/icon.png",
+    "owner": "hucigo11"
+  }
+}
