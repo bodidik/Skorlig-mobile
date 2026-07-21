@@ -19,6 +19,7 @@ import DailyMenuStrip from "../../components/DailyMenuStrip";
 import QuickPlaySection from "../../components/QuickPlaySection";
 import TournamentCreate from "../../components/TournamentCreate";
 import TournamentJoin from "../../components/TournamentJoin";
+import Picks1987 from "../../components/Picks1987";
 
 type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
 
@@ -74,7 +75,7 @@ type Live2Resp = {
   cap?: number;
 };
 
-type Mode = "schedule" | "open" | "mine" | "tournaments";
+type Mode = "schedule" | "open" | "mine" | "tournaments" | "gs1987";
 
 type MyPredItem = {
   fixtureId: string;
@@ -534,7 +535,7 @@ export default function LiveScreen() {
 
   const initialMode = useMemo((): Mode => {
     const t = String(qTab || "").trim();
-    if (t === "mine" || t === "tournaments" || t === "open") return t;
+    if (t === "mine" || t === "tournaments" || t === "open" || t === "gs1987") return t;
     return "open";
   }, [qTab]);
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -568,6 +569,13 @@ export default function LiveScreen() {
   const [joinBusy, setJoinBusy] = useState<string | null>(null);
   const [showCreateTournament, setShowCreateTournament] = useState(false);
   const [showJoinTournament, setShowJoinTournament] = useState(false);
+
+  // 1987GS erişim kapısı
+  const [is1987Member, setIs1987Member] = useState(false);
+  const [is1987Checking, setIs1987Checking] = useState(false);
+  const [gs1987Code, setGs1987Code] = useState("");
+  const [gs1987Error, setGs1987Error] = useState<string | null>(null);
+  const [gs1987Busy, setGs1987Busy] = useState(false);
 
   // Kullanıcının yereli (ülke): maç listesi "kendi ülkesi + global yarışlar" olur
   const [userCountry, setUserCountry] = useState<string | null>(null);
@@ -621,6 +629,41 @@ export default function LiveScreen() {
     }
     return j;
   }
+
+  const check1987Membership = useCallback(async () => {
+    if (!userId || is1987Member) return;
+    setIs1987Checking(true);
+    try {
+      const j = await apiJson(`/api/users/profile?userId=${userId}`);
+      if (j?.ok && (j.profile?.is1987 || j.profile?.segment === "1987")) {
+        setIs1987Member(true);
+      }
+    } catch {}
+    setIs1987Checking(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, is1987Member]);
+
+  const submit1987Code = async () => {
+    const code = gs1987Code.trim();
+    if (!code) return;
+    setGs1987Busy(true);
+    setGs1987Error(null);
+    try {
+      const j = await apiJson("/api/weekly-picks/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      if (j?.ok) {
+        setIs1987Member(true);
+      } else {
+        setGs1987Error(j?.error === "WRONG_CODE" ? "Kod yanlış. Facebook grubundaki kodu dene." : String(j?.error || "Hata oluştu"));
+      }
+    } catch (e: any) {
+      setGs1987Error(e.message || "Bağlantı hatası");
+    }
+    setGs1987Busy(false);
+  };
 
   const loadSchedule = useCallback(async () => {
     setLoading(true);
@@ -842,6 +885,11 @@ export default function LiveScreen() {
     }, [mode, countryReady, loadOpen, loadUserStats])
   );
 
+  // 1987GS sekmesine geçince üyelik kontrolü
+  useEffect(() => {
+    if (mode === "gs1987" && userId) check1987Membership();
+  }, [mode, userId, check1987Membership]);
+
   // pred flags
   useEffect(() => {
     const uid = userId.trim();
@@ -891,6 +939,7 @@ export default function LiveScreen() {
     await syncServerTime();
     if (mode === "mine") await loadMyPreds();
     else if (mode === "tournaments") await loadMyTournaments();
+    else if (mode === "gs1987") { /* Picks1987 kendi içinde yenileme tutar */ }
     else await load();
     setRefreshing(false);
   }, [load, loadMyPreds, loadMyTournaments, mode]);
@@ -1104,7 +1153,7 @@ export default function LiveScreen() {
       <FlatList
         ref={flatListRef}
         data={
-          mode === "mine" || mode === "tournaments" ? []  // içerik ListHeaderComponent'te
+          mode === "mine" || mode === "tournaments" || mode === "gs1987" ? []  // içerik ListHeaderComponent'te
           : items
         }
         keyExtractor={(it) => String(it.fixtureId || it.code || Math.random())}
@@ -1159,6 +1208,7 @@ export default function LiveScreen() {
             <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>
               {mode === "mine" ? "📋 Tahminlerim"
                 : mode === "tournaments" ? "🏆 Turnuvalarım"
+                : mode === "gs1987" ? "🔴 1987GS Modu"
                 : mode === "schedule" ? (adminMode ? "Admin • Maçlar" : "Maçlar")
                 : (adminMode ? "Admin • Açık Maçlar" : "Açık Maçlar")}
             </Text>
@@ -1170,46 +1220,70 @@ export default function LiveScreen() {
               </View>
             )}
 
-            <View
-              style={{
-                marginTop: 10,
-                flexDirection: "row",
-                backgroundColor: Colors.dark,
-                borderRadius: 999,
-                padding: 4,
-              }}
-            >
-              {[
-                { key: "schedule" as const, label: "Maçlar" },
-                { key: "open" as const, label: "Açık" },
-                { key: "mine" as const, label: "Tahminlerim" },
-                { key: "tournaments" as const, label: "Turnuvalar" },
-              ].map((t) => {
-                const active = mode === t.key;
-                return (
-                  <TouchableOpacity
-                    key={t.key}
-                    onPress={() => setMode(t.key)}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 8,
-                      borderRadius: 999,
-                      backgroundColor: active ? Colors.accent : "transparent",
-                    }}
-                  >
-                    <Text
+            <View style={{ marginTop: 10, gap: 6 }}>
+              {/* Ana 4 sekme */}
+              <View style={{ flexDirection: "row", backgroundColor: Colors.dark, borderRadius: 999, padding: 4 }}>
+                {[
+                  { key: "schedule" as const, label: "Maçlar" },
+                  { key: "open" as const, label: "Açık" },
+                  { key: "mine" as const, label: "Benimkiler" },
+                  { key: "tournaments" as const, label: "Turnuvalar" },
+                ].map((t) => {
+                  const active = mode === t.key;
+                  return (
+                    <TouchableOpacity
+                      key={t.key}
+                      onPress={() => setMode(t.key)}
                       style={{
-                        textAlign: "center",
-                        color: active ? "#fff" : Colors.muted,
-                        fontWeight: active ? "700" : "500",
-                        fontSize: 12,
+                        flex: 1,
+                        paddingVertical: 8,
+                        borderRadius: 999,
+                        backgroundColor: active ? Colors.accent : "transparent",
                       }}
                     >
-                      {t.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      <Text
+                        style={{
+                          textAlign: "center",
+                          color: active ? "#fff" : Colors.muted,
+                          fontWeight: active ? "700" : "500",
+                          fontSize: 11,
+                        }}
+                      >
+                        {t.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* 1987GS özel sekmesi */}
+              <TouchableOpacity
+                onPress={() => setMode("gs1987")}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  paddingVertical: 9,
+                  borderRadius: 999,
+                  backgroundColor: mode === "gs1987" ? "#E8102A" : "#1a0a0a",
+                  borderWidth: 1.5,
+                  borderColor: mode === "gs1987" ? "#E8102A" : "#7f1d1d66",
+                }}
+              >
+                <Text style={{ fontSize: 14 }}>🔴</Text>
+                <Text style={{
+                  fontSize: 13,
+                  fontWeight: "900",
+                  color: mode === "gs1987" ? "#fff" : "#c9a227",
+                  letterSpacing: 1,
+                }}>
+                  1987GS MODU
+                </Text>
+                <Text style={{ fontSize: 12, color: mode === "gs1987" ? "#ffcccc" : "#7f1d1d" }}>
+                  {is1987Member ? "✓" : "🔒"}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 10 }}>
@@ -1471,6 +1545,75 @@ export default function LiveScreen() {
 
                 {!myTournamentsLoading && !publicLoading && myTournaments.length === 0 && publicTournaments.length === 0 && (
                   <Text style={{ color: Colors.muted, fontSize: 13 }}>Henüz açık turnuva yok.</Text>
+                )}
+              </View>
+            )}
+
+            {/* ===== 1987GS MODU ===== */}
+            {mode === "gs1987" && (
+              <View style={{ marginTop: 8 }}>
+                {is1987Checking ? (
+                  <ActivityIndicator color="#E8102A" style={{ marginVertical: 40 }} />
+                ) : is1987Member ? (
+                  <Picks1987 />
+                ) : (
+                  /* Erişim kapısı */
+                  <View style={{ alignItems: "center", paddingVertical: 32, paddingHorizontal: 24 }}>
+                    <Text style={{ fontSize: 48, marginBottom: 12 }}>🔒</Text>
+                    <Text style={{ fontSize: 18, fontWeight: "900", color: "#E8102A", marginBottom: 6, textAlign: "center" }}>
+                      1987 Galatasaray'ı Unutamayanlar
+                    </Text>
+                    <Text style={{ fontSize: 13, color: Colors.muted, textAlign: "center", marginBottom: 24, lineHeight: 20 }}>
+                      Bu alana sadece 1987GS Facebook grubu üyeleri girebilir.{"\n"}
+                      Gruba özel kodu girerek erişim sağla.
+                    </Text>
+
+                    <View style={{ width: "100%", gap: 10 }}>
+                      <TextInput
+                        value={gs1987Code}
+                        onChangeText={(t) => { setGs1987Code(t); setGs1987Error(null); }}
+                        placeholder="1987GS grubuna özel kod"
+                        placeholderTextColor="#555"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        style={{
+                          borderWidth: 1.5,
+                          borderColor: gs1987Error ? "#E8102A" : "#333",
+                          borderRadius: 12,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          backgroundColor: "#111",
+                          color: "#fff",
+                          fontSize: 15,
+                          textAlign: "center",
+                          letterSpacing: 2,
+                        }}
+                      />
+
+                      {gs1987Error && (
+                        <Text style={{ color: "#E8102A", fontSize: 12, textAlign: "center" }}>
+                          {gs1987Error}
+                        </Text>
+                      )}
+
+                      <TouchableOpacity
+                        onPress={submit1987Code}
+                        disabled={gs1987Busy || !gs1987Code.trim()}
+                        style={{
+                          paddingVertical: 14,
+                          borderRadius: 12,
+                          backgroundColor: gs1987Code.trim() ? "#E8102A" : "#3a0a0a",
+                          alignItems: "center",
+                          opacity: gs1987Busy ? 0.7 : 1,
+                        }}
+                      >
+                        {gs1987Busy
+                          ? <ActivityIndicator color="#fff" size="small" />
+                          : <Text style={{ color: "#fff", fontWeight: "900", fontSize: 15 }}>Giriş Yap →</Text>
+                        }
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 )}
               </View>
             )}
@@ -1861,6 +2004,7 @@ export default function LiveScreen() {
               <Text style={{ color: Colors.muted, fontSize: 12, textAlign: "center", marginBottom: 4 }}>
                 {mode === "mine" ? "Henüz tahmin yapmadın."
                   : mode === "tournaments" ? "Henüz bir turnuvada değilsin. Mini turnuva oluştur veya koda katıl."
+                  : mode === "gs1987" ? ""
                   : mode === "schedule" ? "Liste penceresinde maç görünmüyor."
                   : "96 saatlik tahmin penceresi içinde açık maç yok."}
               </Text>
