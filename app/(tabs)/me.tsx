@@ -998,20 +998,156 @@ export default function Me() {
               Maç: {totalsRow.matches} · Toplam ceza: {totalsRow.totalPenalty}
             </Text>
           )}
-          <TouchableOpacity
-            onPress={() => nav.push({ pathname: "/stats", params: { userId } })}
-            style={{
-              padding: 10,
-              backgroundColor: Colors.headerBlue,
-              borderRadius: 10,
-              marginTop: 4,
-            }}
-          >
-            <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "600" }}>
-              Genel İstatistikler
-            </Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => nav.push({ pathname: "/stats", params: { userId } })}
+              style={{ flex: 1, padding: 10, backgroundColor: Colors.headerBlue, borderRadius: 10 }}
+            >
+              <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "600" }}>
+                Genel İstatistikler
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => nav.push({ pathname: "/profile/[userId]", params: { userId } } as any)}
+              style={{ flex: 1, padding: 10, backgroundColor: Colors.accent, borderRadius: 10 }}
+            >
+              <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
+                Profil & Geçmiş →
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {/* Sıradaki Adımın — oyun önerileri */}
+        {(() => {
+          const steps = [
+            {
+              key: "predict",
+              done: (predCount ?? 0) > 0,
+              icon: "⚽",
+              title: "İlk tahmini yap",
+              desc: "Açık bir maçta tahmin et",
+              color: "#16a34a",
+              bg: "#dcfce7",
+              action: () => nav.replace({ pathname: "/(tabs)/live", params: { mode: "open" } } as any),
+            },
+            {
+              key: "team",
+              done: !!profile?.mainTeam,
+              icon: "🏆",
+              title: "Takımını seç",
+              desc: "Maçlar takımına göre sıralanır",
+              color: Colors.accent,
+              bg: "#edf4ff",
+              action: () => null, // zaten bu sayfada
+            },
+            {
+              key: "tournament",
+              done: false,
+              icon: "🎯",
+              title: "Turnuvaya katıl",
+              desc: "Diğer kullanıcılarla yarış",
+              color: "#7c3aed",
+              bg: "#f5f3ff",
+              action: () => nav.replace({ pathname: "/(tabs)/live", params: { mode: "tournaments" } } as any),
+            },
+            {
+              key: "mini",
+              done: false,
+              icon: "🏅",
+              title: "Mini lig kur",
+              desc: "Arkadaşlarınla özel lig",
+              color: "#ea580c",
+              bg: "#fff7ed",
+              action: () => nav.push({ pathname: "/mini/create", params: { userId } } as any),
+            },
+            {
+              key: "friends",
+              done: false,
+              icon: "👥",
+              title: "Arkadaş ligi",
+              desc: "Arkadaşlarınla sıralanma",
+              color: "#0891b2",
+              bg: "#ecfeff",
+              action: () => nav.push({ pathname: "/friends/board", params: { userId } } as any),
+            },
+            {
+              key: "gs1987",
+              done: !!profile?.is1987,
+              icon: "🔴",
+              title: "1987GS Modu",
+              desc: "Özel üye içeriğine eriş",
+              color: "#991b1b",
+              bg: "#1a0a0a",
+              textColor: "#c9a227",
+              action: () => nav.replace({ pathname: "/(tabs)/live", params: { mode: "gs1987" } } as any),
+            },
+          ];
+
+          const nextStep = steps.find(s => !s.done);
+          const doneCount = steps.filter(s => s.done).length;
+
+          return (
+            <View style={{
+              backgroundColor: "#fff", borderRadius: 14,
+              borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10,
+            }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ fontWeight: "800", fontSize: 14, color: Colors.slate900 }}>
+                  Sıradaki Adımın
+                </Text>
+                <Text style={{ fontSize: 12, color: Colors.muted }}>
+                  {doneCount}/{steps.length} tamamlandı
+                </Text>
+              </View>
+
+              {/* İlerleme çubuğu */}
+              <View style={{ height: 6, backgroundColor: "#f1f5f9", borderRadius: 999 }}>
+                <View style={{
+                  height: 6, borderRadius: 999,
+                  width: `${Math.round((doneCount / steps.length) * 100)}%` as any,
+                  backgroundColor: "#16a34a",
+                }} />
+              </View>
+
+              {/* Adımlar */}
+              <View style={{ gap: 6 }}>
+                {steps.map((s) => (
+                  <TouchableOpacity
+                    key={s.key}
+                    onPress={s.action}
+                    disabled={s.done}
+                    style={{
+                      flexDirection: "row", alignItems: "center", gap: 10,
+                      paddingVertical: 8, paddingHorizontal: 10,
+                      borderRadius: 10, borderWidth: 1,
+                      borderColor: s.done ? "#d1fae5" : s.key === nextStep?.key ? s.bg : Colors.border,
+                      backgroundColor: s.done ? "#f0fdf4" : s.key === nextStep?.key ? s.bg : "#fafafa",
+                      opacity: s.done ? 0.7 : 1,
+                    }}
+                  >
+                    <Text style={{ fontSize: 20 }}>{s.done ? "✅" : s.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        fontWeight: "700", fontSize: 13,
+                        color: s.done ? Colors.muted : (s as any).textColor || s.color,
+                        textDecorationLine: s.done ? "line-through" : "none",
+                      }}>
+                        {s.title}
+                      </Text>
+                      {!s.done && (
+                        <Text style={{ fontSize: 11, color: Colors.muted }}>{s.desc}</Text>
+                      )}
+                    </View>
+                    {!s.done && s.key === nextStep?.key && (
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: s.color }}>→</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          );
+        })()}
 
         {/* LC Cüzdanım kartı */}
         <View
@@ -1035,9 +1171,25 @@ export default function Me() {
 
           {!walletLoading && wallet && (
             <>
-              <Text style={{ fontSize: 24, fontWeight: "800", color: Colors.accent }}>
-                {wallet.user?.balance ?? 0} LC
-              </Text>
+              {/* Bakiye banner */}
+              <View style={{
+                backgroundColor: "#fef9c3", borderRadius: 12, padding: 14,
+                borderWidth: 1, borderColor: "#fde047",
+                flexDirection: "row", alignItems: "center", gap: 10,
+              }}>
+                <Text style={{ fontSize: 32 }}>🪙</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 32, fontWeight: "900", color: "#92400e", lineHeight: 36 }}>
+                    {wallet.user?.balance ?? 0}
+                    <Text style={{ fontSize: 18, fontWeight: "700" }}> LC</Text>
+                  </Text>
+                  {wallet.daily?.canClaim && (
+                    <Text style={{ fontSize: 11, color: "#78350f", fontWeight: "600" }}>
+                      Günlük LC hazır! ↓
+                    </Text>
+                  )}
+                </View>
+              </View>
               <Text style={{ color: Colors.muted, fontSize: 12 }}>
                 Toplam kazanç: {wallet.user?.totalEarned ?? 0} · Toplam harcama: {wallet.user?.totalSpent ?? 0}
               </Text>
