@@ -42,6 +42,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="arena"
+        options={{
+          title: "Arena",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="flash-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="stats"
         options={{
           title: "Stats",
