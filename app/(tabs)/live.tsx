@@ -581,9 +581,10 @@ export default function LiveScreen() {
   const [gs1987Error, setGs1987Error] = useState<string | null>(null);
   const [gs1987Busy, setGs1987Busy] = useState(false);
 
-  // Kullanıcının yereli (ülke + takım): maç listesi kişiselleşir, takımın maçları önde çıkar
+  // Kullanıcının yereli (ülke + takım + ek ligler): maç listesi kişiselleşir
   const [userCountry, setUserCountry] = useState<string | null>(null);
   const [userMainTeam, setUserMainTeam] = useState<string | null>(null);
+  const [userExtraLeagues, setUserExtraLeagues] = useState<string[]>([]);
   const [countryReady, setCountryReady] = useState(false);
 
   // ===== ADMIN (inline panel) =====
@@ -676,7 +677,8 @@ export default function LiveScreen() {
     try {
       const cq = userCountry ? `&country=${encodeURIComponent(userCountry)}` : "";
       const tq = userMainTeam ? `&team=${encodeURIComponent(userMainTeam)}` : "";
-      const r = await apiFetch(`/api/live2/schedule?backH=${SCHEDULE_BACK_HOURS}&fwdDays=${SCHEDULE_FWD_DAYS}${cq}${tq}`);
+      const eq = userExtraLeagues.length ? `&extraLeagues=${encodeURIComponent(userExtraLeagues.join(","))}` : "";
+      const r = await apiFetch(`/api/live2/schedule?backH=${SCHEDULE_BACK_HOURS}&fwdDays=${SCHEDULE_FWD_DAYS}${cq}${tq}${eq}`);
       const j: Live2Resp = await r.json();
 
       if (!j?.ok) {
@@ -712,7 +714,7 @@ export default function LiveScreen() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userCountry, userMainTeam]);
+  }, [userCountry, userMainTeam, userExtraLeagues]);
 
   const loadOpen = useCallback(async () => {
     setLoading(true);
@@ -720,7 +722,8 @@ export default function LiveScreen() {
     try {
       const cq = userCountry ? `&country=${encodeURIComponent(userCountry)}` : "";
       const tq = userMainTeam ? `&team=${encodeURIComponent(userMainTeam)}` : "";
-      const r = await apiFetch(`/api/live2/open?fwdH=${PREDICT_OPEN_AHEAD_HOURS}${cq}${tq}`);
+      const eq = userExtraLeagues.length ? `&extraLeagues=${encodeURIComponent(userExtraLeagues.join(","))}` : "";
+      const r = await apiFetch(`/api/live2/open?fwdH=${PREDICT_OPEN_AHEAD_HOURS}${cq}${tq}${eq}`);
       const j: Live2Resp = await r.json();
 
       if (!j?.ok) {
@@ -756,7 +759,7 @@ export default function LiveScreen() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userCountry, userMainTeam]);
+  }, [userCountry, userMainTeam, userExtraLeagues]);
 
   // Profilden ülke bilgisini çek (yerel görünüm için)
   useEffect(() => {
@@ -767,6 +770,12 @@ export default function LiveScreen() {
         if (!cancelled) {
           setUserCountry(j?.ok && j.profile?.country ? String(j.profile.country) : null);
           setUserMainTeam(j?.ok && j.profile?.mainTeam ? String(j.profile.mainTeam) : null);
+          setUserExtraLeagues(j?.ok && Array.isArray(j.profile?.preferredLeagues) ? j.profile.preferredLeagues : []);
+          // Kullanıcının dil tercihini uygula
+          if (j?.ok && j.profile?.preferredLang) {
+            const { setLang } = require("../../lib/i18n");
+            setLang(j.profile.preferredLang);
+          }
         }
       } catch {
         if (!cancelled) setUserCountry(null);

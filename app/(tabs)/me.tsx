@@ -236,6 +236,14 @@ export default function Me() {
   const [teamSearch, setTeamSearch]         = useState("");
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
   const [countrySaving, setCountrySaving] = useState(false);
+
+  // Ek lig seçici
+  const [preferredLeagues, setPreferredLeagues] = useState<string[]>([]);
+  const [leagueSaving, setLeagueSaving]         = useState(false);
+
+  // Dil tercihi
+  const [preferredLang, setPreferredLang]   = useState<string | null>(null);
+  const [langSaving, setLangSaving]         = useState(false);
   const [miniWins, setMiniWins] = useState<MiniWin[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [totalsRow, setTotalsRow] = useState<TotRow | null>(null);
@@ -408,6 +416,8 @@ export default function Me() {
       if (p?.ok) {
         setProfile(p.profile);
         if (p.profile?.mainTeam) setTeamInput(p.profile.mainTeam);
+        if (Array.isArray(p.profile?.preferredLeagues)) setPreferredLeagues(p.profile.preferredLeagues);
+        if (p.profile?.preferredLang) setPreferredLang(p.profile.preferredLang);
       } else {
         setProfile(null);
       }
@@ -610,6 +620,46 @@ export default function Me() {
       Alert.alert("Hata", String(e?.message || e));
     } finally {
       setCountrySaving(false);
+    }
+  }
+
+  async function saveLeagues(leagues: string[]) {
+    try {
+      setLeagueSaving(true);
+      const r = await apiFetch(`/api/users/set-leagues`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leagues }),
+      }).then(x => x.json());
+      if (r?.ok) {
+        setPreferredLeagues(r.leagues || leagues);
+        Alert.alert("SkorLig", "Lig tercihlerin kaydedildi");
+      } else Alert.alert("Hata", r?.error || "SAVE_LEAGUES_FAILED");
+    } catch (e: any) {
+      Alert.alert("Hata", String(e?.message || e));
+    } finally {
+      setLeagueSaving(false);
+    }
+  }
+
+  async function saveLang(lang: string) {
+    try {
+      setLangSaving(true);
+      const r = await apiFetch(`/api/users/set-lang`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lang }),
+      }).then(x => x.json());
+      if (r?.ok) {
+        setPreferredLang(lang);
+        const { setLang } = require("../../lib/i18n");
+        setLang(lang);
+        Alert.alert("SkorLig", "Dil tercihin kaydedildi");
+      } else Alert.alert("Hata", r?.error || "SAVE_LANG_FAILED");
+    } catch (e: any) {
+      Alert.alert("Hata", String(e?.message || e));
+    } finally {
+      setLangSaving(false);
     }
   }
 
@@ -1491,6 +1541,113 @@ export default function Me() {
                 </TouchableOpacity>
               )}
             </>
+          )}
+        </View>
+
+        {/* ── Dil Tercihi ── */}
+        <View style={{ backgroundColor: "#fff", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
+          <Text style={{ fontWeight: "800", fontSize: 14 }}>Dil Tercihi</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>Uygulama dilini manuel olarak seç. Boş bırakırsan cihaz dili kullanılır.</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {[
+              { code: "tr", label: "🇹🇷 Türkçe" }, { code: "en", label: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 English" },
+              { code: "fr", label: "🇫🇷 Français" }, { code: "de", label: "🇩🇪 Deutsch" },
+              { code: "es", label: "🇪🇸 Español" }, { code: "pt", label: "🇵🇹 Português" },
+              { code: "it", label: "🇮🇹 Italiano" }, { code: "nl", label: "🇳🇱 Nederlands" },
+              { code: "el", label: "🇬🇷 Ελληνικά" }, { code: "pl", label: "🇵🇱 Polski" },
+              { code: "ru", label: "🇷🇺 Русский" }, { code: "uk", label: "🇺🇦 Українська" },
+              { code: "ar", label: "🇸🇦 العربية" },  { code: "ja", label: "🇯🇵 日本語" },
+              { code: "hr", label: "🇭🇷 Hrvatski" }, { code: "sr", label: "🇷🇸 Srpski" },
+              { code: "cs", label: "🇨🇿 Čeština" },  { code: "ro", label: "🇷🇴 Română" },
+              { code: "hu", label: "🇭🇺 Magyar" },   { code: "sk", label: "🇸🇰 Slovenčina" },
+              { code: "bg", label: "🇧🇬 Български" },
+            ].map(l => {
+              const active = preferredLang === l.code;
+              return (
+                <TouchableOpacity
+                  key={l.code}
+                  disabled={langSaving}
+                  onPress={() => saveLang(l.code)}
+                  style={{
+                    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: active ? Colors.accent : Colors.border,
+                    backgroundColor: active ? Colors.accent : "#fff",
+                    opacity: langSaving ? 0.6 : 1,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: "600", color: active ? "#fff" : Colors.slate900 }}>
+                    {l.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {preferredLang && (
+            <TouchableOpacity
+              onPress={() => saveLang("")}
+              disabled={langSaving}
+              style={{ alignSelf: "flex-start" }}
+            >
+              <Text style={{ fontSize: 11, color: Colors.muted }}>✕ Tercihi kaldır (cihaz diline dön)</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ── Takip Ettiğim Ligler ── */}
+        <View style={{ backgroundColor: "#fff", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
+          <Text style={{ fontWeight: "800", fontSize: 14 }}>Takip Ettiğim Ligler</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>
+            Ana ülkene ek olarak takip etmek istediğin ligleri seç. Seçilen liglerin maçları da senin için öncelikli gösterilir.
+          </Text>
+          {preferredLeagues.length > 0 && (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+              {preferredLeagues.map(l => (
+                <View key={l} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: Colors.accent }}>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: "#fff" }}>
+                    {richCountries.find(c => c.name === l || c.localName === l)?.flag || "🏆"} {l}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {richCountries.map(c => {
+              const selected = preferredLeagues.includes(c.name);
+              return (
+                <TouchableOpacity
+                  key={c.code}
+                  disabled={leagueSaving}
+                  onPress={() => {
+                    const next = selected
+                      ? preferredLeagues.filter(l => l !== c.name)
+                      : [...preferredLeagues, c.name];
+                    saveLeagues(next);
+                  }}
+                  style={{
+                    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: selected ? Colors.live : Colors.border,
+                    backgroundColor: selected ? "#f0fdf4" : "#fff",
+                    opacity: leagueSaving ? 0.6 : 1,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: selected ? "700" : "400", color: selected ? Colors.live : Colors.slate900 }}>
+                    {selected ? "✓ " : ""}{c.flag} {c.localName}
+                  </Text>
+                  <Text style={{ fontSize: 10, color: Colors.muted }}>{c.topLeague}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {preferredLeagues.length > 0 && (
+            <TouchableOpacity
+              onPress={() => saveLeagues([])}
+              disabled={leagueSaving}
+              style={{ alignSelf: "flex-start" }}
+            >
+              <Text style={{ fontSize: 11, color: Colors.muted }}>✕ Tümünü kaldır</Text>
+            </TouchableOpacity>
           )}
         </View>
 
