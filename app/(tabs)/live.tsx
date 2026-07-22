@@ -312,13 +312,14 @@ type ItemProps = {
   mode: Mode;
   onPredict: (fx: Fx) => void;
   onRace: (fx: Fx) => void;
+  onDuel: (fx: Fx) => void;
   hasPred: boolean | null | undefined;
   adminMode: boolean;
   selected: boolean;
   onSelect: (fx: Fx) => void;
 };
 
-const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, hasPred, adminMode, selected, onSelect }) => {
+const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasPred, adminMode, selected, onSelect }) => {
   const showPredBadge = hasPred === true;
   const st = String(item.status || "").toUpperCase();
   const isLive = st === "LIVE" || st === "HT";
@@ -464,20 +465,36 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, hasPred, adm
           </View>
 
           {!adminMode && !isFinished && (mode === "open" || canPredictByLocalRule) && (
-            <TouchableOpacity
-              onPress={() => onPredict(item)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: 999,
-                backgroundColor: Colors.primary,
-                flexDirection: "row",
-                alignItems: "center",
-                marginLeft: 8,
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>⚽ Tahmin Yap</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 6, marginLeft: 8 }}>
+              <TouchableOpacity
+                onPress={() => onPredict(item)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: 999,
+                  backgroundColor: Colors.primary,
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>⚽ Tahmin</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => onDuel(item)}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 999,
+                  backgroundColor: "#1e293b",
+                  borderWidth: 1,
+                  borderColor: "#f59e0b55",
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>⚔️</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           {/* Canlı/biten maçta yarış panosu: anlık sıranı gör */}
@@ -980,6 +997,19 @@ export default function LiveScreen() {
     }
   };
 
+  const goDuel = (fx: Fx) => {
+    router.push({
+      pathname: "/duel/[fixtureId]",
+      params: {
+        fixtureId: String(fx.fixtureId || ""),
+        home: fx.home || "",
+        away: fx.away || "",
+        league: fx.league || "",
+        kickoffISO: fx.kickoffISO || "",
+      },
+    });
+  };
+
   const cancelPred = (fixtureId: string) => {
     Alert.alert("Tahmini İptal Et", "Bu maçtaki tahminini silmek istiyor musun?", [
       { text: "Vazgeç", style: "cancel" },
@@ -1184,6 +1214,7 @@ export default function LiveScreen() {
               mode={mode}
               onPredict={goPredict}
               onRace={goRace}
+              onDuel={goDuel}
               hasPred={hasPred}
               adminMode={adminMode}
               selected={adminMode && !!selectedFid && fid === selectedFid}

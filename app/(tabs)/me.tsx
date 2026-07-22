@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+﻿import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -938,17 +938,17 @@ export default function Me() {
             </View>
 
             <Text style={{ fontSize: 11, color: Colors.muted }}>
-              Kullanıcı ekranda “Sonuç girilmesi bekleniyor” görür; admin burada pending listeden sonucu girer.
+              Kullanıcı ekranda "Sonuç girilmesi bekleniyor" görür; admin burada pending listeden sonucu girer.
             </Text>
 
             {/* ── Kullanıcı Engelle ── */}
             <TouchableOpacity
               onPress={() => { setShowBanPanel(v => !v); if (!showBanPanel) loadBannedList(); }}
-              style={{ flexDirection: “row”, justifyContent: “space-between”, alignItems: “center”,
-                paddingVertical: 8, borderTopWidth: 1, borderTopColor: “#e5e7eb”, marginTop: 4 }}
+              style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+                paddingVertical: 8, borderTopWidth: 1, borderTopColor: "#e5e7eb", marginTop: 4 }}
             >
-              <Text style={{ fontWeight: “800”, fontSize: 13, color: “#dc2626” }}>🚫 Kullanıcı Engelle</Text>
-              <Text style={{ fontSize: 12, color: Colors.muted }}>{showBanPanel ? “▲” : “▼”}</Text>
+              <Text style={{ fontWeight: "800", fontSize: 13, color: "#dc2626" }}>🚫 Kullanıcı Engelle</Text>
+              <Text style={{ fontSize: 12, color: Colors.muted }}>{showBanPanel ? "▲" : "▼"}</Text>
             </TouchableOpacity>
 
             {showBanPanel && (
@@ -956,66 +956,66 @@ export default function Me() {
                 <TextInput
                   value={banInput}
                   onChangeText={setBanInput}
-                  placeholder=”Kullanıcı ID (Firebase UID)”
+                  placeholder="Kullanıcı ID (Firebase UID)"
                   placeholderTextColor={Colors.muted}
-                  autoCapitalize=”none”
+                  autoCapitalize="none"
                   autoCorrect={false}
-                  style={{ borderWidth: 1, borderColor: “#fca5a5”, borderRadius: 8,
-                    paddingHorizontal: 10, paddingVertical: 8, color: “#111”, fontSize: 12 }}
+                  style={{ borderWidth: 1, borderColor: "#fca5a5", borderRadius: 8,
+                    paddingHorizontal: 10, paddingVertical: 8, color: "#111", fontSize: 12 }}
                 />
                 <TextInput
                   value={banReason}
                   onChangeText={setBanReason}
-                  placeholder=”Sebep (opsiyonel)”
+                  placeholder="Sebep (opsiyonel)"
                   placeholderTextColor={Colors.muted}
-                  style={{ borderWidth: 1, borderColor: “#e5e7eb”, borderRadius: 8,
-                    paddingHorizontal: 10, paddingVertical: 8, color: “#111”, fontSize: 12 }}
+                  style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8,
+                    paddingHorizontal: 10, paddingVertical: 8, color: "#111", fontSize: 12 }}
                 />
                 <TouchableOpacity
                   onPress={banUser}
                   disabled={banBusy || !banInput.trim()}
-                  style={{ paddingVertical: 10, borderRadius: 8, alignItems: “center”,
-                    backgroundColor: banInput.trim() ? “#dc2626” : “#f5f5f5”,
+                  style={{ paddingVertical: 10, borderRadius: 8, alignItems: "center",
+                    backgroundColor: banInput.trim() ? "#dc2626" : "#f5f5f5",
                     opacity: banBusy ? 0.6 : 1 }}
                 >
-                  <Text style={{ fontWeight: “900”, fontSize: 13,
-                    color: banInput.trim() ? “#fff” : Colors.muted }}>
-                    {banBusy ? “...” : “Engelle”}
+                  <Text style={{ fontWeight: "900", fontSize: 13,
+                    color: banInput.trim() ? "#fff" : Colors.muted }}>
+                    {banBusy ? "..." : "Engelle"}
                   </Text>
                 </TouchableOpacity>
 
                 {banMsg && (
-                  <Text style={{ fontSize: 12, color: banMsg.startsWith(“✅”) ? “#16a34a” : “#dc2626” }}>
+                  <Text style={{ fontSize: 12, color: banMsg.startsWith("✅") ? "#16a34a" : "#dc2626" }}>
                     {banMsg}
                   </Text>
                 )}
 
                 {/* Engellenen liste */}
-                <View style={{ flexDirection: “row”, justifyContent: “space-between”, alignItems: “center”, marginTop: 4 }}>
-                  <Text style={{ fontSize: 11, fontWeight: “700”, color: Colors.muted }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: Colors.muted }}>
                     ENGELLENENLer ({bannedList.length})
                   </Text>
                   <TouchableOpacity onPress={loadBannedList}>
                     <Text style={{ fontSize: 11, color: Colors.primary }}>
-                      {bannedLoading ? “...” : “Yenile”}
+                      {bannedLoading ? "..." : "Yenile"}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
                 {bannedList.map(b => (
-                  <View key={b.userId} style={{ flexDirection: “row”, alignItems: “center”, gap: 8,
-                    backgroundColor: “#fff5f5”, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 }}>
+                  <View key={b.userId} style={{ flexDirection: "row", alignItems: "center", gap: 8,
+                    backgroundColor: "#fff5f5", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 11, fontWeight: “700”, color: “#7f1d1d” }} numberOfLines={1}>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: "#7f1d1d" }} numberOfLines={1}>
                         {b.userId}
                       </Text>
                       {b.reason && (
-                        <Text style={{ fontSize: 10, color: “#b91c1c” }}>{b.reason}</Text>
+                        <Text style={{ fontSize: 10, color: "#b91c1c" }}>{b.reason}</Text>
                       )}
                     </View>
                     <TouchableOpacity onPress={() => unbanUser(b.userId)}
-                      style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: “#fecaca” }}>
-                      <Text style={{ fontSize: 11, fontWeight: “800”, color: “#7f1d1d” }}>Kaldır</Text>
+                      style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#fecaca" }}>
+                      <Text style={{ fontSize: 11, fontWeight: "800", color: "#7f1d1d" }}>Kaldır</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
