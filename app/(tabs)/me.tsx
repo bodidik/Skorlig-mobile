@@ -172,6 +172,57 @@ export default function Me() {
     Alert.alert("Admin token", t ? "Kaydedildi." : "Silindi.");
   }, [adminTokenInput]);
 
+  const loadBannedList = useCallback(async () => {
+    setBannedLoading(true);
+    try {
+      const base = await getApiBase();
+      const tok  = await getAdminToken();
+      const r    = await fetch(`${base}/api/admin/banned`, { headers: { "x-admin-token": tok } });
+      const j    = await r.json();
+      if (j?.ok) setBannedList(j.items ?? []);
+    } catch {}
+    setBannedLoading(false);
+  }, []);
+
+  const banUser = useCallback(async () => {
+    const uid = banInput.trim();
+    if (!uid) return;
+    setBanBusy(true);
+    setBanMsg(null);
+    try {
+      const base = await getApiBase();
+      const tok  = await getAdminToken();
+      const r    = await fetch(`${base}/api/admin/ban`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-token": tok },
+        body: JSON.stringify({ userId: uid, reason: banReason.trim() || null }),
+      });
+      const j = await r.json();
+      if (j?.ok) {
+        setBanMsg(j.already ? "Zaten engelliydi." : `✅ ${uid} engellendi.`);
+        setBanInput("");
+        setBanReason("");
+        loadBannedList();
+      } else {
+        setBanMsg(`Hata: ${j.error}`);
+      }
+    } catch (e: any) { setBanMsg(e.message); }
+    setBanBusy(false);
+  }, [banInput, banReason, loadBannedList]);
+
+  const unbanUser = useCallback(async (uid: string) => {
+    try {
+      const base = await getApiBase();
+      const tok  = await getAdminToken();
+      await fetch(`${base}/api/admin/unban`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-token": tok },
+        body: JSON.stringify({ userId: uid }),
+      });
+      loadBannedList();
+    } catch {}
+  }, [loadBannedList]);
+
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [teamInput, setTeamInput] = useState("");
@@ -197,6 +248,15 @@ export default function Me() {
   const [buying, setBuying] = useState<string | null>(null);
 
   const [predCount, setPredCount] = useState<number | null>(null);
+
+  // Ban yönetimi
+  const [banInput, setBanInput]         = useState("");
+  const [banReason, setBanReason]       = useState("");
+  const [banBusy, setBanBusy]           = useState(false);
+  const [banMsg, setBanMsg]             = useState<string | null>(null);
+  const [bannedList, setBannedList]     = useState<{userId:string;reason:string|null;bannedAt:string}[]>([]);
+  const [bannedLoading, setBannedLoading] = useState(false);
+  const [showBanPanel, setShowBanPanel] = useState(false);
   const [predCountLoading, setPredCountLoading] = useState(false);
 
   const [pendingCount, setPendingCount] = useState<number | null>(null);
@@ -766,6 +826,91 @@ export default function Me() {
             <Text style={{ fontSize: 11, color: Colors.muted }}>
               Kullanıcı ekranda “Sonuç girilmesi bekleniyor” görür; admin burada pending listeden sonucu girer.
             </Text>
+
+            {/* ── Kullanıcı Engelle ── */}
+            <TouchableOpacity
+              onPress={() => { setShowBanPanel(v => !v); if (!showBanPanel) loadBannedList(); }}
+              style={{ flexDirection: “row”, justifyContent: “space-between”, alignItems: “center”,
+                paddingVertical: 8, borderTopWidth: 1, borderTopColor: “#e5e7eb”, marginTop: 4 }}
+            >
+              <Text style={{ fontWeight: “800”, fontSize: 13, color: “#dc2626” }}>🚫 Kullanıcı Engelle</Text>
+              <Text style={{ fontSize: 12, color: Colors.muted }}>{showBanPanel ? “▲” : “▼”}</Text>
+            </TouchableOpacity>
+
+            {showBanPanel && (
+              <View style={{ gap: 8 }}>
+                <TextInput
+                  value={banInput}
+                  onChangeText={setBanInput}
+                  placeholder=”Kullanıcı ID (Firebase UID)”
+                  placeholderTextColor={Colors.muted}
+                  autoCapitalize=”none”
+                  autoCorrect={false}
+                  style={{ borderWidth: 1, borderColor: “#fca5a5”, borderRadius: 8,
+                    paddingHorizontal: 10, paddingVertical: 8, color: “#111”, fontSize: 12 }}
+                />
+                <TextInput
+                  value={banReason}
+                  onChangeText={setBanReason}
+                  placeholder=”Sebep (opsiyonel)”
+                  placeholderTextColor={Colors.muted}
+                  style={{ borderWidth: 1, borderColor: “#e5e7eb”, borderRadius: 8,
+                    paddingHorizontal: 10, paddingVertical: 8, color: “#111”, fontSize: 12 }}
+                />
+                <TouchableOpacity
+                  onPress={banUser}
+                  disabled={banBusy || !banInput.trim()}
+                  style={{ paddingVertical: 10, borderRadius: 8, alignItems: “center”,
+                    backgroundColor: banInput.trim() ? “#dc2626” : “#f5f5f5”,
+                    opacity: banBusy ? 0.6 : 1 }}
+                >
+                  <Text style={{ fontWeight: “900”, fontSize: 13,
+                    color: banInput.trim() ? “#fff” : Colors.muted }}>
+                    {banBusy ? “...” : “Engelle”}
+                  </Text>
+                </TouchableOpacity>
+
+                {banMsg && (
+                  <Text style={{ fontSize: 12, color: banMsg.startsWith(“✅”) ? “#16a34a” : “#dc2626” }}>
+                    {banMsg}
+                  </Text>
+                )}
+
+                {/* Engellenen liste */}
+                <View style={{ flexDirection: “row”, justifyContent: “space-between”, alignItems: “center”, marginTop: 4 }}>
+                  <Text style={{ fontSize: 11, fontWeight: “700”, color: Colors.muted }}>
+                    ENGELLENENLer ({bannedList.length})
+                  </Text>
+                  <TouchableOpacity onPress={loadBannedList}>
+                    <Text style={{ fontSize: 11, color: Colors.primary }}>
+                      {bannedLoading ? “...” : “Yenile”}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {bannedList.map(b => (
+                  <View key={b.userId} style={{ flexDirection: “row”, alignItems: “center”, gap: 8,
+                    backgroundColor: “#fff5f5”, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: “700”, color: “#7f1d1d” }} numberOfLines={1}>
+                        {b.userId}
+                      </Text>
+                      {b.reason && (
+                        <Text style={{ fontSize: 10, color: “#b91c1c” }}>{b.reason}</Text>
+                      )}
+                    </View>
+                    <TouchableOpacity onPress={() => unbanUser(b.userId)}
+                      style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: “#fecaca” }}>
+                      <Text style={{ fontSize: 11, fontWeight: “800”, color: “#7f1d1d” }}>Kaldır</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+
+                {!bannedLoading && bannedList.length === 0 && (
+                  <Text style={{ fontSize: 11, color: Colors.muted }}>Engellenen kullanıcı yok.</Text>
+                )}
+              </View>
+            )}
           </View>
         )}
 
