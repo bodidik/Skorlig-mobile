@@ -630,6 +630,30 @@ return (
             🕐 {new Date(paramKickoff || nextMatch?.kickoffISO || "").toLocaleString("tr-TR", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
           </Text>
         ) : null}
+
+        {/* Duello butonu */}
+        {fixtureId ? (
+          <TouchableOpacity
+            onPress={() => router.push({
+              pathname: "/duel/[fixtureId]",
+              params: {
+                fixtureId,
+                home: paramHome || nextMatch?.home || "",
+                away: paramAway || nextMatch?.away || "",
+                league: paramLeague || "",
+                kickoffISO: paramKickoff || nextMatch?.kickoffISO || "",
+              },
+            })}
+            style={{
+              marginTop: 6, flexDirection: "row", alignItems: "center", gap: 6,
+              backgroundColor: "#1e293b", borderRadius: 999,
+              paddingHorizontal: 14, paddingVertical: 7, alignSelf: "center",
+            }}
+          >
+            <Text style={{ fontSize: 14 }}>⚔️</Text>
+            <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>Duello Modu</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     ) : (
       <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900, marginBottom: 4 }}>
