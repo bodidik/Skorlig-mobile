@@ -143,10 +143,11 @@ export default function PredictScreen() {
   const [myPredDetail, setMyPredDetail] = useState<any | null>(null);
   const [showMyPred, setShowMyPred] = useState(false);
 
-  // Topluluk istatistikleri (sonuç dağılımı)
+  // Topluluk istatistikleri (sonuç + skor dağılımı)
   const [communityStats, setCommunityStats] = useState<{
     total: number; H: number; D: number; A: number;
   } | null>(null);
+  const [scoreDist, setScoreDist] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (redAny !== true) setRedSide(null);
@@ -272,8 +273,8 @@ export default function PredictScreen() {
         setHasPredByMe(!!myRec);
         setMyPredDetail(myRec || null);
 
-        // Topluluk sonuç dağılımı (bot olmayan tahminler)
-        const humans = list.filter((p: any) => !p.isBot && p.outcome);
+        // Topluluk dağılımı — bot olmayan tahminler
+        const humans = list.filter((p: any) => !p.isBot);
         const stats = { total: 0, H: 0, D: 0, A: 0 };
         for (const p of humans) {
           const oc = String(p.outcome || "").toUpperCase();
@@ -283,6 +284,16 @@ export default function PredictScreen() {
           }
         }
         setCommunityStats(stats.total >= 2 ? stats : null);
+
+        // Skor dağılımı
+        const sMap = new Map<string, number>();
+        for (const p of humans) {
+          if (p.home != null && p.away != null) {
+            const key = `${p.home}-${p.away}`;
+            sMap.set(key, (sMap.get(key) || 0) + 1);
+          }
+        }
+        setScoreDist(sMap);
       } else {
         setHasPredByMe(null);
         setMyPredDetail(null);
@@ -439,12 +450,37 @@ useEffect(() => {
   const mustPayForMatch = matchCost > 0 && hasPredByMe === false;
   const lcInsufficient = mustPayForMatch && currentBalance < matchCost;
 
-  // Seçilen tahminlerin potansiyel kazanç / risk hesabı
+  // Topluluk çarpanı hesaplamaları (backend ile aynı formül)
+  function getOutcomeMultiplier(oc: "H" | "D" | "A"): number {
+    if (!communityStats || communityStats.total < 5) return 1.0;
+    const n = communityStats[oc];
+    if (!n) return 4.0;
+    const raw = (communityStats.total / 3) / n;
+    return Math.max(0.35, Math.min(4.0, raw));
+  }
+  function getScoreMultiplier(h: string, a: string): number {
+    if (!communityStats || communityStats.total < 5) return 1.0;
+    const key = `${h}-${a}`;
+    const n = scoreDist.get(key) || 0;
+    if (!n) return 2.5;
+    const fairShare = communityStats.total * 0.05;
+    const raw = fairShare / n;
+    return Math.max(0.6, Math.min(2.5, raw));
+  }
+  function fmtPts(n: number) { return Math.round(n * 10) / 10; }
+
+  // Seçilen tahminlerin potansiyel kazanç / risk hesabı (çarpanlı)
   function calcSelection() {
     let gain = 0, risk = 0;
-    if (outcome !== null) { gain += 3; risk += 1; }
+    if (outcome !== null) {
+      gain += fmtPts(3 * getOutcomeMultiplier(outcome));
+      risk += 1;
+    }
     const hasScore = homeScore.trim() !== "" && awayScore.trim() !== "";
-    if (hasScore) { gain += 12; risk += 0.1; }
+    if (hasScore) {
+      gain += fmtPts(12 * getScoreMultiplier(homeScore.trim(), awayScore.trim()));
+      risk += 0.1;
+    }
     if (firstGoal !== null) { gain += 1; risk += 0.2; }
     if (firstHalf !== null) { gain += 2; risk += 0.4; }
     if (redAny !== null) { gain += 1.5; risk += 0.3; }
@@ -454,7 +490,7 @@ useEffect(() => {
     const count = (outcome !== null ? 1 : 0) + (hasScore ? 1 : 0) +
       (firstGoal !== null ? 1 : 0) + (firstHalf !== null ? 1 : 0) +
       (redAny !== null ? 1 : 0) + (penaltyAny !== null ? 1 : 0);
-    return { gain: Math.round(gain * 10) / 10, risk: Math.round(risk * 10) / 10, count };
+    return { gain: fmtPts(gain), risk: fmtPts(risk), count };
   }
   const sel = calcSelection();
 
@@ -623,6 +659,8 @@ return (
               {cols.map(({ label, key, n, color }) => {
                 const p = pct(n);
                 const isSelected = outcome === key;
+                const mult = getOutcomeMultiplier(key);
+                const estPts = fmtPts(3 * mult);
                 return (
                   <TouchableOpacity
                     key={key}
@@ -635,10 +673,11 @@ return (
                       backgroundColor: isSelected ? color + "22" : "#0f172a",
                       padding: 8,
                       alignItems: "center",
-                      gap: 4,
+                      gap: 3,
                     }}
                   >
-                    <Text style={{ color, fontWeight: "900", fontSize: 15 }}>{oddsFmt(n)}</Text>
+                    <Text style={{ color, fontWeight: "900", fontSize: 15 }}>+{estPts}</Text>
+                    <Text style={{ color: "#475569", fontSize: 9 }}>puan</Text>
                     <View style={{ width: "100%", height: 4, borderRadius: 2, backgroundColor: "#1e293b" }}>
                       <View style={{ width: `${p}%` as any, height: 4, borderRadius: 2, backgroundColor: color }} />
                     </View>
@@ -663,23 +702,37 @@ return (
       <View style={{ padding: 12, gap: 6 }}>
         <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "700", letterSpacing: 1, marginBottom: 2 }}>PUAN REHBERİ</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-          {[
-            { label: "Sonuç (1X2)", win: "+3", lose: "-1" },
-            { label: "Tam Skor", win: "+12", lose: "-0.1" },
-            { label: "İlk Gol", win: "+1", lose: "-0.2" },
-            { label: "İlk Yarı", win: "+2", lose: "-0.4" },
-            { label: "Kırmızı K.", win: "+1.5", lose: "-0.3" },
-            { label: "Penaltı", win: "+1.5", lose: "-0.3" },
-          ].map(({ label, win, lose }) => (
-            <View key={label} style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#1e293b", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
-              <Text style={{ color: "#94a3b8", fontSize: 10 }}>{label}</Text>
+          {(() => {
+            const hasScore = homeScore.trim() !== "" && awayScore.trim() !== "";
+            const scoreMult = hasScore ? getScoreMultiplier(homeScore.trim(), awayScore.trim()) : 1.0;
+            const scoreWin = hasScore ? `+${fmtPts(12 * scoreMult)}` : "+12×";
+            const outMult = outcome ? getOutcomeMultiplier(outcome) : 1.0;
+            const outWin = outcome ? `+${fmtPts(3 * outMult)}` : "+3×";
+            return [
+              { label: "Sonuç (1X2)", win: outWin, lose: "-1", highlight: outcome !== null },
+              { label: "Tam Skor", win: scoreWin, lose: "-0.1", highlight: hasScore },
+              { label: "İlk Gol", win: "+1", lose: "-0.2", highlight: firstGoal !== null },
+              { label: "İlk Yarı", win: "+2", lose: "-0.4", highlight: firstHalf !== null },
+              { label: "Kırmızı K.", win: "+1.5", lose: "-0.3", highlight: redAny !== null },
+              { label: "Penaltı", win: "+1.5", lose: "-0.3", highlight: penaltyAny !== null },
+            ];
+          })().map(({ label, win, lose, highlight }) => (
+            <View key={label} style={{
+              flexDirection: "row", alignItems: "center", gap: 4,
+              backgroundColor: highlight ? "#1e3a5f" : "#1e293b",
+              borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4,
+              borderWidth: highlight ? 1 : 0, borderColor: "#3b82f644",
+            }}>
+              <Text style={{ color: highlight ? "#cbd5e1" : "#94a3b8", fontSize: 10 }}>{label}</Text>
               <Text style={{ color: "#4ade80", fontSize: 10, fontWeight: "700" }}>{win}</Text>
               <Text style={{ color: "#64748b", fontSize: 10 }}>/</Text>
               <Text style={{ color: "#f87171", fontSize: 10 }}>{lose}</Text>
             </View>
           ))}
         </View>
-        <Text style={{ color: "#475569", fontSize: 10, marginTop: 2 }}>Toplam maks: 22 puan · Ülke çarpanı uygulanabilir</Text>
+        <Text style={{ color: "#475569", fontSize: 10, marginTop: 2 }}>
+          × = topluluk nadir/kolay çarpanı · Ülke katsayısı da uygulanır
+        </Text>
       </View>
 
       {/* Seçime göre potansiyel */}
