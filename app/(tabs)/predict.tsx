@@ -113,6 +113,15 @@ export default function PredictScreen() {
   const [matchError, setMatchError] = useState<string | null>(null);
   const [matchNote, setMatchNote] = useState<string | null>(null);
 
+  // Seri (streak) durumu
+  const [streak, setStreak] = useState<{
+    seriesCount: number;
+    seriesCumOdds: number;
+    activeSeries: boolean;
+    bestSeries: number;
+    currentTier: { label: string; badge: string | null } | null;
+  } | null>(null);
+
   // Skor: isteğe bağlı
   const [homeScore, setHomeScore] = useState<string>("");
   const [awayScore, setAwayScore] = useState<string>("");
@@ -177,6 +186,30 @@ export default function PredictScreen() {
     if (typeof d.penaltyAny === "boolean") setPenaltyAny(d.penaltyAny);
     if (d.penaltySide) setPenaltySide(String(d.penaltySide).toUpperCase() as Side);
   }, [myPredDetail, fixtureId]);
+
+  // Seri bilgisini çek
+  useEffect(() => {
+    const uid = userId.trim();
+    if (!uid) { setStreak(null); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const r = await apiFetch(`/api/live/streak?userId=${encodeURIComponent(uid)}`).then(x => x.json());
+        if (alive && r?.ok) {
+          setStreak({
+            seriesCount: r.seriesCount ?? 0,
+            seriesCumOdds: r.seriesCumOdds ?? 0,
+            activeSeries: r.activeSeries ?? false,
+            bestSeries: r.bestSeries ?? 0,
+            currentTier: r.currentTier ?? null,
+          });
+        }
+      } catch {
+        if (alive) setStreak(null);
+      }
+    })();
+    return () => { alive = false; };
+  }, [userId]);
 
   // Admin'in bu maça yazdığı herkese açık notu çek
   useEffect(() => {
@@ -469,21 +502,26 @@ useEffect(() => {
   const lcInsufficient = mustPayForMatch && currentBalance < matchCost;
 
   // Topluluk çarpanı hesaplamaları (backend ile aynı formül)
+  // NOT: Formüller backend (settle2.cjs) ile birebir aynı olmalı; yoksa
+  // gösterilen "+X puan" gerçekleşenle tutmaz. Güven-harmanı: <5 katılımcıda
+  // çarpan 1.0'a yaklaştırılır ama düz kesilmez (soğuk başlangıç).
   function getOutcomeMultiplier(oc: "H" | "D" | "A"): number {
-    if (!communityStats || communityStats.total < 5) return 1.0;
+    if (!communityStats || communityStats.total < 2) return 1.0;
+    const conf = Math.min(1, communityStats.total / 5);
     const n = communityStats[oc];
-    if (!n) return 4.0;
-    const raw = (communityStats.total / 3) / n;
-    return Math.max(0.35, Math.min(4.0, raw));
+    const raw = !n ? 4.0 : (communityStats.total / 3) / n;
+    const damped = 1 + (raw - 1) * conf;
+    return Math.max(0.35, Math.min(4.0, damped));
   }
   function getScoreMultiplier(h: string, a: string): number {
-    if (!communityStats || communityStats.total < 5) return 1.0;
+    if (!communityStats || communityStats.total < 2) return 1.0;
+    const conf = Math.min(1, communityStats.total / 5);
     const key = `${h}-${a}`;
     const n = scoreDist.get(key) || 0;
-    if (!n) return 2.5;
     const fairShare = communityStats.total * 0.05;
-    const raw = fairShare / n;
-    return Math.max(0.6, Math.min(2.5, raw));
+    const raw = !n ? 2.5 : fairShare / n;
+    const damped = 1 + (raw - 1) * conf;
+    return Math.max(0.6, Math.min(2.5, damped));
   }
   function fmtPts(n: number) { return Math.round(n * 10) / 10; }
 
@@ -925,6 +963,50 @@ return (
           </Text>
         )}
       </View>
+
+      {/* 🔥 Seri rozeti */}
+      {streak && streak.activeSeries && streak.seriesCount > 0 && (
+        <View style={{
+          marginTop: 4, paddingHorizontal: 14, paddingVertical: 10,
+          borderRadius: 12, borderWidth: 1,
+          borderColor: streak.currentTier ? "#f59e0b88" : "#3b82f644",
+          backgroundColor: streak.currentTier ? "#1a150a" : "#0a1a2a",
+          flexDirection: "row", alignItems: "center", gap: 10,
+        }}>
+          <Text style={{ fontSize: 22 }}>
+            {streak.currentTier ? (streak.currentTier.label === "Durdurulamıyor" ? "💥" : "🔥") : "🔥"}
+          </Text>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={{ color: streak.currentTier ? "#fbbf24" : "#60a5fa", fontWeight: "900", fontSize: 14 }}>
+                {streak.seriesCount} maçlık seri
+              </Text>
+              {streak.currentTier && (
+                <View style={{ backgroundColor: "#f59e0b33", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+                  <Text style={{ color: "#fbbf24", fontSize: 10, fontWeight: "800" }}>
+                    {streak.currentTier.label}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
+              Seri puanı: {streak.seriesCumOdds.toFixed(1)} · En iyi: {streak.bestSeries.toFixed(1)}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Giriş iadesi bilgisi */}
+      {matchCost > 0 && (
+        <View style={{
+          marginTop: 4, paddingHorizontal: 14, paddingVertical: 8,
+          borderRadius: 10, backgroundColor: "#071a0f", borderWidth: 1, borderColor: "#22c55e44",
+        }}>
+          <Text style={{ color: "#4ade80", fontSize: 11, fontWeight: "600" }}>
+            💰 Bir şey bilirsen giriş bedelin ({matchCost} LC) geri yatar — kazancının üstüne ayrıca iade edilir.
+          </Text>
+        </View>
+      )}
 
       {/* LC uyarı metni */}
       {mustPayForMatch && (
