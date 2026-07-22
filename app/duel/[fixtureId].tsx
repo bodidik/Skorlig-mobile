@@ -18,6 +18,8 @@ type Duel = {
   fixtureId: string;
   stake: number;
   pot: number;
+  houseCut: number;
+  winAmount: number;
   creatorId: string;
   creatorName: string | null;
   challengedId: string | null;
@@ -211,10 +213,11 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel }:
         <Text style={{ color: "#f59e0b", fontWeight: "900", fontSize: 16 }}>
           🪙 {duel.stake} LC
         </Text>
-        <Text style={{ color: "#334155", fontSize: 13 }}>×2 =</Text>
+        <Text style={{ color: "#334155", fontSize: 13 }}>→</Text>
         <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 16 }}>
-          {duel.pot} LC
+          {duel.winAmount ?? Math.round(duel.pot * 0.95 * 10) / 10} LC
         </Text>
+        <Text style={{ color: "#334155", fontSize: 10 }}>(%5 kasa)</Text>
         <View style={{ position: "absolute", right: 12 }}>
           <View style={{
             borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3,
@@ -285,7 +288,7 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel }:
             {tied
               ? "🤝 Berabere — LC'ler iade edildi"
               : iWon
-              ? `🏆 Kazandın! +${duel.pot} LC`
+              ? `🏆 Kazandın! +${duel.winAmount ?? Math.round(duel.pot * 0.95 * 10) / 10} LC`
               : `❌ Kaybettin — ${duel.stake} LC`}
           </Text>
         </View>
@@ -419,7 +422,8 @@ export default function DuelScreen() {
       showToast(j?.error || "Kabul edilemedi", false);
       return;
     }
-    showToast("Düello başladı! 🏆 En yüksek puanı yapan kazanır");
+    const prize = duel.winAmount ?? Math.round(duel.pot * 0.95 * 10) / 10;
+    showToast(`Düello başladı! 🏆 Kazanan ${prize} LC alır`);
     loadAll();
   }
 
@@ -560,8 +564,9 @@ export default function DuelScreen() {
               <View style={{ flex: 1, backgroundColor: "#0f172a", padding: 12, alignItems: "center" }}>
                 <Text style={{ color: "#475569", fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>KAZANIRSAN</Text>
                 <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 22, marginTop: 2 }}>
-                  {selectedStake * 2} LC
+                  {Math.round(selectedStake * 2 * 0.95 * 10) / 10} LC
                 </Text>
+                <Text style={{ color: "#334155", fontSize: 9, marginTop: 1 }}>%5 kasa payı düşüldü</Text>
               </View>
             </View>
 
