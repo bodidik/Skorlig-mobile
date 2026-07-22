@@ -227,6 +227,14 @@ export default function Me() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [teamInput, setTeamInput] = useState("");
   const [countries, setCountries] = useState<CountryOpt[]>([]);
+
+  // Zengin ülke + takım seçici
+  type RichCountry = { code: string; name: string; localName: string; flag: string; lang: string; topLeague: string };
+  const [richCountries, setRichCountries]   = useState<RichCountry[]>([]);
+  const [countryTeams, setCountryTeams]     = useState<string[]>([]);
+  const [teamsLoading, setTeamsLoading]     = useState(false);
+  const [teamSearch, setTeamSearch]         = useState("");
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
   const [countrySaving, setCountrySaving] = useState(false);
   const [miniWins, setMiniWins] = useState<MiniWin[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -454,6 +462,33 @@ export default function Me() {
     })();
   }, []);
 
+  // Zengin ülke + takım listesi (yeni seçici)
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await apiFetch(`/api/teams/countries`).then(x => x.json());
+        setRichCountries(r?.ok && Array.isArray(r.items) ? r.items : []);
+      } catch {
+        setRichCountries([]);
+      }
+    })();
+  }, []);
+
+  // Profil yüklenince ülkeye ait takımları önceden doldur
+  useEffect(() => {
+    if (profile?.country && !countryTeams.length) {
+      setSelectedCountryCode(profile.country);
+      (async () => {
+        setTeamsLoading(true);
+        try {
+          const r = await apiFetch(`/api/teams/by-country?country=${profile.country}`).then(x => x.json());
+          setCountryTeams(r?.teams || []);
+        } catch {}
+        setTeamsLoading(false);
+      })();
+    }
+  }, [profile?.country]);
+
   // LC mağazası paketleri
   useEffect(() => {
     (async () => {
@@ -546,6 +581,35 @@ export default function Me() {
       } else Alert.alert("Hata", r?.error || "SAVE_FAILED");
     } catch (e: any) {
       Alert.alert("Hata", String(e?.message || e));
+    }
+  }
+
+  async function saveTeamAndCountry(team: string, countryCode: string) {
+    try {
+      setCountrySaving(true);
+      const [r1, r2] = await Promise.all([
+        apiFetch(`/api/users/set-main-team`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, team }),
+        }).then(x => x.json()),
+        apiFetch(`/api/users/set-country`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, country: countryCode }),
+        }).then(x => x.json()),
+      ]);
+      if (r1?.ok && r2?.ok) {
+        setTeamInput(team);
+        Alert.alert("SkorLig", `${team} (${countryCode}) kaydedildi`);
+        load();
+      } else {
+        Alert.alert("Hata", r1?.error || r2?.error || "SAVE_FAILED");
+      }
+    } catch (e: any) {
+      Alert.alert("Hata", String(e?.message || e));
+    } finally {
+      setCountrySaving(false);
     }
   }
 
@@ -1126,7 +1190,7 @@ export default function Me() {
           ) : null}
         </View>
 
-        {/* Ana takım kartı */}
+        {/* Takımım & Ülkem — kombine seçici */}
         <View
           style={{
             padding: 12,
@@ -1134,90 +1198,148 @@ export default function Me() {
             borderRadius: 12,
             borderWidth: 1,
             borderColor: Colors.border,
-            gap: 8,
+            gap: 10,
           }}
         >
-          <Text style={{ fontWeight: "700" }}>Ana Takım</Text>
-          <TextInput
-            placeholder="Galatasaray / Barcelona / ..."
-            value={teamInput}
-            onChangeText={setTeamInput}
-            style={{
-              borderWidth: 1,
-              borderColor: Colors.border,
-              borderRadius: 8,
-              padding: 8,
-            }}
-          />
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <TouchableOpacity
-              onPress={saveMainTeam}
-              style={{ flex: 1, padding: 10, backgroundColor: Colors.live, borderRadius: 10 }}
-            >
-              <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>Kaydet</Text>
-            </TouchableOpacity>
-
-            {!!profile?.mainTeam && (
-              <TouchableOpacity
-                onPress={() => nav.push({ pathname: "/stats/team", params: { team: profile!.mainTeam! } })}
-                style={{ flex: 1, padding: 10, backgroundColor: Colors.accent, borderRadius: 10 }}
-              >
-                <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
-                  {profile!.mainTeam} Paneli
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        {/* Ülkem kartı (yerel görünüm) */}
-        <View
-          style={{
-            padding: 12,
-            backgroundColor: "#fff",
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: Colors.border,
-            gap: 8,
-          }}
-        >
-          <Text style={{ fontWeight: "700" }}>Ülkem (Yerel Görünüm)</Text>
+          <Text style={{ fontWeight: "700" }}>Takımım & Ülkem</Text>
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Maçlar sekmesi seçtiğin ülkenin ligi + global yarışlar (Dünya Kupası, Şampiyonlar Ligi...)
-            olarak kişiselleşir. Türkiye'deki kullanıcı Galatasaray'ı, İtalya'daki Napoli'yi görür.
+            Takımının maçları her zaman önde çıkar. Ülkeni seç, sonra takımını belirle.
           </Text>
-          {profile?.country ? (
-            <Text style={{ color: Colors.slate900, fontSize: 12, fontWeight: "600" }}>
-              Seçili: {countries.find((c) => c.country === profile.country)?.flag || ""} {profile.country}
-            </Text>
-          ) : (
-            <Text style={{ color: Colors.muted, fontSize: 12 }}>Henüz seçilmedi (tüm izinli ligler görünür).</Text>
+
+          {/* Mevcut kayıtlı seçimler */}
+          {(profile?.mainTeam || profile?.country) && (
+            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+              {profile?.country && (
+                <View style={{
+                  paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+                  backgroundColor: "#edf4ff", borderWidth: 1, borderColor: Colors.accent,
+                }}>
+                  <Text style={{ fontWeight: "600", fontSize: 12 }}>
+                    {richCountries.find(c => c.code === profile.country)?.flag || "🌍"} {profile.country}
+                  </Text>
+                </View>
+              )}
+              {profile?.mainTeam && (
+                <View style={{
+                  paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+                  backgroundColor: Colors.accent,
+                }}>
+                  <Text style={{ fontWeight: "600", fontSize: 12, color: "#fff" }}>
+                    ⚽ {profile.mainTeam}
+                  </Text>
+                </View>
+              )}
+              {!!profile?.mainTeam && (
+                <TouchableOpacity
+                  onPress={() => nav.push({ pathname: "/stats/team", params: { team: profile!.mainTeam! } })}
+                  style={{
+                    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+                    backgroundColor: Colors.live,
+                  }}
+                >
+                  <Text style={{ fontWeight: "600", fontSize: 12, color: "#fff" }}>
+                    {profile.mainTeam} Paneli →
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            {countries.map((c) => {
-              const active = profile?.country === c.country;
+
+          {/* Ülke seçici — yatay kaydırmalı */}
+          <Text style={{ fontSize: 12, color: Colors.muted, fontWeight: "600" }}>Ülke seç:</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginHorizontal: -12 }}
+            contentContainerStyle={{ paddingHorizontal: 12, flexDirection: "row", gap: 6 }}
+          >
+            {richCountries.map(c => {
+              const active = selectedCountryCode === c.code;
               return (
                 <TouchableOpacity
-                  key={c.country}
-                  disabled={countrySaving}
-                  onPress={() => saveCountry(c.country)}
+                  key={c.code}
+                  onPress={async () => {
+                    setSelectedCountryCode(c.code);
+                    setCountryTeams([]);
+                    setTeamSearch("");
+                    setTeamsLoading(true);
+                    try {
+                      const r = await apiFetch(`/api/teams/by-country?country=${c.code}`).then(x => x.json());
+                      setCountryTeams(r?.teams || []);
+                    } catch {}
+                    setTeamsLoading(false);
+                  }}
                   style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 6,
-                    borderRadius: 999,
+                    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
                     borderWidth: 1,
                     borderColor: active ? Colors.accent : Colors.border,
                     backgroundColor: active ? Colors.accent : "#fff",
-                    opacity: countrySaving ? 0.6 : 1,
                   }}
                 >
                   <Text style={{ fontSize: 12, fontWeight: "600", color: active ? "#fff" : Colors.slate900 }}>
-                    {c.flag} {c.country}
+                    {c.flag} {c.localName}
                   </Text>
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </ScrollView>
+
+          {/* Takım listesi — ülke seçilince açılır */}
+          {!!selectedCountryCode && (
+            <>
+              <TextInput
+                placeholder="Takım ara..."
+                value={teamSearch}
+                onChangeText={setTeamSearch}
+                style={{
+                  borderWidth: 1, borderColor: Colors.border,
+                  borderRadius: 8, padding: 8,
+                }}
+              />
+              {teamsLoading ? (
+                <ActivityIndicator size="small" color={Colors.accent} />
+              ) : (
+                <View style={{ gap: 4 }}>
+                  {(teamSearch
+                    ? countryTeams.filter(t => t.toLowerCase().includes(teamSearch.toLowerCase()))
+                    : countryTeams
+                  ).slice(0, 12).map(team => {
+                    const active = teamInput === team;
+                    return (
+                      <TouchableOpacity
+                        key={team}
+                        onPress={() => setTeamInput(active ? "" : team)}
+                        style={{
+                          padding: 10, borderWidth: 1, borderRadius: 8,
+                          borderColor: active ? Colors.accent : Colors.border,
+                          backgroundColor: active ? "#edf4ff" : "#fff",
+                        }}
+                      >
+                        <Text style={{ fontWeight: active ? "700" : "400", color: active ? Colors.accent : Colors.slate900 }}>
+                          {team}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
+              {!!teamInput && (
+                <TouchableOpacity
+                  onPress={() => saveTeamAndCountry(teamInput, selectedCountryCode)}
+                  disabled={countrySaving}
+                  style={{
+                    padding: 12, backgroundColor: Colors.live, borderRadius: 10,
+                    opacity: countrySaving ? 0.6 : 1,
+                  }}
+                >
+                  <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
+                    {countrySaving ? "Kaydediliyor..." : `⚽ ${teamInput} — kaydet`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
 
         <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>

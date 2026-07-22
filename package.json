@@ -22,6 +22,7 @@
     "expo-camera": "~17.0.8",
     "expo-clipboard": "~8.0.7",
     "expo-file-system": "~19.0.17",
+    "expo-localization": "^57.0.1",
     "expo-media-library": "~18.2.0",
     "expo-notifications": "~0.32.12",
     "expo-router": "^6.0.14",

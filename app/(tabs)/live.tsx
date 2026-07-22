@@ -22,6 +22,7 @@ import TournamentJoin from "../../components/TournamentJoin";
 import Picks1987 from "../../components/Picks1987";
 import GuestBanner from "../../components/GuestBanner";
 import { useAuth } from "../../contexts/AuthContext";
+import { t } from "../../lib/i18n";
 
 type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
 
@@ -164,13 +165,13 @@ function statusLabel(fx: Fx) {
   const st = String(fx.status || "").toUpperCase();
   if (st === "LIVE") {
     const m = fx.minute ?? null;
-    if (typeof m === "number" && m > 0) return `${m}'. dk`;
-    return "CANLI";
+    if (typeof m === "number" && m > 0) return `${m}'`;
+    return t("live");
   }
-  if (st === "HT") return "İY";
-  if (st === "FT") return "Bitti";
-  if (st === "NS") return "Başlamadı";
-  if (st === "PEN") return "Penaltılar";
+  if (st === "HT") return t("halftime");
+  if (st === "FT") return t("finished");
+  if (st === "NS") return t("notStarted");
+  if (st === "PEN") return t("penalties");
   return st || "-";
 }
 
@@ -580,8 +581,9 @@ export default function LiveScreen() {
   const [gs1987Error, setGs1987Error] = useState<string | null>(null);
   const [gs1987Busy, setGs1987Busy] = useState(false);
 
-  // Kullanıcının yereli (ülke): maç listesi "kendi ülkesi + global yarışlar" olur
+  // Kullanıcının yereli (ülke + takım): maç listesi kişiselleşir, takımın maçları önde çıkar
   const [userCountry, setUserCountry] = useState<string | null>(null);
+  const [userMainTeam, setUserMainTeam] = useState<string | null>(null);
   const [countryReady, setCountryReady] = useState(false);
 
   // ===== ADMIN (inline panel) =====
@@ -673,7 +675,8 @@ export default function LiveScreen() {
     setError(null);
     try {
       const cq = userCountry ? `&country=${encodeURIComponent(userCountry)}` : "";
-      const r = await apiFetch(`/api/live2/schedule?backH=${SCHEDULE_BACK_HOURS}&fwdDays=${SCHEDULE_FWD_DAYS}${cq}`);
+      const tq = userMainTeam ? `&team=${encodeURIComponent(userMainTeam)}` : "";
+      const r = await apiFetch(`/api/live2/schedule?backH=${SCHEDULE_BACK_HOURS}&fwdDays=${SCHEDULE_FWD_DAYS}${cq}${tq}`);
       const j: Live2Resp = await r.json();
 
       if (!j?.ok) {
@@ -709,14 +712,15 @@ export default function LiveScreen() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userCountry]);
+  }, [userCountry, userMainTeam]);
 
   const loadOpen = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const cq = userCountry ? `&country=${encodeURIComponent(userCountry)}` : "";
-      const r = await apiFetch(`/api/live2/open?fwdH=${PREDICT_OPEN_AHEAD_HOURS}${cq}`);
+      const tq = userMainTeam ? `&team=${encodeURIComponent(userMainTeam)}` : "";
+      const r = await apiFetch(`/api/live2/open?fwdH=${PREDICT_OPEN_AHEAD_HOURS}${cq}${tq}`);
       const j: Live2Resp = await r.json();
 
       if (!j?.ok) {
@@ -752,7 +756,7 @@ export default function LiveScreen() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userCountry]);
+  }, [userCountry, userMainTeam]);
 
   // Profilden ülke bilgisini çek (yerel görünüm için)
   useEffect(() => {
@@ -762,6 +766,7 @@ export default function LiveScreen() {
         const j = await apiJson(`/api/users/profile?userId=${encodeURIComponent(userId)}`);
         if (!cancelled) {
           setUserCountry(j?.ok && j.profile?.country ? String(j.profile.country) : null);
+          setUserMainTeam(j?.ok && j.profile?.mainTeam ? String(j.profile.mainTeam) : null);
         }
       } catch {
         if (!cancelled) setUserCountry(null);
@@ -1212,11 +1217,11 @@ export default function LiveScreen() {
             )}
 
             <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>
-              {mode === "mine" ? "📋 Tahminlerim"
-                : mode === "tournaments" ? "🏆 Turnuvalarım"
-                : mode === "gs1987" ? "🔴 1987GS Modu"
-                : mode === "schedule" ? (adminMode ? "Admin • Maçlar" : "Maçlar")
-                : (adminMode ? "Admin • Açık Maçlar" : "Açık Maçlar")}
+              {mode === "mine" ? `📋 ${t("myBets")}`
+                : mode === "tournaments" ? `🏆 ${t("tournaments")}`
+                : mode === "gs1987" ? `🔴 ${t("gs1987mode")}`
+                : mode === "schedule" ? (adminMode ? `Admin • ${t("matches")}` : t("matches"))
+                : (adminMode ? `Admin • ${t("open")}` : t("open"))}
             </Text>
 
             {runtimeMode?.profile === "PILOT_MANUAL" && (
@@ -1230,16 +1235,16 @@ export default function LiveScreen() {
               {/* Ana 4 sekme */}
               <View style={{ flexDirection: "row", backgroundColor: Colors.dark, borderRadius: 999, padding: 4 }}>
                 {[
-                  { key: "schedule" as const, label: "Maçlar" },
-                  { key: "open" as const, label: "Açık" },
-                  { key: "mine" as const, label: "Benimkiler" },
-                  { key: "tournaments" as const, label: "Turnuvalar" },
-                ].map((t) => {
-                  const active = mode === t.key;
+                  { key: "schedule" as const, label: t("matches") },
+                  { key: "open" as const, label: t("open") },
+                  { key: "mine" as const, label: t("myBets") },
+                  { key: "tournaments" as const, label: t("tournaments") },
+                ].map((tab) => {
+                  const active = mode === tab.key;
                   return (
                     <TouchableOpacity
-                      key={t.key}
-                      onPress={() => setMode(t.key)}
+                      key={tab.key}
+                      onPress={() => setMode(tab.key)}
                       style={{
                         flex: 1,
                         paddingVertical: 8,
@@ -1255,7 +1260,7 @@ export default function LiveScreen() {
                           fontSize: 11,
                         }}
                       >
-                        {t.label}
+                        {tab.label}
                       </Text>
                     </TouchableOpacity>
                   );
