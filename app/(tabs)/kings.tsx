@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -66,7 +66,7 @@ function formatDate(iso?: string | null) {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 }
 
-// Tek kalıp: base’i içeriden alıp çağır
+// Tek kalıp: base'i içeriden alıp çağır
 async function apiFetch(path: string, init?: RequestInit) {
   const base = await getApiBase();
   const authH = await getAuthHeaders();
@@ -95,7 +95,7 @@ export default function KingsScreen() {
   // Segment seçimi
   const [segment, setSegment] = useState<SegmentKey>("global");
 
-  // Tahmin VAR/YOK map’i (şu ekran fixtur bazında çalışmıyor, şimdilik dursun)
+  // Tahmin VAR/YOK map'i (şu ekran fixtur bazında çalışmıyor, şimdilik dursun)
   const [hasPredMap, setHasPredMap] = useState<Record<string, boolean>>({});
 
   // Toplam tahmin sayısı (pred.flags)
@@ -198,7 +198,7 @@ export default function KingsScreen() {
     try {
       const fxList = rows.map((r) => r.userId); // row.userId değil, fixture yok
       // Kings ekranında fixture yok → maç bazında tahmin var/yok gösterimi yok.
-      // Live listesinde gösterdik. Kings’te yalnızca kullanıcı sezon puanı var.
+      // Live listesinde gösterdik. Kings'te yalnızca kullanıcı sezon puanı var.
       void fxList;
       void hasPredMap;
       void setHasPredMap;
@@ -366,7 +366,7 @@ export default function KingsScreen() {
           <View
             style={{
               padding: 12,
-              backgroundColor: "#fff",
+              backgroundColor: "#0f172a",
               borderRadius: 12,
               borderWidth: 1,
               borderColor: Colors.border,
@@ -374,7 +374,7 @@ export default function KingsScreen() {
               gap: 6,
             }}
           >
-            <Text style={{ fontWeight: "700" }}>Benim sezon durumum (global)</Text>
+            <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>Benim sezon durumum (global)</Text>
             {myRowGlobal ? (
               <>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
@@ -419,7 +419,7 @@ export default function KingsScreen() {
           <View
             style={{
               padding: 8,
-              backgroundColor: "#fff",
+              backgroundColor: "#0f172a",
               borderRadius: 999,
               borderWidth: 1,
               borderColor: Colors.border,

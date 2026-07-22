@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -62,7 +62,7 @@ export default function TeamTotalsScreen() {
     try {
       setLoading(true);
 
-      // Not: backend path’in farklıysa sadece bu satırı değiştir.
+      // Not: backend path'in farklıysa sadece bu satırı değiştir.
       const url = `/api/rt/team-totals?team=${encodeURIComponent(
         t
       )}&userId=${encodeURIComponent(userId)}`;
@@ -160,7 +160,7 @@ export default function TeamTotalsScreen() {
       {/* List */}
       <View
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: "#0f172a",
           borderRadius: 12,
           borderWidth: 1,
           borderColor: Colors.border,
@@ -184,7 +184,7 @@ export default function TeamTotalsScreen() {
                 gap: 10,
               }}
             >
-              <Text style={{ width: 28, textAlign: "right", fontWeight: "700" }}>
+              <Text style={{ width: 28, textAlign: "right", fontWeight: "700", color: "#e2e8f0" }}>
                 {idx + 1}
               </Text>
               <Text style={{ width: 26, textAlign: "center" }}>
@@ -194,7 +194,7 @@ export default function TeamTotalsScreen() {
                 {x.userId}
                 {x.team ? ` • ${x.team}` : ""}
               </Text>
-              <Text style={{ fontWeight: "800" }}>{x.points}</Text>
+              <Text style={{ fontWeight: "800", color: "#e2e8f0" }}>{x.points}</Text>
             </View>
           ))
         )}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -79,7 +79,7 @@ export default function Board2Screen() {
       {/* Liste */}
       <View
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: "#0f172a",
           borderRadius: 12,
           borderWidth: 1,
           borderColor: Colors.border,
@@ -115,7 +115,7 @@ export default function Board2Screen() {
                 {x.flag || ""}
               </Text>
               <Text style={{ flex: 1 }}>{x.userId}</Text>
-              <Text style={{ fontWeight: "800" }}>{x.points}</Text>
+              <Text style={{ fontWeight: "800", color: "#e2e8f0" }}>{x.points}</Text>
             </View>
           ))
         )}

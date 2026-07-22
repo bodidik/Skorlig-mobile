@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import {
   View,
   Text,
@@ -60,13 +60,13 @@ export default function FavScreen() {
       style={{ flex: 1, backgroundColor: Colors.bg }}
       contentContainerStyle={{ padding: 16, gap: 12 }}
     >
-      <Text style={{ fontSize: 18, fontWeight: "800" }}>
+      <Text style={{ fontSize: 18, fontWeight: "800", color: "#e2e8f0" }}>
         Favori Takım Seç
       </Text>
 
       <View
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: "#0f172a",
           padding: 12,
           borderRadius: 12,
           borderWidth: 1,
@@ -90,7 +90,7 @@ export default function FavScreen() {
 
       <View
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: "#0f172a",
           padding: 12,
           borderRadius: 12,
           borderWidth: 1,
@@ -114,7 +114,7 @@ export default function FavScreen() {
 
       <View
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: "#0f172a",
           padding: 12,
           borderRadius: 12,
           borderWidth: 1,

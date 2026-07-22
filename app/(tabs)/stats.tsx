@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -493,11 +493,6 @@ export default function StatsScreen() {
               )}
             </View>
 
-            {features && (
-              <Text style={{ color: Colors.muted, fontSize: 11, marginLeft: 8 }} numberOfLines={1}>
-                Mode: {features.mode || "?"}
-              </Text>
-            )}
           </View>
 
           {/* MOD (Global sezon / Kupa) */}
@@ -564,9 +559,8 @@ export default function StatsScreen() {
           </View>
 
           {/* Özet kartı */}
-          <View style={{ padding: 12, backgroundColor: "#fff", borderRadius: 12, borderWidth: 1, borderColor: Colors.border, gap: 4 }}>
-            <Text style={{ fontWeight: "700" }}>{mode === "global" ? "Global sezon özetim" : "Kupa özetim"}</Text>
-            <Text style={{ color: Colors.muted, fontSize: 12 }}>Kullanıcı: {userId}</Text>
+          <View style={{ padding: 12, backgroundColor: "#0f172a", borderRadius: 12, borderWidth: 1, borderColor: Colors.border, gap: 4 }}>
+            <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>{mode === "global" ? "Global sezon özetim" : "Kupa özetim"}</Text>
 
             <Text style={{ fontSize: 26, fontWeight: "800", color: Colors.primary, marginTop: 4 }}>
               {summaryPoints} puan

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -57,7 +57,7 @@ export default function StatsMeScreen() {
     try {
       setLoading(true);
 
-      // Not: endpoint backend’de farklıysa sadece burayı değiştiririz.
+      // Not: endpoint backend'de farklıysa sadece burayı değiştiririz.
       const r = await apiFetch(`/api/stats/user?userId=${encodeURIComponent(userId)}`);
       const j: MeResponse = await r.json();
 
@@ -94,7 +94,7 @@ export default function StatsMeScreen() {
         borderRadius: 10,
       }}
     >
-      <Text style={{ fontWeight: "600" }}>{title}</Text>
+      <Text style={{ fontWeight: "600", color: "#e2e8f0" }}>{title}</Text>
     </TouchableOpacity>
   );
 
@@ -104,7 +104,7 @@ export default function StatsMeScreen() {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
     >
       <View style={{ padding: 16, gap: 12 }}>
-        <Text style={{ fontSize: 18, fontWeight: "800" }}>Benim İstatistiklerim</Text>
+        <Text style={{ fontSize: 18, fontWeight: "800", color: "#e2e8f0" }}>Benim İstatistiklerim</Text>
         <Text style={{ color: Colors.muted }}>
           {flag || ""} {userId}
           {team ? ` • ${team}` : ""}
@@ -112,14 +112,14 @@ export default function StatsMeScreen() {
 
         <View
           style={{
-            backgroundColor: "#fff",
+            backgroundColor: "#0f172a",
             borderRadius: 12,
             borderWidth: 1,
             borderColor: Colors.border,
             padding: 12,
           }}
         >
-          <Text style={{ fontSize: 16, fontWeight: "700" }}>Genel Puan</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: "#e2e8f0" }}>Genel Puan</Text>
 
           {loading ? (
             <View style={{ marginTop: 10, alignItems: "center" }}>
@@ -127,7 +127,7 @@ export default function StatsMeScreen() {
               <Text style={{ marginTop: 8, color: Colors.muted }}>Yükleniyor...</Text>
             </View>
           ) : (
-            <Text style={{ fontSize: 28, fontWeight: "900", marginTop: 4 }}>{total}</Text>
+            <Text style={{ fontSize: 28, fontWeight: "900", marginTop: 4, color: "#e2e8f0" }}>{total}</Text>
           )}
 
           <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
@@ -139,13 +139,13 @@ export default function StatsMeScreen() {
 
         <View
           style={{
-            backgroundColor: "#fff",
+            backgroundColor: "#0f172a",
             borderRadius: 12,
             borderWidth: 1,
             borderColor: Colors.border,
           }}
         >
-          <Text style={{ padding: 12, fontWeight: "700" }}>Son Oynadıklarım</Text>
+          <Text style={{ padding: 12, fontWeight: "700", color: "#e2e8f0" }}>Son Oynadıklarım</Text>
 
           {items.length === 0 ? (
             <Text style={{ padding: 12, color: Colors.muted }}>Kayıt yok.</Text>
@@ -159,7 +159,7 @@ export default function StatsMeScreen() {
                   borderColor: Colors.border,
                 }}
               >
-                <Text style={{ fontWeight: "600" }}>
+                <Text style={{ fontWeight: "600", color: "#e2e8f0" }}>
                   {it.live?.home || "Ev"} – {it.live?.away || "Dep"}
                 </Text>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>

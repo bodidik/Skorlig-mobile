@@ -393,7 +393,7 @@ export default function ArenaScreen() {
       }}>
         <View>
           <Text style={{ color: "#f1f5f9", fontWeight: "900", fontSize: 20 }}>⚔️ Duello Arenası</Text>
-          <Text style={{ color: "#334155", fontSize: 11, marginTop: 2 }}>
+          <Text style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
             Otur, rakip bulsun seni
           </Text>
         </View>
@@ -442,7 +442,7 @@ export default function ArenaScreen() {
         {loading ? (
           <View style={{ paddingVertical: 60, alignItems: "center", gap: 10 }}>
             <ActivityIndicator color="#3b82f6" size="large" />
-            <Text style={{ color: "#334155", fontSize: 12 }}>Arena yükleniyor...</Text>
+            <Text style={{ color: "#64748b", fontSize: 12 }}>Arena yükleniyor...</Text>
           </View>
         ) : matches.length === 0 ? (
           <View style={{
@@ -451,10 +451,22 @@ export default function ArenaScreen() {
             backgroundColor: "#07101f",
           }}>
             <Text style={{ fontSize: 40 }}>🏟️</Text>
-            <Text style={{ color: "#64748b", fontSize: 15, fontWeight: "700" }}>Arena şu an boş</Text>
-            <Text style={{ color: "#334155", fontSize: 12, textAlign: "center", lineHeight: 18 }}>
-              Tahmin yaptığın maçlardan{"\n"}meydan okuma başlatabilirsin.
+            <Text style={{ color: "#94a3b8", fontSize: 15, fontWeight: "700" }}>Arena şu an boş</Text>
+            <Text style={{ color: "#64748b", fontSize: 12, textAlign: "center", lineHeight: 18 }}>
+              Bir maça tahmin yap, koltuğa otur;{"\n"}rakip gelince duello başlasın.
             </Text>
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: "/(tabs)/live", params: { tab: "open" } })}
+              activeOpacity={0.85}
+              style={{
+                marginTop: 6, flexDirection: "row", alignItems: "center", gap: 6,
+                backgroundColor: "#2563eb", borderRadius: 999,
+                paddingHorizontal: 20, paddingVertical: 11,
+              }}
+            >
+              <Text style={{ fontSize: 14 }}>⚽</Text>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>Maçlara git, tahmin yap</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <>

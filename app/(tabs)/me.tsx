@@ -764,7 +764,7 @@ export default function Me() {
             alignItems: "center",
             gap: 12,
             padding: 12,
-            backgroundColor: "#fff",
+            backgroundColor: "#0f172a",
             borderRadius: 12,
             borderWidth: 1,
             borderColor: Colors.border,
@@ -787,8 +787,8 @@ export default function Me() {
               paddingVertical: 8,
               borderRadius: 8,
               borderWidth: 1,
-              borderColor: "#fecaca",
-              backgroundColor: "#fef2f2",
+              borderColor: "#7f1d1d",
+              backgroundColor: "#1a0606",
             }}
           >
             <Text style={{ color: "#dc2626", fontWeight: "800", fontSize: 13 }}>Çıkış</Text>
@@ -800,7 +800,7 @@ export default function Me() {
           <View
             style={{
               padding: 12,
-              backgroundColor: "#fff",
+              backgroundColor: "#0f172a",
               borderRadius: 12,
               borderWidth: 1,
               borderColor: Colors.border,
@@ -817,7 +817,7 @@ export default function Me() {
                   borderRadius: 999,
                   borderWidth: 1,
                   borderColor: Colors.border,
-                  backgroundColor: "#fff",
+                  backgroundColor: "#0f172a",
                 }}
               >
                 {pendingLoading ? (
@@ -937,6 +937,17 @@ export default function Me() {
               </TouchableOpacity>
             </View>
 
+            <TouchableOpacity
+              onPress={() => nav.push("/admin-add")}
+              style={{
+                paddingVertical: 12,
+                borderRadius: 999,
+                backgroundColor: "#16a34a",
+              }}
+            >
+              <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>➕ Yeni Maç Ekle + Not</Text>
+            </TouchableOpacity>
+
             <Text style={{ fontSize: 11, color: Colors.muted }}>
               Kullanıcı ekranda "Sonuç girilmesi bekleniyor" görür; admin burada pending listeden sonucu girer.
             </Text>
@@ -961,15 +972,15 @@ export default function Me() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   style={{ borderWidth: 1, borderColor: "#fca5a5", borderRadius: 8,
-                    paddingHorizontal: 10, paddingVertical: 8, color: "#111", fontSize: 12 }}
+                    paddingHorizontal: 10, paddingVertical: 8, color: "#e2e8f0", fontSize: 12 }}
                 />
                 <TextInput
                   value={banReason}
                   onChangeText={setBanReason}
                   placeholder="Sebep (opsiyonel)"
                   placeholderTextColor={Colors.muted}
-                  style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 8,
-                    paddingHorizontal: 10, paddingVertical: 8, color: "#111", fontSize: 12 }}
+                  style={{ borderWidth: 1, borderColor: "#1e293b", borderRadius: 8,
+                    paddingHorizontal: 10, paddingVertical: 8, color: "#e2e8f0", fontSize: 12 }}
                 />
                 <TouchableOpacity
                   onPress={banUser}
@@ -1004,7 +1015,7 @@ export default function Me() {
 
                 {bannedList.map(b => (
                   <View key={b.userId} style={{ flexDirection: "row", alignItems: "center", gap: 8,
-                    backgroundColor: "#fff5f5", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 }}>
+                    backgroundColor: "#1a0606", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 }}>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 11, fontWeight: "700", color: "#7f1d1d" }} numberOfLines={1}>
                         {b.userId}
@@ -1014,7 +1025,7 @@ export default function Me() {
                       )}
                     </View>
                     <TouchableOpacity onPress={() => unbanUser(b.userId)}
-                      style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#fecaca" }}>
+                      style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#7f1d1d" }}>
                       <Text style={{ fontSize: 11, fontWeight: "800", color: "#7f1d1d" }}>Kaldır</Text>
                     </TouchableOpacity>
                   </View>
@@ -1032,7 +1043,7 @@ export default function Me() {
         <View
           style={{
             padding: 12,
-            backgroundColor: "#fff",
+            backgroundColor: "#0f172a",
             borderRadius: 12,
             borderWidth: 1,
             borderColor: Colors.border,
@@ -1139,7 +1150,7 @@ export default function Me() {
 
           return (
             <View style={{
-              backgroundColor: "#fff", borderRadius: 14,
+              backgroundColor: "#0f172a", borderRadius: 14,
               borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10,
             }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -1152,7 +1163,7 @@ export default function Me() {
               </View>
 
               {/* İlerleme çubuğu */}
-              <View style={{ height: 6, backgroundColor: "#f1f5f9", borderRadius: 999 }}>
+              <View style={{ height: 6, backgroundColor: "#0a1a2a", borderRadius: 999 }}>
                 <View style={{
                   height: 6, borderRadius: 999,
                   width: `${Math.round((doneCount / steps.length) * 100)}%` as any,
@@ -1203,7 +1214,7 @@ export default function Me() {
         <View
           style={{
             padding: 12,
-            backgroundColor: "#fff",
+            backgroundColor: "#0f172a",
             borderRadius: 12,
             borderWidth: 1,
             borderColor: Colors.border,
@@ -1223,7 +1234,7 @@ export default function Me() {
             <>
               {/* Bakiye banner */}
               <View style={{
-                backgroundColor: "#fef9c3", borderRadius: 12, padding: 14,
+                backgroundColor: "#1a1600", borderRadius: 12, padding: 14,
                 borderWidth: 1, borderColor: "#fde047",
                 flexDirection: "row", alignItems: "center", gap: 10,
               }}>
@@ -1300,7 +1311,7 @@ export default function Me() {
                     marginTop: 6,
                     padding: 8,
                     borderRadius: 8,
-                    backgroundColor: "#fffbeb",
+                    backgroundColor: "#1a1200",
                     borderWidth: 1,
                     borderColor: "#fde68a",
                   }}
@@ -1321,7 +1332,7 @@ export default function Me() {
                     marginTop: 6,
                     padding: 8,
                     borderRadius: 8,
-                    backgroundColor: "#f0fdf4",
+                    backgroundColor: "#071a0f",
                     borderWidth: 1,
                     borderColor: "#bbf7d0",
                   }}
@@ -1396,7 +1407,7 @@ export default function Me() {
         <View
           style={{
             padding: 12,
-            backgroundColor: "#fff",
+            backgroundColor: "#0f172a",
             borderRadius: 12,
             borderWidth: 1,
             borderColor: Colors.border,
@@ -1545,7 +1556,7 @@ export default function Me() {
         </View>
 
         {/* ── Dil Tercihi ── */}
-        <View style={{ backgroundColor: "#fff", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
+        <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
           <Text style={{ fontWeight: "800", fontSize: 14 }}>Dil Tercihi</Text>
           <Text style={{ color: Colors.muted, fontSize: 12 }}>Uygulama dilini manuel olarak seç. Boş bırakırsan cihaz dili kullanılır.</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
@@ -1595,7 +1606,7 @@ export default function Me() {
         </View>
 
         {/* ── Takip Ettiğim Ligler ── */}
-        <View style={{ backgroundColor: "#fff", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
+        <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
           <Text style={{ fontWeight: "800", fontSize: 14 }}>Takip Ettiğim Ligler</Text>
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
             Ana ülkene ek olarak takip etmek istediğin ligleri seç. Seçilen liglerin maçları da senin için öncelikli gösterilir.
@@ -1681,7 +1692,7 @@ export default function Me() {
         <View
           style={{
             padding: 12,
-            backgroundColor: "#fff",
+            backgroundColor: "#0f172a",
             borderRadius: 12,
             borderWidth: 1,
             borderColor: Colors.border,
@@ -1719,7 +1730,7 @@ export default function Me() {
         <View
           style={{
             padding: 12,
-            backgroundColor: "#fff",
+            backgroundColor: "#0f172a",
             borderRadius: 12,
             borderWidth: 1,
             borderColor: Colors.border,
@@ -1816,7 +1827,7 @@ export default function Me() {
         <View
           style={{
             padding: 12,
-            backgroundColor: "#fff",
+            backgroundColor: "#0f172a",
             borderRadius: 12,
             borderWidth: 1,
             borderColor: Colors.border,
@@ -1833,7 +1844,7 @@ export default function Me() {
                 borderRadius: 10,
                 borderWidth: 1,
                 borderColor: "#fbbf24",
-                backgroundColor: "#fffbeb",
+                backgroundColor: "#1a1200",
                 gap: 4,
               }}
             >

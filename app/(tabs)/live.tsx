@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -47,6 +47,7 @@ type Fx = {
   league?: string | null;
   country?: string | null;
   source?: string | null;
+  note?: string | null;
 };
 
 type OpenWindow = { backH?: number; fwdH?: number };
@@ -109,6 +110,22 @@ type MiniTournament = {
   createdAt: string;
   finalized?: boolean;
   winners?: string[];
+};
+
+type EmptyLiveMatch = {
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: string | null;
+  awayScore: string | null;
+  status: string;
+  isLive: boolean;
+  isHT: boolean;
+};
+type EmptyLiveLeague = {
+  id: string;
+  name: string;
+  country: string;
+  matches: EmptyLiveMatch[];
 };
 
 const PREDICT_OPEN_AHEAD_HOURS = 96;
@@ -335,8 +352,8 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
   const canPredictByLocalRule = !isFinished && isWithinPredictWindow96h(item, nowMs);
 
   const highlight = mode === "open" ? true : isLive;
-  const cardBg = selected ? "#EEF2FF" : isLive ? "#F4FFFB" : "#fff";
-  const borderCol = selected ? "#6366F1" : isLive ? Colors.live : highlight ? Colors.headerBlue : Colors.border;
+  const cardBg = selected ? "#1e1b4b" : isLive ? "#071a0f" : "#0f172a";
+  const borderCol = selected ? "#6366F1" : isLive ? Colors.live : highlight ? "#22c55e22" : Colors.border;
 
   const showPredLine = mode === "open";
   const predText =
@@ -395,12 +412,12 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
                     paddingHorizontal: 8,
                     paddingVertical: 3,
                     borderRadius: 999,
-                    backgroundColor: "#ECFDF5",
+                    backgroundColor: "#14532d55",
                     borderWidth: 1,
-                    borderColor: "#10B981",
+                    borderColor: "#22c55e66",
                   }}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: "800", color: "#065F46" }}>TAHMİN</Text>
+                  <Text style={{ fontSize: 10, fontWeight: "800", color: "#4ade80" }}>TAHMİN</Text>
                 </View>
               )}
             </View>
@@ -418,13 +435,13 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
                   paddingHorizontal: 8,
                   paddingVertical: 3,
                   borderRadius: 999,
-                  backgroundColor: "#ecfdf5",
+                  backgroundColor: "#14532d55",
                   borderWidth: 1,
-                  borderColor: "#10b981",
+                  borderColor: "#22c55e66",
                   marginBottom: 6,
                 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: "800", color: "#065f46" }}>✓ Tahmin</Text>
+                <Text style={{ fontSize: 10, fontWeight: "800", color: "#4ade80" }}>✓ Tahmin</Text>
               </View>
             )}
 
@@ -436,6 +453,13 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
             </Text>
           </View>
         </View>
+
+        {item.note ? (
+          <View style={{ flexDirection: "row", gap: 6, marginTop: 6, backgroundColor: "#1a1600", borderWidth: 1, borderColor: "#ca8a0455", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6 }}>
+            <Text style={{ fontSize: 12 }}>📌</Text>
+            <Text style={{ flex: 1, color: "#fcd34d", fontSize: 11, lineHeight: 16 }}>{item.note}</Text>
+          </View>
+        ) : null}
 
         {waitingResult && (
           <View style={{ marginTop: 6 }}>
@@ -452,15 +476,13 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
         <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
           <View style={{ flex: 1 }}>
             {isLive ? (
-              <Text style={{ color: Colors.live, fontSize: 11 }}>Canlı maç — skor güncelleniyor.</Text>
+              <Text style={{ color: Colors.live, fontSize: 11 }}>● Canlı</Text>
             ) : isFinished ? (
-              <Text style={{ color: Colors.muted, fontSize: 11 }}>Maç bitti, tahmin kapandı.</Text>
-            ) : mode === "open" ? (
-              <Text style={{ color: Colors.muted, fontSize: 11 }}>96 saatlik pencere — tahmin açık.</Text>
-            ) : canPredictByLocalRule ? (
-              <Text style={{ color: Colors.muted, fontSize: 11 }}>Tahmin açık (96s kuralı).</Text>
+              <Text style={{ color: Colors.muted, fontSize: 11 }}>Maç bitti</Text>
+            ) : mode === "open" || canPredictByLocalRule ? (
+              <Text style={{ color: "#4ade80", fontSize: 11 }}>Tahmin yapabilirsin</Text>
             ) : (
-              <Text style={{ color: Colors.muted, fontSize: 11 }}>Tahmin kapalı (96s kuralı).</Text>
+              <Text style={{ color: Colors.muted, fontSize: 11 }}>Tahmin henüz açılmadı</Text>
             )}
           </View>
 
@@ -603,6 +625,11 @@ export default function LiveScreen() {
   const [userMainTeam, setUserMainTeam] = useState<string | null>(null);
   const [userExtraLeagues, setUserExtraLeagues] = useState<string[]>([]);
   const [countryReady, setCountryReady] = useState(false);
+
+  // Boş open durumu: dünya vitrin + yakında açılacak
+  const [emptyLiveLeagues, setEmptyLiveLeagues] = useState<EmptyLiveLeague[]>([]);
+  const [emptyUpcoming, setEmptyUpcoming]       = useState<Fx[]>([]);
+  const [emptyStateLoading, setEmptyStateLoading] = useState(false);
 
   // ===== ADMIN (inline panel) =====
   const [selectedFid, setSelectedFid] = useState<string | null>(null);
@@ -871,6 +898,46 @@ export default function LiveScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
+  const loadEmptyState = useCallback(async () => {
+    setEmptyStateLoading(true);
+    try {
+      const cq = userCountry ? `&country=${encodeURIComponent(userCountry)}` : "";
+      const [liveRes, schedRes] = await Promise.all([
+        apiJson("/api/livescore/matches").catch(() => null),
+        apiJson(`/api/live2/schedule?backH=0&fwdDays=7${cq}`).catch(() => null),
+      ]);
+
+      if (liveRes?.ok && liveRes.leagues) {
+        const leagues: EmptyLiveLeague[] = Object.values(liveRes.leagues as Record<string, EmptyLiveLeague>);
+        const withLive = leagues
+          .filter((l) => l.matches.some((m) => m.isLive || m.isHT))
+          .sort((a, b) => {
+            const la = a.matches.filter((m) => m.isLive || m.isHT).length;
+            const lb = b.matches.filter((m) => m.isLive || m.isHT).length;
+            return lb - la;
+          })
+          .slice(0, 6);
+        setEmptyLiveLeagues(withLive);
+      }
+
+      if (schedRes?.ok) {
+        const nowMs = nowFromServer();
+        const list = pickList(schedRes);
+        const upcoming = list
+          .filter((fx) => {
+            const ms = kickoffMs(fx);
+            if (!ms) return false;
+            return ms - nowMs > 0 && ms - nowMs <= 7 * 24 * 3600 * 1000;
+          })
+          .sort((a, b) => (kickoffMs(a) ?? Infinity) - (kickoffMs(b) ?? Infinity))
+          .slice(0, 15);
+        setEmptyUpcoming(upcoming);
+      }
+    } catch {}
+    setEmptyStateLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userCountry]);
+
   const joinTournament = useCallback(async (code: string) => {
     const uid = userId.trim();
     if (!uid || joinBusy) return;
@@ -923,6 +990,13 @@ export default function LiveScreen() {
   useEffect(() => {
     if (mode === "gs1987" && userId) check1987Membership();
   }, [mode, userId, check1987Membership]);
+
+  // open listesi boşsa dünya vitrin + yakında açılacak maçları yükle
+  useEffect(() => {
+    if (mode === "open" && !loading && items.length === 0 && countryReady) {
+      loadEmptyState();
+    }
+  }, [mode, loading, items.length, countryReady, loadEmptyState]);
 
   // pred flags
   useEffect(() => {
@@ -1264,10 +1338,10 @@ export default function LiveScreen() {
                 : (adminMode ? `Admin • ${t("open")}` : t("open"))}
             </Text>
 
-            {runtimeMode?.profile === "PILOT_MANUAL" && (
-              <View style={{ marginTop: 8, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FFF7ED", borderRadius: 10, borderWidth: 1, borderColor: "#FED7AA", paddingHorizontal: 12, paddingVertical: 8 }}>
-                <Text style={{ fontSize: 13, fontWeight: "800", color: "#C2410C" }}>✈️ PILOT MODU</Text>
-                <Text style={{ flex: 1, fontSize: 11, color: "#9A3412" }}>Provider yok • maçlar elle girilir • max {runtimeMode.maxFixtures ?? 10}</Text>
+            {adminMode && runtimeMode?.profile === "PILOT_MANUAL" && (
+              <View style={{ marginTop: 8, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#1a0f00", borderRadius: 10, borderWidth: 1, borderColor: "#92400e66", paddingHorizontal: 12, paddingVertical: 8 }}>
+                <Text style={{ fontSize: 13, fontWeight: "800", color: "#fbbf24" }}>✈️ PILOT MODU</Text>
+                <Text style={{ flex: 1, fontSize: 11, color: "#92400e" }}>Provider yok • maçlar elle girilir • max {runtimeMode.maxFixtures ?? 10}</Text>
               </View>
             )}
 
@@ -1337,14 +1411,15 @@ export default function LiveScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 10 }}>
-              {headerLine2 ? headerLine2 : "Fikstür bilgisi"}
-            </Text>
-
             {adminMode && (
-              <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
-                {userId} • API: {baseInfo ?? "—"}
-              </Text>
+              <>
+                <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 10 }}>
+                  {headerLine2 || "Fikstür bilgisi"}
+                </Text>
+                <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
+                  {userId} • API: {baseInfo ?? "—"}
+                </Text>
+              </>
             )}
 
             <TouchableOpacity
@@ -1373,7 +1448,11 @@ export default function LiveScreen() {
               </Text>
             )}
 
-            {error && <Text style={{ color: Colors.live, fontSize: 11, marginTop: 4 }}>Hata: {error}</Text>}
+            {error && (
+              <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
+                {adminMode ? `Hata: ${error}` : "Maçlar yüklenemedi — aşağı çekerek yenileyin"}
+              </Text>
+            )}
 
             {/* ===== TAHMİNLERİM İÇERİĞİ ===== */}
             {mode === "mine" && (
@@ -2056,25 +2135,177 @@ export default function LiveScreen() {
         }
         ListEmptyComponent={
           loading ? (
-            <View style={{ paddingVertical: 40, alignItems: "center", justifyContent: "center" }}>
-              <ActivityIndicator size="small" />
+            <View style={{ paddingVertical: 40, alignItems: "center" }}>
+              <ActivityIndicator size="small" color={Colors.live} />
               <Text style={{ marginTop: 8, color: Colors.muted, fontSize: 12 }}>
                 {mode === "schedule" ? "Maçlar yükleniyor..." : "Açık maçlar yükleniyor..."}
               </Text>
             </View>
+          ) : mode === "open" ? (
+            // ─── Boş open → dünya vitrin + yakında açılacak ───────────────
+            <View style={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24, gap: 20 }}>
+
+              {/* Başlık */}
+              <View style={{ alignItems: "center", paddingVertical: 16, gap: 6 }}>
+                <Text style={{ fontSize: 28 }}>⏳</Text>
+                <Text style={{ color: "#e2e8f0", fontWeight: "800", fontSize: 15 }}>
+                  Şu an açık tahmin yok
+                </Text>
+                <Text style={{ color: Colors.muted, fontSize: 12, textAlign: "center" }}>
+                  Yaklaşan maçlar önümüzdeki saatlerde açılacak
+                </Text>
+              </View>
+
+              {/* Canlı dünya vitrin */}
+              {emptyStateLoading && (
+                <View style={{ alignItems: "center", paddingVertical: 16 }}>
+                  <ActivityIndicator size="small" color={Colors.live} />
+                </View>
+              )}
+
+              {!emptyStateLoading && emptyLiveLeagues.length > 0 && (
+                <View style={{ gap: 2 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.live }} />
+                    <Text style={{ color: Colors.live, fontWeight: "800", fontSize: 12, letterSpacing: 0.5 }}>DÜNYADA ŞU AN</Text>
+                    <TouchableOpacity onPress={() => router.push("/livescores")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Text style={{ color: Colors.muted, fontSize: 11 }}>Tümünü gör →</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {emptyLiveLeagues.map((league) => (
+                    <View key={league.id} style={{ marginBottom: 6 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4, paddingHorizontal: 10, backgroundColor: "#0a1a0a", borderRadius: 6 }}>
+                        <Text style={{ fontSize: 10, color: "#4ade80", fontWeight: "700", flex: 1 }} numberOfLines={1}>
+                          {league.name}
+                        </Text>
+                        <Text style={{ fontSize: 9, color: Colors.muted }}>{league.country}</Text>
+                      </View>
+                      {league.matches
+                        .filter((m) => m.isLive || m.isHT)
+                        .slice(0, 3)
+                        .map((m, i) => (
+                          <TouchableOpacity
+                            key={i}
+                            onPress={() => router.push("/livescores")}
+                            style={{
+                              flexDirection: "row", alignItems: "center",
+                              paddingVertical: 7, paddingHorizontal: 10,
+                              borderBottomWidth: 0.5, borderBottomColor: "#1a2a3a",
+                              backgroundColor: "#071a0f",
+                            }}
+                          >
+                            <Text style={{ fontSize: 9, color: Colors.live, fontWeight: "900", width: 26, textAlign: "center" }}>
+                              {m.isHT ? "HT" : m.status.replace("'", "'")}
+                            </Text>
+                            <Text style={{ flex: 1, fontSize: 11, color: "#e2e8f0", textAlign: "right", paddingRight: 4 }} numberOfLines={1}>
+                              {m.homeTeam}
+                            </Text>
+                            <Text style={{ fontSize: 13, fontWeight: "900", color: Colors.live, width: 44, textAlign: "center" }}>
+                              {m.homeScore ?? "–"}–{m.awayScore ?? "–"}
+                            </Text>
+                            <Text style={{ flex: 1, fontSize: 11, color: "#e2e8f0", paddingLeft: 4 }} numberOfLines={1}>
+                              {m.awayTeam}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Yakında açılacak maçlar */}
+              {!emptyStateLoading && emptyUpcoming.length > 0 && (
+                <View style={{ gap: 2 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <Text style={{ fontSize: 14 }}>📅</Text>
+                    <Text style={{ color: "#f59e0b", fontWeight: "800", fontSize: 12, letterSpacing: 0.5 }}>YAKINDA AÇILACAK</Text>
+                    <TouchableOpacity onPress={() => setMode("schedule")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Text style={{ color: Colors.muted, fontSize: 11 }}>Tam liste →</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {(() => {
+                    const nowMs = nowFromServer();
+                    // Tarihe göre grupla
+                    const groups: { label: string; items: Fx[] }[] = [];
+                    const seen = new Set<string>();
+                    for (const fx of emptyUpcoming) {
+                      const ms = kickoffMs(fx);
+                      const diffH = ms ? (ms - nowMs) / 3600000 : null;
+                      let label = "Yakında";
+                      if (diffH !== null) {
+                        const d = new Date(ms!);
+                        const dd = d.getDate().toString().padStart(2, "0");
+                        const mm = (d.getMonth() + 1).toString().padStart(2, "0");
+                        label = `${dd}/${mm}`;
+                      }
+                      if (!seen.has(label)) { seen.add(label); groups.push({ label, items: [] }); }
+                      groups[groups.length - 1].items.push(fx);
+                    }
+
+                    return groups.map((g) => (
+                      <View key={g.label} style={{ marginBottom: 8 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 }}>
+                          <Text style={{ color: "#f59e0b", fontSize: 10, fontWeight: "800" }}>{g.label}</Text>
+                          <View style={{ flex: 1, height: 0.5, backgroundColor: "#1e293b" }} />
+                        </View>
+                        {g.items.map((fx) => {
+                          const ms = kickoffMs(fx);
+                          const diffH = ms ? Math.max(0, (ms - nowMs) / 3600000) : null;
+                          const opensIn = diffH !== null && diffH > PREDICT_OPEN_AHEAD_HOURS
+                            ? `${Math.round(diffH - PREDICT_OPEN_AHEAD_HOURS)}s sonra açılır`
+                            : "yakında açılacak";
+                          const timeStr = formatTimeTR(fx.kickoffISO ?? null);
+                          return (
+                            <View
+                              key={fx.fixtureId}
+                              style={{
+                                flexDirection: "row", alignItems: "center",
+                                paddingVertical: 8, paddingHorizontal: 10,
+                                borderBottomWidth: 0.5, borderBottomColor: "#1a2a3a",
+                                backgroundColor: "#0a1520",
+                              }}
+                            >
+                              <Text style={{ fontSize: 10, color: Colors.muted, width: 34, textAlign: "center" }}>
+                                {timeStr ?? "—"}
+                              </Text>
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ fontSize: 12, color: "#cbd5e1", fontWeight: "600" }} numberOfLines={1}>
+                                  {fx.home} – {fx.away}
+                                </Text>
+                                {fx.league ? (
+                                  <Text style={{ fontSize: 9, color: Colors.muted }} numberOfLines={1}>{fx.league}</Text>
+                                ) : null}
+                              </View>
+                              <View style={{ backgroundColor: "#1a2a0a", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: "#f59e0b33" }}>
+                                <Text style={{ color: "#f59e0b", fontSize: 9, fontWeight: "700" }}>{opensIn}</Text>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ));
+                  })()}
+                </View>
+              )}
+
+              {!emptyStateLoading && emptyLiveLeagues.length === 0 && emptyUpcoming.length === 0 && (
+                <View style={{ alignItems: "center", paddingVertical: 12 }}>
+                  <Text style={{ color: Colors.muted, fontSize: 12 }}>Yakında maç bilgisi yüklenemedi.</Text>
+                  <TouchableOpacity onPress={() => loadEmptyState()} style={{ marginTop: 10 }}>
+                    <Text style={{ color: Colors.primary, fontSize: 12, fontWeight: "700" }}>Tekrar dene</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           ) : (
-            <View style={{ paddingVertical: 40, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: Colors.muted, fontSize: 12, textAlign: "center", marginBottom: 4 }}>
+            <View style={{ paddingVertical: 24, alignItems: "center", paddingHorizontal: 16 }}>
+              <Text style={{ color: Colors.muted, fontSize: 12, textAlign: "center" }}>
                 {mode === "mine" ? "Henüz tahmin yapmadın."
-                  : mode === "tournaments" ? "Henüz bir turnuvada değilsin. Mini turnuva oluştur veya koda katıl."
+                  : mode === "tournaments" ? "Henüz bir turnuvada değilsin."
                   : mode === "gs1987" ? ""
-                  : mode === "schedule" ? "Liste penceresinde maç görünmüyor."
-                  : "96 saatlik tahmin penceresi içinde açık maç yok."}
-              </Text>
-              <Text style={{ color: Colors.muted, fontSize: 11, textAlign: "center" }}>
-                {mode === "schedule"
-                  ? "Not: Bu ekran /schedule kullanır (manuel +60 gün dahil). Tahmin butonu sadece 96 saat içindekilerde görünür."
-                  : "Not: Bu ekran sadece /open kullanır. Daha ileri maçları “Maçlar (60g)” sekmesinden görürsün."}
+                  : "Liste penceresinde maç görünmüyor."}
               </Text>
             </View>
           )

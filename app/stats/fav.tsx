@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+﻿import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -67,11 +67,11 @@ export default function FavTeamScreen() {
       style={{ flex: 1, backgroundColor: Colors.bg }}
       contentContainerStyle={{ padding: 16, gap: 12 }}
     >
-      <Text style={{ fontSize: 18, fontWeight: "800" }}>Favori Takım Seç</Text>
+      <Text style={{ fontSize: 18, fontWeight: "800", color: "#e2e8f0" }}>Favori Takım Seç</Text>
 
       <View
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: "#0f172a",
           padding: 12,
           borderRadius: 12,
           borderWidth: 1,
@@ -96,7 +96,7 @@ export default function FavTeamScreen() {
 
       <View
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: "#0f172a",
           padding: 12,
           borderRadius: 12,
           borderWidth: 1,
@@ -119,7 +119,7 @@ export default function FavTeamScreen() {
 
       <View
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: "#0f172a",
           padding: 12,
           borderRadius: 12,
           borderWidth: 1,
