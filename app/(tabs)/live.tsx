@@ -20,6 +20,8 @@ import QuickPlaySection from "../../components/QuickPlaySection";
 import TournamentCreate from "../../components/TournamentCreate";
 import TournamentJoin from "../../components/TournamentJoin";
 import Picks1987 from "../../components/Picks1987";
+import GuestBanner from "../../components/GuestBanner";
+import { useAuth } from "../../contexts/AuthContext";
 
 type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
 
@@ -524,6 +526,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, hasPred, adm
 export default function LiveScreen() {
   const router = useRouter();
   const { userId: qUserId, admin: qAdmin, tab: qTab } = useLocalSearchParams<{ userId?: string; admin?: string; tab?: string }>();
+  const { isAnonymous, linkWithGoogle } = useAuth();
 
   const userId = useUserId(qUserId);
   const adminMode = useMemo(() => String(qAdmin || "").trim() === "1", [qAdmin]);
@@ -1177,6 +1180,9 @@ export default function LiveScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
         ListHeaderComponent={
           <View style={{ marginBottom: 12 }}>
+            {/* ===== MİSAFİR ŞERTI ===== */}
+            <GuestBanner />
+
             {/* ===== HIZLI OYNA ===== */}
             {mode === "open" && (
               <QuickPlaySection country={userCountry} userId={userId} />
@@ -1563,10 +1569,22 @@ export default function LiveScreen() {
                     <Text style={{ fontSize: 18, fontWeight: "900", color: "#E8102A", marginBottom: 6, textAlign: "center" }}>
                       1987 Galatasaray'ı Unutamayanlar
                     </Text>
-                    <Text style={{ fontSize: 13, color: Colors.muted, textAlign: "center", marginBottom: 24, lineHeight: 20 }}>
+                    <Text style={{ fontSize: 13, color: Colors.muted, textAlign: "center", marginBottom: 16, lineHeight: 20 }}>
                       Bu alana sadece 1987GS Facebook grubu üyeleri girebilir.{"\n"}
                       Gruba özel kodu girerek erişim sağla.
                     </Text>
+
+                    {isAnonymous && (
+                      <TouchableOpacity
+                        onPress={linkWithGoogle}
+                        style={{ backgroundColor: "#0f2a0f", borderWidth: 1, borderColor: "#22c55e44", borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 8 }}
+                      >
+                        <Text style={{ fontSize: 12 }}>💡</Text>
+                        <Text style={{ flex: 1, fontSize: 12, color: "#4ade80", lineHeight: 18 }}>
+                          Google ile giriş yaparsan bir daha kod girmene gerek kalmaz.
+                        </Text>
+                      </TouchableOpacity>
+                    )}
 
                     <View style={{ width: "100%", gap: 10 }}>
                       <TextInput
