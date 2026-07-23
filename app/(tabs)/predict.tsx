@@ -1111,6 +1111,14 @@ return (
    	  <Text style={{ fontSize: 11, color: "#86efac", marginTop: 2 }}>
       	    Tekrar tahmin gönderirsen LC yeniden kesilmez.
    	  </Text>
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: "/match-race/[fixtureId]", params: { fixtureId: fx?.fixtureId, userId } } as any)}
+            style={{ marginTop: 8, paddingVertical: 10, borderRadius: 10, backgroundColor: "#065f46" }}
+          >
+            <Text style={{ textAlign: "center", color: "#a7f3d0", fontWeight: "800", fontSize: 13 }}>
+              🏁 Yarışı Takip Et
+            </Text>
+          </TouchableOpacity>
  	</View>
        ) : hasPredByMe === false ? (
   	 <View

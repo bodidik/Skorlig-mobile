@@ -161,19 +161,19 @@ export default function MatchRaceScreen() {
             style={{
               padding: 12,
               borderRadius: 12,
-              backgroundColor: "#fff",
+              backgroundColor: "#0f172a",
               borderWidth: 1,
               borderColor: Colors.border,
               gap: 6,
             }}
           >
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={{ fontWeight: "700", fontSize: 13 }}>🏃 Yarışta</Text>
+              <Text style={{ fontWeight: "700", fontSize: 13, color: "#e2e8f0" }}>🏃 Yarışta</Text>
               <Text style={{ fontWeight: "900", fontSize: 13, color: "#059669" }}>
                 {data.inRaceCount} / {data.totalPlayers}
               </Text>
             </View>
-            <View style={{ height: 8, borderRadius: 999, backgroundColor: "#e5e7eb", overflow: "hidden" }}>
+            <View style={{ height: 8, borderRadius: 999, backgroundColor: "#1e293b", overflow: "hidden" }}>
               <View
                 style={{
                   height: 8,
@@ -196,14 +196,14 @@ export default function MatchRaceScreen() {
                 borderRadius: 12,
                 borderWidth: 2,
                 borderColor: me.inRace ? "#22c55e" : "#ef4444",
-                backgroundColor: me.inRace ? "#f0fdf4" : "#fef2f2",
+                backgroundColor: me.inRace ? "#052e16" : "#2a0a0a",
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
               <View>
-                <Text style={{ fontWeight: "900", fontSize: 15, color: Colors.slate900 }}>
+                <Text style={{ fontWeight: "900", fontSize: 15, color: "#e2e8f0" }}>
                   Anlık sıran: {me.rank}. / {data.totalPlayers}
                 </Text>
                 <Text style={{ color: me.inRace ? "#059669" : "#dc2626", fontSize: 12, fontWeight: "700" }}>
@@ -219,7 +219,7 @@ export default function MatchRaceScreen() {
           )}
 
           {/* İlk 50 */}
-          <Text style={{ fontWeight: "700" }}>İlk {(data.top || []).length} · toplam {data.totalPlayers} tahminci</Text>
+          <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>İlk {(data.top || []).length} · toplam {data.totalPlayers} tahminci</Text>
           {(data.top || []).map((r) => {
             const isMe = r.userId.toLowerCase() === userId.toLowerCase();
             const medal = r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : ` ${r.rank}.`;
