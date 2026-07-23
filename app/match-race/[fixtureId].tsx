@@ -20,14 +20,19 @@ async function apiFetch(path: string, init?: RequestInit) {
 }
 
 type RaceRow = { rank: number; userId: string; points: number; inRace: boolean };
+type Participant = { userId: string; joinedAt?: string | null };
 type RaceResp = {
   ok: boolean;
+  phase?: "pre" | "live";
   state?: {
     status?: string;
     minute?: number | null;
     score?: { home: number; away: number } | null;
     home?: string | null;
     away?: string | null;
+    date?: string | null;
+    time?: string | null;
+    league?: string | null;
     firstGoal?: string | null;
     redAny?: boolean;
     penaltyAny?: boolean;
@@ -36,12 +41,15 @@ type RaceResp = {
   totalPlayers?: number;
   inRaceCount?: number;
   top?: RaceRow[];
+  participants?: Participant[];
+  meJoined?: boolean;
   me?: RaceRow | null;
   error?: string;
 };
 
 const LIVE_STATUSES = new Set(["1H", "HT", "2H", "ET", "BT", "P", "LIVE", "INT"]);
-const POLL_MS = 20000; // canlı maçta 20 sn'de bir yenile (sağlayıcıya değil, kendi API'mize)
+const POLL_MS = 20000;
+const PRE_POLL_MS = 60000;
 
 export default function MatchRaceScreen() {
   const router = useRouter();
@@ -52,7 +60,9 @@ export default function MatchRaceScreen() {
   const [data, setData] = useState<RaceResp | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [notifyOn, setNotifyOn] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevPhaseRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -71,21 +81,34 @@ export default function MatchRaceScreen() {
     load();
   }, [load]);
 
-  // Canlı maçta otomatik yenile (kendi API'mizden — sağlayıcı sorgusu tetiklemez)
   useEffect(() => {
+    const phase = data?.phase || "";
     const status = data?.state?.status || "";
     const isLive = LIVE_STATUSES.has(String(status).toUpperCase());
+
     if (timerRef.current) clearInterval(timerRef.current);
-    if (isLive) timerRef.current = setInterval(load, POLL_MS);
+
+    if (isLive) {
+      timerRef.current = setInterval(load, POLL_MS);
+    } else if (phase === "pre") {
+      timerRef.current = setInterval(load, PRE_POLL_MS);
+    }
+
+    if (prevPhaseRef.current === "pre" && phase === "live" && notifyOn) {
+      // Phase just transitioned from pre to live
+    }
+    prevPhaseRef.current = phase;
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [data?.state?.status, load]);
+  }, [data?.phase, data?.state?.status, load, notifyOn]);
 
   const st = data?.state;
+  const phase = data?.phase || "";
+  const isPre = phase === "pre";
   const isFT = String(st?.status || "").toUpperCase() === "FT";
   const isLive = LIVE_STATUSES.has(String(st?.status || "").toUpperCase());
-  const me = data?.me;
 
   return (
     <ScrollView
@@ -100,11 +123,28 @@ export default function MatchRaceScreen() {
           }}
         />
       }
-      contentContainerStyle={{ padding: 16, gap: 12 }}
+      contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
     >
-      <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 4 }}>
-        <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
-      </TouchableOpacity>
+      {/* Üst bar: geri + hızlı navigasyon */}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+        </TouchableOpacity>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity
+            onPress={() => router.replace({ pathname: "/(tabs)/live", params: { tab: "open" } })}
+            style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: "#1e293b" }}
+          >
+            <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: "600" }}>Maçlar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.replace({ pathname: "/(tabs)/live", params: { tab: "mine" } })}
+            style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: "#1e293b" }}
+          >
+            <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: "600" }}>Tahminlerim</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {loading && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -115,11 +155,128 @@ export default function MatchRaceScreen() {
 
       {!loading && !data?.ok && (
         <Text style={{ color: "#f97316" }}>
-          Pano yüklenemedi: {data?.error === "STATE_NOT_FOUND" ? "Maç henüz başlamadı (canlı veri yok)." : data?.error}
+          Pano yüklenemedi: {data?.error || "Bilinmeyen hata"}
         </Text>
       )}
 
-      {!loading && data?.ok && st && (
+      {/* ===== PRE-MATCH ===== */}
+      {!loading && data?.ok && isPre && st && (
+        <>
+          {/* Maç kartı */}
+          <View
+            style={{
+              padding: 20,
+              borderRadius: 14,
+              backgroundColor: "#020617",
+              borderWidth: 1,
+              borderColor: "#3b82f644",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            {st.league && (
+              <Text style={{ color: "#60a5fa", fontSize: 11, fontWeight: "700" }}>{st.league}</Text>
+            )}
+            <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800", textAlign: "center" }}>
+              {st.home || "Ev"} — {st.away || "Deplasman"}
+            </Text>
+            <Text style={{ color: "#a3e635", fontSize: 28, fontWeight: "900" }}>vs</Text>
+            {(st.date || st.time) && (
+              <Text style={{ color: Colors.muted, fontSize: 12 }}>
+                {st.date ? `📅 ${st.date}` : ""}{st.time ? ` ⏰ ${st.time}` : ""}
+              </Text>
+            )}
+            <View style={{ marginTop: 4, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 999, backgroundColor: "#1e293b" }}>
+              <Text style={{ color: "#fbbf24", fontSize: 11, fontWeight: "700" }}>⏳ Maç henüz başlamadı</Text>
+            </View>
+          </View>
+
+          {/* Katılımcı sayacı */}
+          <View
+            style={{
+              padding: 14,
+              borderRadius: 12,
+              backgroundColor: "#0f172a",
+              borderWidth: 1,
+              borderColor: Colors.border,
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Text style={{ fontWeight: "900", fontSize: 32, color: Colors.accent }}>
+              {data.totalPlayers || 0}
+            </Text>
+            <Text style={{ fontWeight: "700", fontSize: 13, color: "#e2e8f0" }}>
+              kişi bu maça tahmin gönderdi
+            </Text>
+            {data.meJoined && (
+              <View style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: "#052e16", borderWidth: 1, borderColor: "#22c55e66" }}>
+                <Text style={{ color: "#4ade80", fontSize: 11, fontWeight: "700" }}>✅ Sen de yarışa katıldın</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Bildirim al */}
+          <TouchableOpacity
+            onPress={() => setNotifyOn((v) => !v)}
+            style={{
+              padding: 14,
+              borderRadius: 12,
+              backgroundColor: notifyOn ? "#052e16" : "#1e293b",
+              borderWidth: 1,
+              borderColor: notifyOn ? "#22c55e" : Colors.border,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            <Text style={{ fontSize: 18 }}>{notifyOn ? "🔔" : "🔕"}</Text>
+            <View>
+              <Text style={{ fontWeight: "700", color: notifyOn ? "#4ade80" : "#e2e8f0", fontSize: 14 }}>
+                {notifyOn ? "Bildirim açık — maç başlayınca güncellenecek" : "Maç başlayınca bildir"}
+              </Text>
+              <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
+                {notifyOn ? "Ekranı açık tut, maç başlayınca otomatik canlı yarışa geçer." : "Bu ekranda kal, maç başladığında canlı sıralama otomatik açılır."}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Katılımcı listesi */}
+          <Text style={{ fontWeight: "700", color: "#e2e8f0", marginTop: 4 }}>
+            Katılımcılar ({data.totalPlayers || 0})
+          </Text>
+          {(data.participants || []).map((p, i) => {
+            const isMe = p.userId.toLowerCase() === userId.toLowerCase();
+            return (
+              <View
+                key={p.userId + i}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 8,
+                  paddingHorizontal: 10,
+                  borderRadius: 10,
+                  backgroundColor: isMe ? "#0f172a" : "#020617",
+                  borderWidth: 1,
+                  borderColor: isMe ? Colors.accent : Colors.border,
+                }}
+              >
+                <Text style={{ color: Colors.muted, fontWeight: "600", width: 30, fontSize: 12 }}>
+                  {i + 1}.
+                </Text>
+                <Text style={{ color: "#fff", fontWeight: isMe ? "900" : "600", flex: 1 }} numberOfLines={1}>
+                  {p.userId}{isMe ? " (ben)" : ""}
+                </Text>
+                <Text style={{ color: Colors.muted, fontSize: 11 }}>⚽</Text>
+              </View>
+            );
+          })}
+        </>
+      )}
+
+      {/* ===== CANLI / BİTEN MAÇ ===== */}
+      {!loading && data?.ok && !isPre && st && (
         <>
           {/* Skor kartı */}
           <View
@@ -189,14 +346,14 @@ export default function MatchRaceScreen() {
           </View>
 
           {/* Benim durumum */}
-          {me ? (
+          {data.me ? (
             <View
               style={{
                 padding: 14,
                 borderRadius: 12,
                 borderWidth: 2,
-                borderColor: me.inRace ? "#22c55e" : "#ef4444",
-                backgroundColor: me.inRace ? "#052e16" : "#2a0a0a",
+                borderColor: data.me.inRace ? "#22c55e" : "#ef4444",
+                backgroundColor: data.me.inRace ? "#052e16" : "#2a0a0a",
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -204,13 +361,13 @@ export default function MatchRaceScreen() {
             >
               <View>
                 <Text style={{ fontWeight: "900", fontSize: 15, color: "#e2e8f0" }}>
-                  Anlık sıran: {me.rank}. / {data.totalPlayers}
+                  Anlık sıran: {data.me.rank}. / {data.totalPlayers}
                 </Text>
-                <Text style={{ color: me.inRace ? "#059669" : "#dc2626", fontSize: 12, fontWeight: "700" }}>
-                  {me.inRace ? "✅ Tahminin tutuyor" : "❌ Tahminin şu an tutmuyor"}
+                <Text style={{ color: data.me.inRace ? "#059669" : "#dc2626", fontSize: 12, fontWeight: "700" }}>
+                  {data.me.inRace ? "✅ Tahminin tutuyor" : "❌ Tahminin şu an tutmuyor"}
                 </Text>
               </View>
-              <Text style={{ fontWeight: "900", fontSize: 20, color: Colors.accent }}>{me.points}p</Text>
+              <Text style={{ fontWeight: "900", fontSize: 20, color: Colors.accent }}>{data.me.points}p</Text>
             </View>
           ) : (
             <Text style={{ color: Colors.muted, fontSize: 12 }}>
