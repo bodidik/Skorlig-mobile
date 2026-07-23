@@ -93,7 +93,8 @@
     "plugins": [
       "expo-router",
       "expo-web-browser",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "expo-localization"
     ],
     "icon": "assets/icon.png",
     "owner": "hucigo11"

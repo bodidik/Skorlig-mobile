@@ -1150,12 +1150,12 @@ export default function Me() {
                   onPress={() => nav.push({ pathname: "/profile/[userId]", params: { userId } } as any)}
                   style={{ flex: 1, padding: 10, backgroundColor: rank.color, borderRadius: 10 }}
                 >
-              <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
-                Profil & Geçmiş →
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+                  <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
+                    Profil & Geçmiş →
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           );
         })()}
 
