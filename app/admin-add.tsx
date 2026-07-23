@@ -52,6 +52,36 @@ export default function AdminAddScreen() {
   const [tokenReady, setTokenReady] = useState(false);
   useEffect(() => { hasAdminToken().then(setTokenReady); }, []);
 
+  // ── Maç arama (TheSportsDB) ──
+  const [searchQ, setSearchQ] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<{
+    idEvent: string; home: string; away: string; dateEvent: string;
+    time: string; league: string; country: string;
+  }[]>([]);
+  const [searchDone, setSearchDone] = useState(false);
+
+  const searchMatch = useCallback(async () => {
+    if (searchQ.trim().length < 2) return;
+    try {
+      setSearching(true); setSearchDone(false); setSearchResults([]);
+      const r = await apiFetch(`/api/admin/search-match?q=${encodeURIComponent(searchQ.trim())}`).then(x => x.json());
+      if (r?.ok) setSearchResults(r.events || []);
+      else Alert.alert("Hata", r?.error || "ARAMA_HATASI");
+    } catch (e: any) {
+      Alert.alert("Hata", String(e?.message || e));
+    } finally {
+      setSearching(false); setSearchDone(true);
+    }
+  }, [searchQ]);
+
+  const pickSearchResult = useCallback((ev: typeof searchResults[0]) => {
+    setHome(ev.home); setAway(ev.away);
+    setDateStr(ev.dateEvent); setTimeStr(ev.time || "20:00");
+    setLeague(ev.league || ""); setCountry(ev.country || "");
+    setSearchResults([]); setSearchQ(""); setSearchDone(false);
+  }, []);
+
   // ── Yeni maç formu ──
   const [home, setHome] = useState("");
   const [away, setAway] = useState("");
@@ -195,6 +225,48 @@ export default function AdminAddScreen() {
             </Text>
           </View>
         )}
+
+        {/* ── MAÇ ARA (TheSportsDB) ── */}
+        <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: "#3b82f655", padding: 14, gap: 10, marginBottom: 14 }}>
+          <Text style={{ color: "#60a5fa", fontWeight: "900", fontSize: 16 }}>🔍 Maç Ara</Text>
+          <Text style={{ color: "#64748b", fontSize: 11 }}>Takım adı yaz, yaklaşan maçları bul, tek tıkla ekle.</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <TextInput
+              value={searchQ} onChangeText={setSearchQ}
+              placeholder="Takım adı (ör: Karabağ, Galatasaray...)"
+              placeholderTextColor="#475569"
+              style={{ ...inputStyle, flex: 1 }}
+              onSubmitEditing={searchMatch}
+              returnKeyType="search"
+            />
+            <TouchableOpacity
+              onPress={searchMatch}
+              disabled={searching || searchQ.trim().length < 2}
+              style={{ paddingHorizontal: 16, justifyContent: "center", borderRadius: 8, backgroundColor: searching || searchQ.trim().length < 2 ? "#1e293b" : "#3b82f6" }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "800" }}>{searching ? "..." : "Ara"}</Text>
+            </TouchableOpacity>
+          </View>
+          {searching && <ActivityIndicator color="#3b82f6" />}
+          {searchDone && searchResults.length === 0 && !searching && (
+            <Text style={{ color: "#64748b", textAlign: "center", fontSize: 12 }}>Maç bulunamadı.</Text>
+          )}
+          {searchResults.map(ev => (
+            <TouchableOpacity
+              key={ev.idEvent}
+              onPress={() => pickSearchResult(ev)}
+              style={{ backgroundColor: "#1e293b", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: "#334155" }}
+            >
+              <Text style={{ color: "#e2e8f0", fontWeight: "800", fontSize: 13 }}>
+                {ev.home} — {ev.away}
+              </Text>
+              <Text style={{ color: "#94a3b8", fontSize: 11, marginTop: 2 }}>
+                {ev.dateEvent} {ev.time} · {ev.league}
+              </Text>
+              <Text style={{ color: "#22c55e", fontSize: 10, marginTop: 4, fontWeight: "700" }}>Tıkla → forma doldur</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* ── YENİ MAÇ FORMU ── */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: "#1e293b", padding: 14, gap: 10 }}>
