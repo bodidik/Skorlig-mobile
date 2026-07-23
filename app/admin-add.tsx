@@ -65,7 +65,8 @@ export default function AdminAddScreen() {
     if (searchQ.trim().length < 2) return;
     try {
       setSearching(true); setSearchDone(false); setSearchResults([]);
-      const r = await apiFetch(`/api/admin/search-match?q=${encodeURIComponent(searchQ.trim())}`).then(x => x.json());
+      const base = await getApiBase();
+      const r = await fetch(`${base}/api/admin/search-match?q=${encodeURIComponent(searchQ.trim())}`).then(x => x.json());
       if (r?.ok) setSearchResults(r.events || []);
       else Alert.alert("Hata", r?.error || "ARAMA_HATASI");
     } catch (e: any) {
