@@ -17,6 +17,7 @@ import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders } from "../../lib/apiFetch";
 import { getAdminToken, setAdminToken, withAdminHeaders } from "../../lib/adminToken";
 import Constants from "expo-constants";
+import { getRank, getNextRank, rankProgress, getUnlocked, ACHIEVEMENTS, type AchCtx } from "../../lib/ranks";
 
 /* ========= Types ========= */
 type Profile = { mainTeam: string | null; country?: string | null; totals: number };
@@ -265,6 +266,12 @@ export default function Me() {
 
   const [predCount, setPredCount] = useState<number | null>(null);
 
+  // Streak verisi (başarımlar için)
+  const [streakData, setStreakData] = useState<{
+    seriesCount: number; seriesCumOdds: number; activeSeries: boolean;
+    bestSeries: number; currentTier: { label: string } | null;
+  } | null>(null);
+
   // Ban yönetimi
   const [banInput, setBanInput]         = useState("");
   const [banReason, setBanReason]       = useState("");
@@ -449,6 +456,16 @@ export default function Me() {
       await loadWalletSummary(userId);
       await loadPredCount(userId);
       loadInviteCode(userId);
+
+      // Streak verisi (başarımlar + seri rozeti)
+      try {
+        const sr = await apiFetch(`/api/live/streak?userId=${encodeURIComponent(userId)}`).then(x => x.json());
+        if (sr?.ok) setStreakData({
+          seriesCount: sr.seriesCount ?? 0, seriesCumOdds: sr.seriesCumOdds ?? 0,
+          activeSeries: sr.activeSeries ?? false, bestSeries: sr.bestSeries ?? 0,
+          currentTier: sr.currentTier ?? null,
+        });
+      } catch { setStreakData(null); }
 
       await loadPendingCountIfAdmin(isEff);
     } catch (e: any) {
@@ -1039,45 +1056,158 @@ export default function Me() {
           </View>
         )}
 
-        {/* Genel puan kartı */}
-        <View
-          style={{
-            padding: 12,
-            backgroundColor: "#0f172a",
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: Colors.border,
-            gap: 8,
-          }}
-        >
-          <Text style={{ fontWeight: "700" }}>Genel Puan</Text>
-          <Text style={{ fontSize: 28, fontWeight: "800", color: Colors.primary }}>
-            {totalPoints !== undefined ? totalPoints : "—"}
-          </Text>
-          {totalsRow && (
-            <Text style={{ color: Colors.muted, fontSize: 12 }}>
-              Maç: {totalsRow.matches} · Toplam ceza: {totalsRow.totalPenalty}
-            </Text>
-          )}
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <TouchableOpacity
-              onPress={() => nav.push({ pathname: "/stats", params: { userId } })}
-              style={{ flex: 1, padding: 10, backgroundColor: Colors.headerBlue, borderRadius: 10 }}
-            >
-              <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "600" }}>
-                Genel İstatistikler
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => nav.push({ pathname: "/profile/[userId]", params: { userId } } as any)}
-              style={{ flex: 1, padding: 10, backgroundColor: Colors.accent, borderRadius: 10 }}
-            >
+        {/* Rütbe + Puan kartı */}
+        {(() => {
+          const pts = Number(totalPoints ?? 0);
+          const rank = getRank(pts);
+          const next = getNextRank(pts);
+          const prog = rankProgress(pts);
+          return (
+            <View style={{
+              padding: 14, backgroundColor: rank.bg, borderRadius: 14,
+              borderWidth: 1.5, borderColor: rank.border, gap: 10,
+            }}>
+              {/* Rütbe başlık */}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Text style={{ fontSize: 36 }}>{rank.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: rank.color, fontWeight: "900", fontSize: 18 }}>{rank.label}</Text>
+                  <Text style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
+                    {totalsRow ? `${totalsRow.matches} maç oynandı` : ""}
+                  </Text>
+                </View>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={{ fontSize: 28, fontWeight: "900", color: rank.color }}>
+                    {totalPoints !== undefined ? totalPoints : "—"}
+                  </Text>
+                  <Text style={{ color: "#64748b", fontSize: 10 }}>puan</Text>
+                </View>
+              </View>
+
+              {/* İlerleme çubuğu */}
+              {next && (
+                <View style={{ gap: 4 }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                    <Text style={{ color: "#64748b", fontSize: 10 }}>
+                      {next.emoji} {next.label}: {next.minPts} puan
+                    </Text>
+                    <Text style={{ color: rank.color, fontSize: 10, fontWeight: "700" }}>
+                      {Math.round(prog * 100)}%
+                    </Text>
+                  </View>
+                  <View style={{ height: 6, backgroundColor: "#1e293b", borderRadius: 999 }}>
+                    <View style={{
+                      height: 6, borderRadius: 999, backgroundColor: rank.color,
+                      width: `${Math.round(prog * 100)}%` as any,
+                    }} />
+                  </View>
+                  <Text style={{ color: "#475569", fontSize: 10 }}>
+                    {next.minPts - pts} puan daha → {next.label}
+                  </Text>
+                </View>
+              )}
+              {!next && (
+                <Text style={{ color: rank.color, fontSize: 12, fontWeight: "700" }}>
+                  En yüksek rütbeye ulaştın!
+                </Text>
+              )}
+
+              {/* Seri durumu */}
+              {streakData && streakData.activeSeries && streakData.seriesCount > 0 && (
+                <View style={{
+                  flexDirection: "row", alignItems: "center", gap: 8,
+                  backgroundColor: "#00000033", borderRadius: 10, padding: 10,
+                }}>
+                  <Text style={{ fontSize: 20 }}>🔥</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: streakData.currentTier ? "#fbbf24" : "#60a5fa", fontWeight: "800", fontSize: 13 }}>
+                      {streakData.seriesCount} maçlık seri
+                      {streakData.currentTier ? ` · ${streakData.currentTier.label}` : ""}
+                    </Text>
+                    <Text style={{ color: "#475569", fontSize: 10 }}>
+                      En iyi seri: {streakData.bestSeries.toFixed(1)} puan
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {totalsRow && (
+                <Text style={{ color: "#475569", fontSize: 11 }}>
+                  Toplam ceza: {totalsRow.totalPenalty}
+                </Text>
+              )}
+
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => nav.push({ pathname: "/stats", params: { userId } })}
+                  style={{ flex: 1, padding: 10, backgroundColor: "#1e293b", borderRadius: 10 }}
+                >
+                  <Text style={{ textAlign: "center", color: "#94a3b8", fontWeight: "600" }}>
+                    Genel İstatistikler
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => nav.push({ pathname: "/profile/[userId]", params: { userId } } as any)}
+                  style={{ flex: 1, padding: 10, backgroundColor: rank.color, borderRadius: 10 }}
+                >
               <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
                 Profil & Geçmiş →
               </Text>
             </TouchableOpacity>
           </View>
         </View>
+          );
+        })()}
+
+        {/* Başarımlar */}
+        {(() => {
+          const achCtx: AchCtx = {
+            matches: totalsRow?.matches ?? 0,
+            totalPoints: Number(totalPoints ?? 0),
+            totalEarned: wallet?.user?.totalEarned ?? 0,
+            bestSeries: streakData?.bestSeries ?? 0,
+            seriesCount: streakData?.seriesCount ?? 0,
+            activeSeries: streakData?.activeSeries ?? false,
+          };
+          const unlocked = getUnlocked(achCtx);
+          const locked = ACHIEVEMENTS.filter(a => !a.check(achCtx));
+          if (ACHIEVEMENTS.length === 0) return null;
+          return (
+            <View style={{
+              padding: 14, backgroundColor: "#0f172a", borderRadius: 14,
+              borderWidth: 1, borderColor: Colors.border, gap: 10,
+            }}>
+              <Text style={{ fontWeight: "800", fontSize: 15, color: "#e2e8f0" }}>
+                Başarımlar ({unlocked.length}/{ACHIEVEMENTS.length})
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {unlocked.map(a => (
+                  <View key={a.key} style={{
+                    flexDirection: "row", alignItems: "center", gap: 6,
+                    backgroundColor: "#1e293b", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
+                    borderWidth: 1, borderColor: "#334155",
+                  }}>
+                    <Text style={{ fontSize: 18 }}>{a.emoji}</Text>
+                    <View>
+                      <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12 }}>{a.label}</Text>
+                      <Text style={{ color: "#64748b", fontSize: 9 }}>{a.desc}</Text>
+                    </View>
+                  </View>
+                ))}
+                {locked.map(a => (
+                  <View key={a.key} style={{
+                    flexDirection: "row", alignItems: "center", gap: 6,
+                    backgroundColor: "#0f172a", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
+                    borderWidth: 1, borderColor: "#1e293b", opacity: 0.4,
+                  }}>
+                    <Text style={{ fontSize: 18 }}>🔒</Text>
+                    <Text style={{ color: "#475569", fontWeight: "600", fontSize: 12 }}>{a.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          );
+        })()}
 
         {/* Sıradaki Adımın — oyun önerileri */}
         {(() => {
