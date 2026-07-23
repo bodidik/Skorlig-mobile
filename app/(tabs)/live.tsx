@@ -519,8 +519,8 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
             </View>
           )}
 
-          {/* Canlı/biten maçta yarış panosu: anlık sıranı gör */}
-          {!adminMode && (isLive || (isFinished && hasScore)) && (
+          {/* Yarış panosu: tahmin yapılmış, canlı veya biten maçlarda */}
+          {!adminMode && (hasPred === true || isLive || (isFinished && hasScore)) && (
             <TouchableOpacity
               onPress={() => onRace(item)}
               style={{
@@ -534,7 +534,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
               }}
             >
               <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
-                {isLive ? "🔥 Canlı Sıralama" : "🏁 Maç Sıralaması"}
+                {isLive ? "🔥 Canlı Sıralama" : isFinished ? "🏁 Maç Sıralaması" : "🏁 Yarışı Takip Et"}
               </Text>
             </TouchableOpacity>
           )}

@@ -142,6 +142,7 @@ export default function PredictScreen() {
   const [penaltySide, setPenaltySide] = useState<Side>(null);
 
   const [sending, setSending] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState<{ wasUpdate: boolean; gain: number } | null>(null);
 
   // LC mini şerit durumu
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
@@ -653,16 +654,7 @@ useEffect(() => {
 
     const wasUpdate = hasPredByMe === true;
     const gain = sel.gain;
-    Alert.alert(
-      wasUpdate ? "✅ Tahminin güncellendi" : "🎉 Tahminin kaydedildi!",
-      gain > 0
-        ? `Bu maçtan en fazla +${gain} puan kazanabilirsin.\n\nMaç oynanırken canlı sıralamada yerini takip et!`
-        : "Maç oynanırken canlı sıralamada yerini takip et!",
-      [
-        { text: "Maçlara dön", onPress: () => router.replace({ pathname: "/(tabs)/live", params: { tab: "open" } }) },
-        { text: "Tahminlerim", onPress: () => router.replace({ pathname: "/(tabs)/live", params: { tab: "mine" } }) },
-      ]
-    );
+    setJustSubmitted({ wasUpdate, gain });
   } catch (e: any) {
     Alert.alert("Hata", String(e?.message || e));
   } finally {
@@ -1651,7 +1643,42 @@ return (
         </Text>
       </TouchableOpacity>
 
+      {/* Başarılı gönderim sonrası navigasyon */}
+      {justSubmitted && (
+        <View style={{ marginTop: 12, padding: 14, borderRadius: 14, backgroundColor: "#052e16", borderWidth: 1, borderColor: "#22c55e66", gap: 8 }}>
+          <Text style={{ textAlign: "center", color: "#4ade80", fontWeight: "800", fontSize: 14 }}>
+            {justSubmitted.wasUpdate ? "✅ Tahminin güncellendi" : "🎉 Tahminin kaydedildi!"}
+          </Text>
+          {justSubmitted.gain > 0 && (
+            <Text style={{ textAlign: "center", color: "#86efac", fontSize: 12 }}>
+              Bu maçtan en fazla +{justSubmitted.gain} puan kazanabilirsin.
+            </Text>
+          )}
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 4, justifyContent: "center", flexWrap: "wrap" }}>
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: "/match-race/[fixtureId]", params: { fixtureId: fx?.fixtureId, userId } } as any)}
+              style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: "#065f46" }}
+            >
+              <Text style={{ color: "#a7f3d0", fontWeight: "700", fontSize: 12 }}>🏁 Yarışı Takip Et</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.replace({ pathname: "/(tabs)/live", params: { tab: "open" } })}
+              style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: "#1e293b" }}
+            >
+              <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12 }}>⚽ Maçlara Dön</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.replace({ pathname: "/(tabs)/live", params: { tab: "mine" } })}
+              style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: "#1e293b" }}
+            >
+              <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12 }}>📋 Tahminlerim</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* İkincil eylemler — Gönder'in altında, küçük */}
+      {!justSubmitted && (
       <View style={{ flexDirection: "row", gap: 8, marginTop: 10, justifyContent: "center" }}>
         {sel.count > 0 && (
           <TouchableOpacity onPress={clearForm} style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
@@ -1668,6 +1695,7 @@ return (
           </TouchableOpacity>
         )}
       </View>
+      )}
 
       {/* ===== TAHMİNİM PANELİ ===== */}
       {myPredDetail && (
