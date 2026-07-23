@@ -4,7 +4,7 @@ import {
   StyleSheet, ScrollView, RefreshControl, Switch,
 } from "react-native";
 import Constants from "expo-constants";
-import { getAuth } from "@react-native-firebase/auth";
+import { auth } from "../lib/firebase";
 
 const API = Constants.expoConfig?.extra?.apiBase ?? "https://skorlig87.onrender.com";
 
@@ -155,7 +155,7 @@ export default function Picks1987() {
   const [drafts,     setDrafts]     = useState<Record<string, MicroPred>>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
 
-  const uid = getAuth().currentUser?.uid ?? null;
+  const uid = auth.currentUser?.uid ?? null;
 
   const emptyDraft = (): MicroPred => ({
     outcome: null, firstGoal: null, firstHalf: null, redAny: null, penaltyAny: null,
@@ -210,7 +210,7 @@ export default function Picks1987() {
     if (!draft?.outcome) return;
     setSubmitting(pick.fixtureId);
     try {
-      const token = await getAuth().currentUser?.getIdToken();
+      const token = await auth.currentUser?.getIdToken();
       await fetch(`${API}/api/weekly-picks/predict`, {
         method:  "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

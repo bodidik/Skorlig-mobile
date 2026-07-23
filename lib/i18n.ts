@@ -1,4 +1,4 @@
-import { getLocales } from "expo-localization";
+import { Platform, NativeModules } from "react-native";
 
 const strings = {
   tr: {
@@ -706,9 +706,16 @@ type StringKey = keyof typeof strings.tr;
 
 function detectLang(): Lang {
   try {
-    const locales = getLocales();
-    const tag = (locales[0]?.languageTag || locales[0]?.languageCode || "en").toLowerCase();
-    const code = tag.split("-")[0] as Lang;
+    let tag = "en";
+    if (Platform.OS === "ios") {
+      const settings = NativeModules.SettingsManager?.settings;
+      const langs: string[] | undefined = settings?.AppleLanguages;
+      if (langs?.[0]) tag = langs[0];
+    } else if (Platform.OS === "android") {
+      const locale = NativeModules.I18nManager?.localeIdentifier;
+      if (locale) tag = locale.replace("_", "-");
+    }
+    const code = tag.toLowerCase().split("-")[0] as Lang;
     if (code in strings) return code;
   } catch {}
   return "en";
