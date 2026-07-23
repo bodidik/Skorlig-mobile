@@ -362,7 +362,7 @@ export default function Me() {
   const shareInvite = useCallback(async () => {
     if (!inviteCode) return;
     await Share.share({
-      message: `SkorLig'e katıl, birlikte tahmin yarışalım! 🏆\n\nDavet kodum: ${inviteCode}\n\nProfil ekranında "Davet Kodu Gir" bölümüne yaz, ikimiz de +10 LC kazanalım.`,
+      message: `SkorLig'e katıl, birlikte tahmin yarışalım! 🏆\n\nDavet kodum: ${inviteCode}\n\nProfil ekranında "Davet Kodu Gir" bölümüne yaz, ikimiz de +15 LC kazanalım.`,
       title: "SkorLig Davet",
     });
   }, [inviteCode]);
@@ -2014,7 +2014,7 @@ export default function Me() {
               <View style={{ flex: 1 }}>
                 <Text style={{ color: "#4ade80", fontSize: 11, fontWeight: "700" }}>👥 ARKADAŞ DAVET ET</Text>
                 <Text style={{ color: "#94a3b8", fontSize: 10, marginTop: 2 }}>
-                  Kodunu paylaş, ikimiz de +10 LC kazanalım
+                  Kodunu paylaş, ikimiz de +15 LC kazanalım
                 </Text>
               </View>
               <TouchableOpacity
