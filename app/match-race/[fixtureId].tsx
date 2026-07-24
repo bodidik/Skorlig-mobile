@@ -21,7 +21,7 @@ async function apiFetch(path: string, init?: RequestInit) {
   return fetch(`${base}${p}`, { ...init, headers: { ...authH, ...(init?.headers as any) } });
 }
 
-type RaceRow = { rank: number; userId: string; points: number; inRace: boolean };
+type RaceRow = { rank: number; userId: string; points: number; inRace: boolean; distance?: number | null; predScore?: { home: number; away: number } | null };
 type Participant = { userId: string; joinedAt?: string | null };
 type RaceResp = {
   ok: boolean;
@@ -181,7 +181,7 @@ export default function MatchRaceScreen() {
   const isFT = String(st?.status || "").toUpperCase() === "FT";
   const isLive = LIVE_STATUSES.has(String(st?.status || "").toUpperCase());
 
-  const renderUserRow = (uid: string, index: number, extra?: { points?: number; inRace?: boolean; rank?: number; displayName?: string }) => {
+  const renderUserRow = (uid: string, index: number, extra?: { points?: number; inRace?: boolean; rank?: number; displayName?: string; distance?: number | null; predScore?: { home: number; away: number } | null }) => {
     const isMe = uid.toLowerCase() === userId.toLowerCase();
     const name = extra?.displayName || uid;
     const label = extra?.rank
@@ -204,11 +204,21 @@ export default function MatchRaceScreen() {
         }}
       >
         <Text style={{ color: Colors.muted, fontWeight: "600", width: 34, fontSize: 12 }}>{label}</Text>
-        <Text style={{ color: "#fff", fontWeight: isMe ? "900" : "600", flex: 1 }} numberOfLines={1}>
-          {name}{isMe ? " (ben)" : ""}
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: "#fff", fontWeight: isMe ? "900" : "600" }} numberOfLines={1}>
+            {name}{isMe ? " (ben)" : ""}
+          </Text>
+          {extra?.predScore && (
+            <Text style={{ color: Colors.muted, fontSize: 10 }}>
+              Tahmin: {extra.predScore.home}-{extra.predScore.away}
+            </Text>
+          )}
+        </View>
         {extra?.inRace != null && (
           <Text style={{ fontSize: 11, marginRight: 8 }}>{extra.inRace ? "🟢" : "🔴"}</Text>
+        )}
+        {extra?.distance != null && extra.distance < 999 && (
+          <Text style={{ color: "#60a5fa", fontWeight: "700", fontSize: 11, marginRight: 6 }}>Δ{extra.distance}</Text>
         )}
         {extra?.points != null && (
           <Text style={{ color: "#a3e635", fontWeight: "800" }}>{extra.points}p</Text>
@@ -388,7 +398,7 @@ export default function MatchRaceScreen() {
                 />
               </View>
               <Text style={{ color: Colors.muted, fontSize: 10 }}>
-                Skor değiştikçe tahmini tutanların sayısı değişir. Puanlar her olayla anında güncellenir.
+                Gerçek skor tahmini aştığında elenirsin. Yakın tahminler üstte sıralanır.
               </Text>
             </View>
 
@@ -398,18 +408,24 @@ export default function MatchRaceScreen() {
                   padding: 14, borderRadius: 12, borderWidth: 2,
                   borderColor: data.me.inRace ? "#22c55e" : "#ef4444",
                   backgroundColor: data.me.inRace ? "#052e16" : "#2a0a0a",
-                  flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+                  gap: 4,
                 }}
               >
-                <View>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <Text style={{ fontWeight: "900", fontSize: 15, color: "#e2e8f0" }}>
                     Anlık sıran: {data.me.rank}. / {data.totalPlayers}
                   </Text>
-                  <Text style={{ color: data.me.inRace ? "#059669" : "#dc2626", fontSize: 12, fontWeight: "700" }}>
-                    {data.me.inRace ? "✅ Tahminin tutuyor" : "❌ Tahminin şu an tutmuyor"}
-                  </Text>
+                  <Text style={{ fontWeight: "900", fontSize: 20, color: Colors.accent }}>{data.me.points}p</Text>
                 </View>
-                <Text style={{ fontWeight: "900", fontSize: 20, color: Colors.accent }}>{data.me.points}p</Text>
+                {data.me.predScore && (
+                  <Text style={{ color: "#94a3b8", fontSize: 12 }}>
+                    Tahminin: {data.me.predScore.home}-{data.me.predScore.away}
+                    {data.me.distance != null && data.me.distance < 999 ? ` · Uzaklık: ${data.me.distance}` : ""}
+                  </Text>
+                )}
+                <Text style={{ color: data.me.inRace ? "#059669" : "#dc2626", fontSize: 12, fontWeight: "700" }}>
+                  {data.me.inRace ? "✅ Skorun hâlâ mümkün" : "❌ Skorun artık imkansız"}
+                </Text>
               </View>
             ) : (
               <Text style={{ color: Colors.muted, fontSize: 12 }}>
@@ -421,7 +437,7 @@ export default function MatchRaceScreen() {
               İlk {(data.top || []).length} · toplam {data.totalPlayers} tahminci
             </Text>
             {(data.top || []).map((r, i) =>
-              renderUserRow(r.userId, i, { points: r.points, inRace: r.inRace, rank: r.rank, displayName: r.displayName })
+              renderUserRow(r.userId, i, { points: r.points, inRace: r.inRace, rank: r.rank, displayName: r.displayName, distance: r.distance, predScore: r.predScore })
             )}
           </>
         )}

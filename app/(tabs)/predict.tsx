@@ -578,44 +578,34 @@ useEffect(() => {
     return;
   }
 
-  // Skor isteğe bağlı: her ikisi de boşsa skor gönderme
+  // Skor zorunlu: yarış sıralama skor bazlı çalışıyor
   const hasHome = homeScore.trim() !== "";
   const hasAway = awayScore.trim() !== "";
 
-  let h: number | null = null;
-  let a: number | null = null;
-
-  if (hasHome || hasAway) {
-    if (!hasHome || !hasAway) {
-      Alert.alert(
-        "SkorLig",
-        "Skor tahmini için her iki alana da sayı girin veya ikisini de boş bırakın."
-      );
-      return;
-    }
-    const hh = Number(homeScore);
-    const aa = Number(awayScore);
-    if (!Number.isFinite(hh) || !Number.isFinite(aa)) {
-      Alert.alert("SkorLig", "Skor alanlarına sayı girin.");
-      return;
-    }
-    h = hh;
-    a = aa;
+  if (!hasHome || !hasAway) {
+    Alert.alert("SkorLig", "Skor tahmini zorunlu. Her iki alana da sayı gir.");
+    return;
   }
+
+  const hh = Number(homeScore);
+  const aa = Number(awayScore);
+  if (!Number.isFinite(hh) || !Number.isFinite(aa)) {
+    Alert.alert("SkorLig", "Skor alanlarına sayı girin.");
+    return;
+  }
+  const h = hh;
+  const a = aa;
 
   const body: any = {
     fixtureId: fx,
     userId: uid,
   };
 
+  body.home = h;
+  body.away = a;
   if (outcome !== null) body.outcome = outcome;
   if (firstGoal !== null) body.firstGoal = firstGoal;
   if (firstHalf !== null) body.firstHalf = firstHalf;
-
-  if (h !== null && a !== null) {
-    body.home = h;
-    body.away = a;
-  }
 
   if (redAny !== null) body.redAny = redAny;
   if (redAny === true && redSide) body.redSide = redSide;
