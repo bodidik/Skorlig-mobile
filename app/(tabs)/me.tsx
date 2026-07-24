@@ -20,7 +20,7 @@ import Constants from "expo-constants";
 import { getRank, getNextRank, rankProgress, getUnlocked, ACHIEVEMENTS, type AchCtx } from "../../lib/ranks";
 
 /* ========= Types ========= */
-type Profile = { mainTeam: string | null; country?: string | null; totals: number };
+type Profile = { nickname?: string | null; mainTeam: string | null; country?: string | null; totals: number };
 type CountryOpt = { country: string; flag: string };
 type MiniWin = { id: string; name: string; finishedAt: string; rewardLc: number; shared?: boolean };
 type Group = { id?: string; name: string; members?: any[] };
@@ -227,6 +227,10 @@ export default function Me() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [teamInput, setTeamInput] = useState("");
+
+  // Görünen kullanıcı adı (nickname)
+  const [nicknameInput, setNicknameInput] = useState("");
+  const [nicknameSaving, setNicknameSaving] = useState(false);
   const [countries, setCountries] = useState<CountryOpt[]>([]);
 
   // Zengin ülke + takım seçici
@@ -423,6 +427,7 @@ export default function Me() {
       if (p?.ok) {
         setProfile(p.profile);
         if (p.profile?.mainTeam) setTeamInput(p.profile.mainTeam);
+        setNicknameInput(p.profile?.nickname || "");
         if (Array.isArray(p.profile?.preferredLeagues)) setPreferredLeagues(p.profile.preferredLeagues);
         if (p.profile?.preferredLang) setPreferredLang(p.profile.preferredLang);
       } else {
@@ -592,6 +597,37 @@ export default function Me() {
       Alert.alert("Hata", String(e?.message || e));
     } finally {
       setCountrySaving(false);
+    }
+  }
+
+  async function saveNickname() {
+    const nick = nicknameInput.trim();
+    if (nick.length < 2) {
+      Alert.alert("SkorLig", "Kullanıcı adı en az 2 karakter olmalı.");
+      return;
+    }
+    try {
+      setNicknameSaving(true);
+      const r = await apiFetch(`/api/users/set-nickname`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: nick }),
+      }).then((x) => x.json());
+      if (r?.ok) {
+        setProfile((prev) => (prev ? { ...prev, nickname: r.nickname } : prev));
+        Alert.alert("SkorLig", "Kullanıcı adın kaydedildi. Yarış ve sıralamalarda bu isim görünecek.");
+      } else {
+        const msg =
+          r?.error === "NICKNAME_TAKEN" ? "Bu kullanıcı adı alınmış, başka bir tane dene."
+          : r?.error === "NICKNAME_LENGTH" ? "2-20 karakter olmalı."
+          : r?.error === "NICKNAME_INVALID" ? "Geçersiz karakter kullandın."
+          : r?.detail || r?.error || "Kaydedilemedi.";
+        Alert.alert("Hata", msg);
+      }
+    } catch (e: any) {
+      Alert.alert("Hata", String(e?.message || e));
+    } finally {
+      setNicknameSaving(false);
     }
   }
 
@@ -789,7 +825,7 @@ export default function Me() {
         >
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: "800", color: Colors.slate900, fontSize: 15 }} numberOfLines={1}>
-              {user?.displayName || "Kullanıcı"}
+              {profile?.nickname || user?.displayName || "Kullanıcı"}
             </Text>
             {user?.email ? (
               <Text style={{ color: Colors.muted, fontSize: 12 }} numberOfLines={1}>
@@ -810,6 +846,59 @@ export default function Me() {
           >
             <Text style={{ color: "#dc2626", fontWeight: "800", fontSize: 13 }}>Çıkış</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Kullanıcı Adı (nickname) */}
+        <View
+          style={{
+            padding: 12,
+            backgroundColor: "#0f172a",
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: Colors.border,
+            gap: 8,
+          }}
+        >
+          <Text style={{ fontWeight: "700", color: Colors.slate900 }}>Kullanıcı Adı</Text>
+          <Text style={{ fontSize: 11, color: Colors.muted }}>
+            Yarış ve sıralamalarda diğer oyuncular bu adı görür. 2-20 karakter.
+          </Text>
+          <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+            <TextInput
+              value={nicknameInput}
+              onChangeText={setNicknameInput}
+              placeholder="Örn: KartalGözü07"
+              placeholderTextColor={Colors.muted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={20}
+              style={{
+                flex: 1,
+                borderWidth: 1,
+                borderColor: "#1f2937",
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 8,
+                color: "#e5e7eb",
+                fontSize: 14,
+              }}
+            />
+            <TouchableOpacity
+              onPress={saveNickname}
+              disabled={nicknameSaving || nicknameInput.trim().length < 2}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: 999,
+                backgroundColor:
+                  nicknameSaving || nicknameInput.trim().length < 2 ? "#1e293b" : Colors.primary,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 13 }}>
+                {nicknameSaving ? "..." : "Kaydet"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ✅ Admin Kartı */}

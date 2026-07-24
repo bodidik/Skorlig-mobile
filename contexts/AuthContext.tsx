@@ -12,12 +12,17 @@ import {
   linkWithCredential,
   signOut,
 } from "firebase/auth";
-import {
-  GoogleSignin,
-  statusCodes,
-} from "@react-native-google-signin/google-signin";
 import { auth } from "../lib/firebase";
 import type { User } from "firebase/auth";
+import { Alert } from "react-native";
+
+let GoogleSignin: any = null;
+let statusCodes: any = {};
+try {
+  const mod = require("@react-native-google-signin/google-signin");
+  GoogleSignin = mod.GoogleSignin;
+  statusCodes = mod.statusCodes;
+} catch {}
 
 type AuthCtx = {
   user: User | null;
@@ -41,7 +46,9 @@ const Ctx = createContext<AuthCtx>({
 
 const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "";
 
-GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
+if (GoogleSignin) {
+  GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]       = useState<User | null>(null);
@@ -57,7 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const cred = await fbSignInAnonymously(auth);
           setUser(cred.user);
-        } catch {
+        } catch (e: any) {
+          console.error("[auth] anonymous sign-in failed:", e?.message || e);
           setUser(null);
         }
         setLoading(false);
@@ -67,6 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const getGoogleCredential = async () => {
+    if (!GoogleSignin) {
+      Alert.alert("Google Giriş", "Bu özellik Expo Go'da kullanılamaz. Development build gereklidir.");
+      throw new Error("GoogleSignin not available");
+    }
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const result = await GoogleSignin.signIn();
     const idToken = (result as any)?.data?.idToken ?? (result as any)?.idToken;
@@ -109,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    try { await GoogleSignin.signOut(); } catch {}
+    try { if (GoogleSignin) await GoogleSignin.signOut(); } catch {}
     await signOut(auth);
     // Çıkıştan sonra onAuthStateChanged tetiklenir → yeni anonim oturum açılır
   }, []);

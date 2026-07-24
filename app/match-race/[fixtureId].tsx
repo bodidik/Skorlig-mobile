@@ -52,6 +52,7 @@ type RaceResp = {
 type UserProfile = {
   ok: boolean;
   userId: string;
+  displayName?: string | null;
   totalPoints: number;
   totalPenalty: number;
   matches: number;
@@ -180,8 +181,9 @@ export default function MatchRaceScreen() {
   const isFT = String(st?.status || "").toUpperCase() === "FT";
   const isLive = LIVE_STATUSES.has(String(st?.status || "").toUpperCase());
 
-  const renderUserRow = (uid: string, index: number, extra?: { points?: number; inRace?: boolean; rank?: number }) => {
+  const renderUserRow = (uid: string, index: number, extra?: { points?: number; inRace?: boolean; rank?: number; displayName?: string }) => {
     const isMe = uid.toLowerCase() === userId.toLowerCase();
+    const name = extra?.displayName || uid;
     const label = extra?.rank
       ? (extra.rank === 1 ? "🥇" : extra.rank === 2 ? "🥈" : extra.rank === 3 ? "🥉" : `${extra.rank}.`)
       : `${index + 1}.`;
@@ -203,7 +205,7 @@ export default function MatchRaceScreen() {
       >
         <Text style={{ color: Colors.muted, fontWeight: "600", width: 34, fontSize: 12 }}>{label}</Text>
         <Text style={{ color: "#fff", fontWeight: isMe ? "900" : "600", flex: 1 }} numberOfLines={1}>
-          {uid}{isMe ? " (ben)" : ""}
+          {name}{isMe ? " (ben)" : ""}
         </Text>
         {extra?.inRace != null && (
           <Text style={{ fontSize: 11, marginRight: 8 }}>{extra.inRace ? "🟢" : "🔴"}</Text>
@@ -328,7 +330,7 @@ export default function MatchRaceScreen() {
             <Text style={{ fontWeight: "700", color: "#e2e8f0", marginTop: 4 }}>
               Katılımcılar ({data.totalPlayers || 0})
             </Text>
-            {(data.participants || []).map((p, i) => renderUserRow(p.userId, i))}
+            {(data.participants || []).map((p, i) => renderUserRow(p.userId, i, { displayName: p.displayName }))}
           </>
         )}
 
@@ -419,7 +421,7 @@ export default function MatchRaceScreen() {
               İlk {(data.top || []).length} · toplam {data.totalPlayers} tahminci
             </Text>
             {(data.top || []).map((r, i) =>
-              renderUserRow(r.userId, i, { points: r.points, inRace: r.inRace, rank: r.rank })
+              renderUserRow(r.userId, i, { points: r.points, inRace: r.inRace, rank: r.rank, displayName: r.displayName })
             )}
           </>
         )}
@@ -472,7 +474,7 @@ function ProfileContent({ profile, blocked, onClose, onToggleBlock }: {
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: "#fff", fontSize: 16, fontWeight: "900" }} numberOfLines={1}>
-            {profile.userId}
+            {profile.displayName || (profile.userId.length > 12 ? profile.userId.slice(0, 8) + "…" : profile.userId)}
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
             <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: rank.color + "22", borderWidth: 1, borderColor: rank.color }}>
