@@ -44,7 +44,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="arena"
         options={{
-          title: "Arena",
+          title: "Düello",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="flash-outline" color={color} size={size} />
           ),
@@ -53,7 +53,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="stats"
         options={{
-          title: "Stats",
+          title: "Sıralama",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="podium-outline" color={color} size={size} />
           ),
