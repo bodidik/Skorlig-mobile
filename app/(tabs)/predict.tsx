@@ -153,6 +153,7 @@ export default function PredictScreen() {
   const [checkingPred, setCheckingPred] = useState(false);
   const [myPredDetail, setMyPredDetail] = useState<any | null>(null);
   const [showMyPred, setShowMyPred] = useState(false);
+  const [extrasOpen, setExtrasOpen] = useState(false);
 
   // Topluluk istatistikleri (sonuç + skor dağılımı)
   const [communityStats, setCommunityStats] = useState<{
@@ -652,1086 +653,560 @@ useEffect(() => {
   }
 }
 
-return (
-  <ScrollView
-    style={{ flex: 1, backgroundColor: Colors.bg }}
-    contentContainerStyle={{ padding: 16, gap: 12 }}
-  >
-    {/* ===== MAÇ BAŞLIK KARTI ===== */}
-    {(paramHome || nextMatch?.home) ? (
-      <View style={{ borderRadius: 14, backgroundColor: "#0f172a", borderWidth: 1, borderColor: "#1e3a5f", padding: 16, alignItems: "center", gap: 4 }}>
-        <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "700", letterSpacing: 1 }}>
-          {(paramLeague || nextMatch?.home) ? (paramLeague || "") : "MAÇ"}
-        </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 }}>
-          <Text style={{ color: "#f1f5f9", fontWeight: "800", fontSize: 16, flex: 1, textAlign: "right" }} numberOfLines={1}>
-            {paramHome || nextMatch?.home}
-          </Text>
-          <View style={{ backgroundColor: "#1e293b", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 }}>
-            <Text style={{ color: "#64748b", fontWeight: "900", fontSize: 13 }}>VS</Text>
-          </View>
-          <Text style={{ color: "#f1f5f9", fontWeight: "800", fontSize: 16, flex: 1, textAlign: "left" }} numberOfLines={1}>
-            {paramAway || nextMatch?.away}
-          </Text>
-        </View>
-        {(paramKickoff || nextMatch?.kickoffISO) ? (
-          <Text style={{ color: "#60a5fa", fontSize: 12, fontWeight: "600", marginTop: 4 }}>
-            🕐 {new Date(paramKickoff || nextMatch?.kickoffISO || "").toLocaleString("tr-TR", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-          </Text>
-        ) : null}
+  const hasExtras = firstGoal !== null || firstHalf !== null || redAny !== null || penaltyAny !== null;
+  const homeName = paramHome || nextMatch?.home || "Ev";
+  const awayName = paramAway || nextMatch?.away || "Dep";
+  const hasScore = homeScore.trim() !== "" && awayScore.trim() !== "";
 
-        {/* Duello butonu */}
-        {fixtureId ? (
+  // Skordan türetilen sonuç (outcome’u override etmez, sadece gösterim için)
+  const derivedOutcomeFromScore: Outcome | null = hasScore
+    ? (Number(homeScore) > Number(awayScore) ? "H" : Number(homeScore) < Number(awayScore) ? "A" : "D")
+    : null;
+
+  // Maç yok → maç listesine yönlendir
+  const noMatchContext = !paramHome && !nextMatch?.home && !fixtureId;
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: Colors.bg }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 10 }}
+    >
+      {/* ── MAÇ YOK: yönlendirme ── */}
+      {noMatchContext && (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 60, gap: 16 }}>
+          <Text style={{ fontSize: 40 }}>⚽</Text>
+          <Text style={{ color: "#e2e8f0", fontSize: 18, fontWeight: "800", textAlign: "center" }}>
+            Tahmin yapmak için önce bir maç seç
+          </Text>
+          <Text style={{ color: Colors.muted, fontSize: 13, textAlign: "center" }}>
+            "Maçlar" sekmesinden oynayacak bir maça tıkla, buraya otomatik gelirsin.
+          </Text>
           <TouchableOpacity
-            onPress={() => router.push({
-              pathname: "/duel/[fixtureId]",
-              params: {
-                fixtureId,
-                home: paramHome || nextMatch?.home || "",
-                away: paramAway || nextMatch?.away || "",
-                league: paramLeague || "",
-                kickoffISO: paramKickoff || nextMatch?.kickoffISO || "",
-              },
-            })}
-            style={{
-              marginTop: 6, flexDirection: "row", alignItems: "center", gap: 6,
-              backgroundColor: "#1e293b", borderRadius: 999,
-              paddingHorizontal: 14, paddingVertical: 7, alignSelf: "center",
-            }}
+            onPress={() => router.replace("/(tabs)/live")}
+            style={{ paddingHorizontal: 24, paddingVertical: 13, borderRadius: 999, backgroundColor: Colors.primary }}
           >
-            <Text style={{ fontSize: 14 }}>⚔️</Text>
-            <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>Duello Modu</Text>
+            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Maçlara Git</Text>
           </TouchableOpacity>
-        ) : null}
-      </View>
-    ) : (
-      <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900, marginBottom: 4 }}>
-        Tahmin Gönder
-      </Text>
-    )}
-
-    {/* ===== ADMIN NOTU (kullanıcıya görünür) ===== */}
-    {matchNote ? (
-      <View style={{ flexDirection: "row", gap: 8, borderRadius: 12, backgroundColor: "#1a1600", borderWidth: 1, borderColor: "#ca8a0455", padding: 12 }}>
-        <Text style={{ fontSize: 15 }}>📌</Text>
-        <Text style={{ flex: 1, color: "#fcd34d", fontSize: 13, lineHeight: 19 }}>{matchNote}</Text>
-      </View>
-    ) : (
-      null
-    )}
-
-    {/* ===== ANALİZ KARTI ===== */}
-    <View style={{ borderRadius: 14, backgroundColor: "#0f172a", borderWidth: 1, borderColor: "#1e3a5f", overflow: "hidden" }}>
-      {/* Community dağılımı */}
-      {communityStats && communityStats.total >= 2 ? (() => {
-        const { total, H, D, A } = communityStats;
-        const pct = (n: number) => total > 0 ? Math.round(n / total * 100) : 0;
-        const oddsFmt = (n: number) => total > 0 && n > 0 ? (total / n).toFixed(2) : "—";
-        const cols = [
-          { label: "Ev Kazanır", key: "H" as const, n: H, color: "#3b82f6" },
-          { label: "Berabere", key: "D" as const, n: D, color: "#f59e0b" },
-          { label: "Dep Kazanır", key: "A" as const, n: A, color: "#ef4444" },
-        ];
-        return (
-          <View style={{ padding: 12, gap: 8 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "700", letterSpacing: 1 }}>TOPLULUK TAHMİNİ</Text>
-              <Text style={{ color: "#475569", fontSize: 10 }}>{total} katılımcı</Text>
-            </View>
-            <View style={{ flexDirection: "row", gap: 6 }}>
-              {cols.map(({ label, key, n, color }) => {
-                const p = pct(n);
-                const isSelected = outcome === key;
-                const mult = getOutcomeMultiplier(key);
-                const estPts = fmtPts(3 * mult);
-                return (
-                  <TouchableOpacity
-                    key={key}
-                    onPress={() => setOutcome(cur => cur === key ? null : key)}
-                    style={{
-                      flex: 1,
-                      borderRadius: 10,
-                      borderWidth: 1.5,
-                      borderColor: isSelected ? color : "#1e293b",
-                      backgroundColor: isSelected ? color + "22" : "#0f172a",
-                      padding: 8,
-                      alignItems: "center",
-                      gap: 3,
-                    }}
-                  >
-                    <Text style={{ color, fontWeight: "900", fontSize: 15 }}>+{estPts}</Text>
-                    <Text style={{ color: "#475569", fontSize: 9 }}>puan</Text>
-                    <View style={{ width: "100%", height: 4, borderRadius: 2, backgroundColor: "#1e293b" }}>
-                      <View style={{ width: `${p}%` as any, height: 4, borderRadius: 2, backgroundColor: color }} />
-                    </View>
-                    <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "600" }}>{p}%</Text>
-                    <Text style={{ color: "#64748b", fontSize: 9 }} numberOfLines={1}>{label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        );
-      })() : (
-        <View style={{ padding: 12 }}>
-          <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "700", letterSpacing: 1 }}>TAHMİN ANALİZİ</Text>
         </View>
       )}
 
-      {/* Ayırıcı */}
-      <View style={{ height: 1, backgroundColor: "#1e293b", marginHorizontal: 12 }} />
-
-      {/* Puan tablosu */}
-      <View style={{ padding: 12, gap: 6 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
-          <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "700", letterSpacing: 1 }}>PUAN REHBERİ</Text>
-          <Text style={{ color: "#4ade80", fontSize: 10, fontWeight: "600" }}>Bir tanesi bile yeter · hepsi isteğe bağlı</Text>
-        </View>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-          {(() => {
-            const hasScore = homeScore.trim() !== "" && awayScore.trim() !== "";
-            const scoreMult = hasScore ? getScoreMultiplier(homeScore.trim(), awayScore.trim()) : 1.0;
-            const scoreWin = hasScore ? `+${fmtPts(12 * scoreMult)}` : "+12×";
-            const outMult = outcome ? getOutcomeMultiplier(outcome) : 1.0;
-            const outWin = outcome ? `+${fmtPts(3 * outMult)}` : "+3×";
-            return [
-              { label: "Sonuç (1X2)", win: outWin, lose: "-1", highlight: outcome !== null },
-              { label: "Tam Skor", win: scoreWin, lose: "-0.1", highlight: hasScore },
-              { label: "İlk Gol", win: "+1", lose: "-0.2", highlight: firstGoal !== null },
-              { label: "İlk Yarı", win: "+2", lose: "-0.4", highlight: firstHalf !== null },
-              { label: "Kırmızı K.", win: "+1.5", lose: "-0.3", highlight: redAny !== null },
-              { label: "Penaltı", win: "+1.5", lose: "-0.3", highlight: penaltyAny !== null },
-            ];
-          })().map(({ label, win, lose, highlight }) => (
-            <View key={label} style={{
-              flexDirection: "row", alignItems: "center", gap: 4,
-              backgroundColor: highlight ? "#1e3a5f" : "#1e293b",
-              borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4,
-              borderWidth: highlight ? 1 : 0, borderColor: "#3b82f644",
-            }}>
-              <Text style={{ color: highlight ? "#cbd5e1" : "#94a3b8", fontSize: 10 }}>{label}</Text>
-              <Text style={{ color: "#4ade80", fontSize: 10, fontWeight: "700" }}>{win}</Text>
-              <Text style={{ color: "#64748b", fontSize: 10 }}>/</Text>
-              <Text style={{ color: "#f87171", fontSize: 10 }}>{lose}</Text>
-            </View>
-          ))}
-        </View>
-        <Text style={{ color: "#475569", fontSize: 10, marginTop: 2 }}>
-          💡 Az kişinin tuttuğu sonucu bilirsen daha çok puan kazanırsın
-        </Text>
-      </View>
-
-      {/* Seçime göre potansiyel */}
-      {sel.count > 0 && (
-        <>
-          <View style={{ height: 1, backgroundColor: "#1e293b", marginHorizontal: 12 }} />
-          <View style={{ padding: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={{ color: "#94a3b8", fontSize: 11 }}>
-              {sel.count} seçim
+      {!noMatchContext && <>
+        {/* ── MAÇ BAŞLIĞI ── */}
+        <View style={{ borderRadius: 14, backgroundColor: "#0f172a", borderWidth: 1, borderColor: "#1e3a5f", padding: 16, alignItems: "center", gap: 4 }}>
+          {paramLeague ? (
+            <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "700", letterSpacing: 1 }}>
+              {paramLeague.toUpperCase()}
             </Text>
-            <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Text style={{ color: "#64748b", fontSize: 10 }}>✓ Kazanç</Text>
-                <Text style={{ color: "#4ade80", fontWeight: "800", fontSize: 14 }}>+{sel.gain}</Text>
-                <Text style={{ color: "#64748b", fontSize: 10 }}>puan</Text>
-              </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Text style={{ color: "#64748b", fontSize: 10 }}>✗ Risk</Text>
-                <Text style={{ color: "#f87171", fontWeight: "700", fontSize: 13 }}>-{sel.risk}</Text>
-                <Text style={{ color: "#64748b", fontSize: 10 }}>puan</Text>
-              </View>
+          ) : null}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 }}>
+            <Text style={{ color: "#f1f5f9", fontWeight: "800", fontSize: 16, flex: 1, textAlign: "right" }} numberOfLines={1}>
+              {homeName}
+            </Text>
+            <View style={{ backgroundColor: "#1e293b", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 }}>
+              <Text style={{ color: "#64748b", fontWeight: "900", fontSize: 13 }}>VS</Text>
             </View>
+            <Text style={{ color: "#f1f5f9", fontWeight: "800", fontSize: 16, flex: 1, textAlign: "left" }} numberOfLines={1}>
+              {awayName}
+            </Text>
           </View>
-        </>
-      )}
-    </View>
-
-    {/* Takım picker — sadece URL'den fixture gelmemişse göster */}
-    {!paramHome && !fixtureId && (
-      <View style={{ marginTop: 4, padding: 12, backgroundColor: "#020617", borderRadius: 12, borderWidth: 1, borderColor: Colors.border, gap: 8 }}>
-        <Text style={{ color: "#e5e7eb", fontWeight: "700", fontSize: 13 }}>Takımını seç</Text>
-        <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
-          {(["GS", "FB", "BJK", "TS"] as TeamCode[]).map((code) => {
-            const active = teamCode === code;
-            return (
-              <TouchableOpacity
-                key={code}
-                onPress={() => loadNextMatch(code)}
-                style={{ flex: 1, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? Colors.accent : Colors.headerBlue }}
-              >
-                <Text style={{ textAlign: "center", color: active ? "#fff" : Colors.slate900, fontWeight: active ? "700" : "500", fontSize: 12 }}>
-                  {TEAM_LABELS[code]}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        {loadingMatch && (
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <ActivityIndicator size="small" />
-            <Text style={{ marginLeft: 8, color: Colors.muted, fontSize: 11 }}>Maç aranıyor...</Text>
-          </View>
-        )}
-        {matchError ? <Text style={{ color: Colors.muted, fontSize: 11 }}>Şu an uygun maç bulunamadı, birazdan tekrar dene.</Text> : null}
-      </View>
-    )}
-
-      {/* Mini LC Cüzdan şeridi */}
-      <View
-        style={{
-          marginTop: 4,
-          padding: 10,
-          borderRadius: 999,
-          borderWidth: 1,
-          borderColor: Colors.border,
-          backgroundColor: "#0f172a",
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-        }}
-      >
-        {walletLoading ? (
-          <>
-            <ActivityIndicator size="small" />
-            <Text style={{ color: Colors.muted, fontSize: 11, flex: 1 }}>
-              LC cüzdanın yükleniyor...
+          {(paramKickoff || nextMatch?.kickoffISO) ? (
+            <Text style={{ color: "#60a5fa", fontSize: 12, fontWeight: "600", marginTop: 4 }}>
+              🕐 {new Date(paramKickoff || nextMatch?.kickoffISO || "").toLocaleString("tr-TR", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
             </Text>
-          </>
-        ) : wallet ? (
-          <>
-            <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.accent }}>
-              {wallet.user?.balance ?? 0} LC
-            </Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: Colors.muted, fontSize: 11 }} numberOfLines={2}>
-                Günlük hak: {wallet.daily?.amount ?? 0} LC ·{" "}
-                {wallet.daily?.canClaim
-                  ? "Bugünkü günlük hakkını almadın."
-                  : "Bugünkü günlük hak kullanıldı."}
-              </Text>
-              {wallet.pricing && (
-                <Text
-                  style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}
-                  numberOfLines={2}
-                >
-                  Bu maç için giriş bedeli: {wallet.pricing.matchEntryCost} LC (ilk tahminde
-                  kesilir).
-                </Text>
-              )}
-            </View>
+          ) : null}
+          {fixtureId ? (
             <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname: "/me",
-                  params: { userId },
-                })
-              }
-              style={{
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderRadius: 999,
-                backgroundColor: Colors.headerBlue,
-              }}
+              onPress={() => router.push({
+                pathname: "/duel/[fixtureId]",
+                params: { fixtureId, home: homeName, away: awayName, league: paramLeague || "", kickoffISO: paramKickoff || nextMatch?.kickoffISO || "" },
+              })}
+              style={{ marginTop: 6, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#1e293b", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7, alignSelf: "center" }}
             >
-              <Text style={{ fontSize: 11, fontWeight: "700", color: Colors.slate900 }}>
-                Cüzdan
-              </Text>
+              <Text style={{ fontSize: 14 }}>⚔️</Text>
+              <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>Duello Modu</Text>
             </TouchableOpacity>
-          </>
-        ) : (
-          <Text style={{ color: Colors.muted, fontSize: 11, flex: 1 }}>
-            LC cüzdan bilgisi alınamadı. Profil ekranından tekrar deneyebilirsin.
-          </Text>
-        )}
-      </View>
+          ) : null}
+        </View>
 
-      {/* 🔥 Seri rozeti */}
-      {streak && streak.activeSeries && streak.seriesCount > 0 && (
-        <View style={{
-          marginTop: 4, paddingHorizontal: 14, paddingVertical: 10,
-          borderRadius: 12, borderWidth: 1,
-          borderColor: streak.currentTier ? "#f59e0b88" : "#3b82f644",
-          backgroundColor: streak.currentTier ? "#1a150a" : "#0a1a2a",
-          flexDirection: "row", alignItems: "center", gap: 10,
-        }}>
-          <Text style={{ fontSize: 22 }}>
-            {streak.currentTier ? (streak.currentTier.label === "Durdurulamıyor" ? "💥" : "🔥") : "🔥"}
-          </Text>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ color: streak.currentTier ? "#fbbf24" : "#60a5fa", fontWeight: "900", fontSize: 14 }}>
+        {/* ── KİLİT BANNER (en üstte, görünür olsun) ── */}
+        {predLock.locked && (
+          <View style={{ padding: 12, borderRadius: 10, backgroundColor: "#1a0606", borderWidth: 1, borderColor: "#ef4444", flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Text style={{ fontSize: 18 }}>🔒</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: "#fca5a5", fontWeight: "800", fontSize: 13 }}>Tahmin Kilitli</Text>
+              <Text style={{ fontSize: 11, color: "#f87171", marginTop: 2 }}>
+                {predLock.reason === "MATCH_STARTED"
+                  ? "Maç başladıktan sonra tahmin yapılamaz."
+                  : "Maç başlamasına 10 dakika kala tahminler kilitlenir."}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* ── ADMIN NOTU ── */}
+        {matchNote ? (
+          <View style={{ flexDirection: "row", gap: 8, borderRadius: 12, backgroundColor: "#1a1600", borderWidth: 1, borderColor: "#ca8a0455", padding: 12 }}>
+            <Text style={{ fontSize: 15 }}>📌</Text>
+            <Text style={{ flex: 1, color: "#fcd34d", fontSize: 13, lineHeight: 19 }}>{matchNote}</Text>
+          </View>
+        ) : null}
+
+        {/* ── LC + SERİ ŞERİDİ (tek satır) ── */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 }}>
+          {/* Bakiye */}
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: "/me", params: { userId } })}
+            style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#0f172a", borderWidth: 1, borderColor: Colors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: "800", color: Colors.accent }}>
+              {walletLoading ? "…" : `${wallet?.user?.balance ?? 0} LC`}
+            </Text>
+            {wallet?.daily?.canClaim && (
+              <View style={{ backgroundColor: "#f59e0b33", borderRadius: 999, paddingHorizontal: 5, paddingVertical: 1 }}>
+                <Text style={{ fontSize: 9, color: "#fbbf24", fontWeight: "700" }}>+{wallet.daily.amount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* LC yetersiz uyarısı */}
+          {lcInsufficient && (
+            <Text style={{ fontSize: 11, color: "#f87171", flex: 1 }}>
+              Giriş bedeli {matchCost} LC — bakiye yetersiz
+            </Text>
+          )}
+
+          {/* Seri rozeti */}
+          {streak?.activeSeries && streak.seriesCount > 0 && !lcInsufficient && (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5, flex: 1 }}>
+              <Text style={{ fontSize: 14 }}>
+                {streak.currentTier?.label === "Durdurulamıyor" ? "💥" : "🔥"}
+              </Text>
+              <Text style={{ color: streak.currentTier ? "#fbbf24" : "#60a5fa", fontWeight: "800", fontSize: 12 }}>
                 {streak.seriesCount} maçlık seri
               </Text>
               {streak.currentTier && (
-                <View style={{ backgroundColor: "#f59e0b33", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
-                  <Text style={{ color: "#fbbf24", fontSize: 10, fontWeight: "800" }}>
-                    {streak.currentTier.label}
+                <View style={{ backgroundColor: "#f59e0b33", borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 }}>
+                  <Text style={{ color: "#fbbf24", fontSize: 9, fontWeight: "800" }}>{streak.currentTier.label}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Sağa it: yarış takip et (zaten tahmini varsa) */}
+          {hasPredByMe && fixtureId && (
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: "/match-race/[fixtureId]", params: { fixtureId, userId } } as any)}
+              style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#065f46", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}
+            >
+              <Text style={{ fontSize: 11, color: "#a7f3d0", fontWeight: "700" }}>🏁 Yarış</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ── ANA TAHMIN KARTI: SKOR + SONUÇ ── */}
+        <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
+
+          {/* Topluluk çubukları (varsa, kompakt) */}
+          {communityStats && communityStats.total >= 2 && (() => {
+            const { total, H, D, A } = communityStats;
+            const pct = (n: number) => total > 0 ? Math.round(n / total * 100) : 0;
+            const cols = [
+              { key: "H" as const, label: "Ev", n: H, color: "#3b82f6" },
+              { key: "D" as const, label: "Ber", n: D, color: "#f59e0b" },
+              { key: "A" as const, label: "Dep", n: A, color: "#ef4444" },
+            ];
+            return (
+              <View style={{ gap: 4 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>TOPLULUK</Text>
+                  <Text style={{ color: "#475569", fontSize: 10 }}>{total} tahmin</Text>
+                </View>
+                <View style={{ flexDirection: "row", gap: 5 }}>
+                  {cols.map(({ key, label, n, color }) => {
+                    const p = pct(n);
+                    const isSelected = outcome === key;
+                    const estPts = fmtPts(3 * getOutcomeMultiplier(key));
+                    return (
+                      <TouchableOpacity
+                        key={key}
+                        onPress={() => setOutcome(cur => cur === key ? null : key)}
+                        style={{ flex: 1, borderRadius: 8, borderWidth: 1.5, borderColor: isSelected ? color : "#1e293b", backgroundColor: isSelected ? color + "22" : "#0f172a", padding: 7, alignItems: "center", gap: 2 }}
+                      >
+                        <Text style={{ color, fontWeight: "900", fontSize: 13 }}>+{estPts}</Text>
+                        <View style={{ width: "100%", height: 3, borderRadius: 2, backgroundColor: "#1e293b" }}>
+                          <View style={{ width: `${p}%` as any, height: 3, borderRadius: 2, backgroundColor: color }} />
+                        </View>
+                        <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "600" }}>{p}% {label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            );
+          })()}
+
+          {/* Skor girişi */}
+          <View>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <Text style={{ fontWeight: "800", color: "#e2e8f0", fontSize: 14 }}>Skor Tahmini</Text>
+              {/* Sonuç chip — skordan türetilmiş */}
+              {derivedOutcomeFromScore && (
+                <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: derivedOutcomeFromScore === "H" ? "#1d4ed822" : derivedOutcomeFromScore === "D" ? "#92400e22" : "#7f1d1d22", borderWidth: 1, borderColor: derivedOutcomeFromScore === "H" ? "#3b82f644" : derivedOutcomeFromScore === "D" ? "#f59e0b44" : "#ef444444" }}>
+                  <Text style={{ fontSize: 10, fontWeight: "800", color: derivedOutcomeFromScore === "H" ? "#60a5fa" : derivedOutcomeFromScore === "D" ? "#fbbf24" : "#f87171" }}>
+                    {derivedOutcomeFromScore === "H" ? "Ev kazanır" : derivedOutcomeFromScore === "D" ? "Berabere" : "Dep kazanır"}
                   </Text>
                 </View>
               )}
             </View>
-            <Text style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
-              Seri puanı: {streak.seriesCumOdds.toFixed(1)} · En iyi: {streak.bestSeries.toFixed(1)}
-            </Text>
-          </View>
-        </View>
-      )}
 
-      {/* Giriş iadesi bilgisi */}
-      {matchCost > 0 && (
-        <View style={{
-          marginTop: 4, paddingHorizontal: 14, paddingVertical: 8,
-          borderRadius: 10, backgroundColor: "#071a0f", borderWidth: 1, borderColor: "#22c55e44",
-        }}>
-          <Text style={{ color: "#4ade80", fontSize: 11, fontWeight: "600" }}>
-            💰 Bir şey bilirsen giriş bedelin ({matchCost} LC) geri yatar — kazancının üstüne ayrıca iade edilir.
-          </Text>
-        </View>
-      )}
+            {/* Hızlı skor pilleri */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: 4 }}>
+              {QUICK_SCORES.map(({ h, a }) => {
+                const isActive = homeScore === String(h) && awayScore === String(a);
+                return (
+                  <TouchableOpacity
+                    key={`${h}-${a}`}
+                    onPress={() => {
+                      if (isActive) { setHomeScore(""); setAwayScore(""); }
+                      else {
+                        setHomeScore(String(h));
+                        setAwayScore(String(a));
+                        if (outcome === null) setOutcome(h > a ? "H" : h < a ? "A" : "D");
+                      }
+                    }}
+                    style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1.5, borderColor: isActive ? Colors.accent : Colors.border, backgroundColor: isActive ? Colors.accent : "#1e293b" }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: isActive ? "800" : "600", color: isActive ? "#fff" : "#cbd5e1" }}>
+                      {h}-{a}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
 
-      {/* LC uyarı metni */}
-      {mustPayForMatch && (
-        <Text
-          style={{
-            marginTop: 4,
-            fontSize: 11,
-            color: lcInsufficient ? Colors.live : Colors.muted,
-          }}
-        >
-          Bu maçta ilk tahmin için giriş bedeli {matchCost} LC’dir.{" "}
-          {lcInsufficient
-            ? `Cüzdan bakiyen (${currentBalance} LC) yetersiz görünüyor.`
-            : "Daha önce bu maç için tahmin gönderdiysen, yeni tahminde tekrar LC kesilmez."}
-        </Text>
-      )}
-
-      {/* 🔒 Client-side kilit banner */}
-      {predLock.locked && (
-        <View
-          style={{
-            padding: 10,
-            borderRadius: 8,
-            backgroundColor: "#1a0606",
-            borderWidth: 1,
-            borderColor: "#ef4444",
-            marginTop: 8,
-          }}
-        >
-          <Text style={{ color: "#fca5a5", fontWeight: "700" }}>Tahmin Kilitli</Text>
-          <Text style={{ fontSize: 11, color: "#f87171" }}>
-            {predLock.reason === "MATCH_STARTED"
-              ? "Maç başladıktan sonra tahmin yapılamaz."
-              : "Maç başlamasına 10 dakika kala tahminler kilitlenir."}
-          </Text>
-        </View>
-      )}
-
-      {/* Kullanıcı / Fixture girişleri */}
-      <View
-        style={{
-          padding: 12,
-          backgroundColor: "#0f172a",
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: Colors.border,
-          gap: 8,
-        }}
-      >
-        {/* Fixture ID — sadece maç bağlamı yoksa (fallback) elle girilir */}
-        {!paramHome && !nextMatch?.home && (
-          <>
-            <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>Fixture ID</Text>
-            <TextInput
-              value={fixtureId}
-              onChangeText={setFixtureId}
-              autoCapitalize="none"
-              placeholder="örn. 1905-GS-TS"
-              placeholderTextColor={Colors.muted}
-              style={{
-                borderWidth: 1,
-                borderColor: Colors.border,
-                borderRadius: 8,
-                paddingHorizontal: 8,
-                paddingVertical: 6,
-                color: "#e2e8f0",
-              }}
-            />
-          </>
-        )}
-
-	{/* 🔔 Tahmin Durum Banner */}
-	{checkingPred ? (
-  	 <View
-           style={{
-             marginTop: 8,
-             padding: 10,
-             borderRadius: 8,
-             backgroundColor: "#0a1a2a",
-             borderWidth: 1,
-             borderColor: Colors.border,
-           }}
- 	 >
-           <Text style={{ fontSize: 11, color: Colors.muted }}>
-             Tahmin durumu kontrol ediliyor...
-           </Text>
-         </View>
-       ) : hasPredByMe === true ? (
-         <View
-           style={{
-             marginTop: 8,
-     	     padding: 10,
-     	     borderRadius: 8,
-    	     backgroundColor: "#071a0f",
-     	     borderWidth: 1,
-     	     borderColor: "#10b981",
-          }}
-        >
-          <Text style={{ fontSize: 12, fontWeight: "700", color: "#4ade80" }}>
-            ✅ Bu maç için tahminin VAR
-   	  </Text>
-   	  <Text style={{ fontSize: 11, color: "#86efac", marginTop: 2 }}>
-      	    Tekrar tahmin gönderirsen LC yeniden kesilmez.
-   	  </Text>
-          <TouchableOpacity
-            onPress={() => router.push({ pathname: "/match-race/[fixtureId]", params: { fixtureId: fx?.fixtureId, userId } } as any)}
-            style={{ marginTop: 8, paddingVertical: 10, borderRadius: 10, backgroundColor: "#065f46" }}
-          >
-            <Text style={{ textAlign: "center", color: "#a7f3d0", fontWeight: "800", fontSize: 13 }}>
-              🏁 Yarışı Takip Et
-            </Text>
-          </TouchableOpacity>
- 	</View>
-       ) : hasPredByMe === false ? (
-  	 <View
-  	  style={{
-    	    marginTop: 8,
-     	    padding: 10,
-	    borderRadius: 8,
-            backgroundColor: "#071a2a",
-            borderWidth: 1,
-            borderColor: "#3b82f655",
-       }}
-      >
-       <Text style={{ fontSize: 12, fontWeight: "700", color: "#60a5fa" }}>
-         ⚽ Bu maça tahmin yapabilirsin
-       </Text>
-       <Text style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
-         {matchCost > 0
-           ? `Giriş bedeli: ${matchCost} LC (yalnızca ilk tahminde kesilir).`
-           : "Aşağıdan seçimlerini yap, hepsi isteğe bağlı."}
-       </Text>
-     </View>
-   ) : null}
-   </View>  {/*  
-     
-      {/* Skor Tahmini (isteğe bağlı) */}
-      <View
-        style={{
-          padding: 12,
-          backgroundColor: "#0f172a",
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: Colors.border,
-          gap: 8,
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>Skor Tahmini</Text>
-          <Text style={{ color: Colors.muted, fontSize: 11 }}>Boş bırakabilirsin</Text>
-        </View>
-
-        {/* Hızlı skor butonları */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 6, paddingVertical: 2 }}
-        >
-          {QUICK_SCORES.map(({ h, a }) => {
-            const isActive = homeScore === String(h) && awayScore === String(a);
-            return (
-              <TouchableOpacity
-                key={`${h}-${a}`}
-                onPress={() => {
-                  if (isActive) {
-                    setHomeScore("");
-                    setAwayScore("");
-                  } else {
-                    setHomeScore(String(h));
-                    setAwayScore(String(a));
-                    if (outcome === null) {
-                      setOutcome(h > a ? "H" : h < a ? "A" : "D");
-                    }
-                  }
-                }}
-                style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  borderRadius: 999,
-                  borderWidth: 1.5,
-                  borderColor: isActive ? Colors.accent : Colors.border,
-                  backgroundColor: isActive ? Colors.accent : "#1e293b",
-                }}
-              >
-                <Text style={{
-                  fontSize: 12,
-                  fontWeight: isActive ? "800" : "600",
-                  color: isActive ? "#fff" : "#cbd5e1",
-                }}>
-                  {h}-{a}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        {/* Manuel skor girişi */}
-        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 3 }}>Ev</Text>
-            <TextInput
-              value={homeScore}
-              onChangeText={setHomeScore}
-              keyboardType="numeric"
-              style={{
-                borderWidth: 1,
-                borderColor: homeScore !== "" ? Colors.accent : Colors.border,
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 7,
-                fontSize: 16,
-                fontWeight: "700",
-                textAlign: "center",
-                backgroundColor: homeScore !== "" ? "#0f2040" : "#0f172a",
-              }}
-            />
-          </View>
-          <Text style={{ fontSize: 18, fontWeight: "900", color: Colors.muted, marginTop: 16 }}>–</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 3 }}>Deplasman</Text>
-            <TextInput
-              value={awayScore}
-              onChangeText={setAwayScore}
-              keyboardType="numeric"
-              style={{
-                borderWidth: 1,
-                borderColor: awayScore !== "" ? Colors.accent : Colors.border,
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 7,
-                fontSize: 16,
-                fontWeight: "700",
-                textAlign: "center",
-                backgroundColor: awayScore !== "" ? "#0f2040" : "#0f172a",
-              }}
-            />
-          </View>
-          {(homeScore !== "" || awayScore !== "") && (
-            <TouchableOpacity
-              onPress={() => { setHomeScore(""); setAwayScore(""); }}
-              style={{ marginTop: 16, padding: 6 }}
-            >
-              <Text style={{ fontSize: 16, color: Colors.muted }}>✕</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Maç Sonucu (H/D/A) */}
-      <View
-        style={{
-          padding: 12,
-          backgroundColor: "#0f172a",
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: Colors.border,
-          gap: 8,
-        }}
-      >
-        <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>Maç Sonucu</Text>
-        <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
-          {(["H", "D", "A"] as Outcome[]).map((v) => {
-            const active = outcome === v;
-            const labels: any = { H: "Ev kazanır", D: "Berabere", A: "Dep kazanır" };
-            return (
-              <TouchableOpacity
-                key={v ?? "N"}
-                onPress={() => setOutcome((cur) => (cur === v ? null : v))}
-                style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  backgroundColor: active ? Colors.accent : Colors.headerBlue,
-                }}
-              >
-                <Text
-                  style={{
-                    textAlign: "center",
-                    color: active ? "#fff" : Colors.slate900,
-                    fontWeight: active ? "700" : "500",
-                    fontSize: 12,
-                  }}
-                >
-                  {labels[v!]}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* İlk gol, ilk yarı */}
-      <View
-        style={{
-          padding: 12,
-          backgroundColor: "#0f172a",
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: Colors.border,
-          gap: 8,
-        }}
-      >
-        <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>İlk Gol</Text>
-        <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
-          <TouchableOpacity
-            onPress={() => setFirstGoal((cur) => (cur === "H" ? null : "H"))}
-            style={{
-              flex: 1,
-              paddingVertical: 8,
-              borderRadius: 8,
-              backgroundColor: firstGoal === "H" ? Colors.accent : Colors.headerBlue,
-            }}
-          >
-            <Text
-              style={{
-                textAlign: "center",
-                color: firstGoal === "H" ? "#fff" : Colors.slate900,
-                fontWeight: firstGoal === "H" ? "700" : "500",
-                fontSize: 12,
-              }}
-            >
-              Ev
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setFirstGoal((cur) => (cur === "A" ? null : "A"))}
-            style={{
-              flex: 1,
-              paddingVertical: 8,
-              borderRadius: 8,
-              backgroundColor: firstGoal === "A" ? Colors.accent : Colors.headerBlue,
-            }}
-          >
-            <Text
-              style={{
-                textAlign: "center",
-                color: firstGoal === "A" ? "#fff" : Colors.slate900,
-                fontWeight: firstGoal === "A" ? "700" : "500",
-                fontSize: 12,
-              }}
-            >
-              Dep
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={{ fontWeight: "700", marginTop: 8, color: "#e2e8f0" }}>İlk Yarı Sonucu</Text>
-        <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
-          {(["H", "D", "A"] as Outcome[]).map((v) => {
-            const active = firstHalf === v;
-            const labels: any = { H: "Ev önde", D: "Berabere", A: "Dep önde" };
-            return (
-              <TouchableOpacity
-                key={v || "FH"}
-                onPress={() => setFirstHalf((cur) => (cur === v ? null : v))}
-                style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  backgroundColor: active ? Colors.accent : Colors.headerBlue,
-                }}
-              >
-                <Text
-                  style={{
-                    textAlign: "center",
-                    color: active ? "#fff" : Colors.slate900,
-                    fontWeight: active ? "700" : "500",
-                    fontSize: 12,
-                  }}
-                >
-                  {labels[v!]}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Kırmızı kart tahmini */}
-      <View
-        style={{
-          padding: 12,
-          backgroundColor: "#0f172a",
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: Colors.border,
-          gap: 8,
-        }}
-      >
-        <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>Kırmızı Kart</Text>
-
-        <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
-          <TouchableOpacity
-            onPress={() =>
-              setRedAny((cur) => {
-                const next = cur === true ? null : true;
-                if (next !== true) setRedSide(null);
-                return next;
-              })
-            }
-            style={{
-              flex: 1,
-              paddingVertical: 8,
-              borderRadius: 8,
-              backgroundColor: Colors.headerBlue,
-            }}
-          >
-            <Text
-              style={{
-                textAlign: "center",
-                color: redAny === true ? Colors.accent : Colors.slate900,
-                fontWeight: redAny === true ? "700" : "500",
-              }}
-            >
-              Kırmızı VAR
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() =>
-              setRedAny((cur) => {
-                const next = cur === false ? null : false;
-                setRedSide(null);
-                return next;
-              })
-            }
-            style={{
-              flex: 1,
-              paddingVertical: 8,
-              borderRadius: 8,
-              backgroundColor: Colors.headerBlue,
-            }}
-          >
-            <Text
-              style={{
-                textAlign: "center",
-                color: redAny === false ? Colors.accent : Colors.slate900,
-                fontWeight: redAny === false ? "700" : "500",
-              }}
-            >
-              Kırmızı YOK
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {redAny === true && (
-          <>
-            <Text style={{ fontWeight: "700", marginTop: 8, color: "#e2e8f0" }}>Kırmızıyı kim görür?</Text>
-            <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
-              <TouchableOpacity
-                onPress={() => setRedSide((cur) => (cur === "H" ? null : "H"))}
-                style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  backgroundColor: redSide === "H" ? Colors.accent : Colors.headerBlue,
-                }}
-              >
-                <Text
-                  style={{
-                    textAlign: "center",
-                    color: redSide === "H" ? "#fff" : Colors.slate900,
-                    fontWeight: redSide === "H" ? "700" : "500",
-                  }}
-                >
-                  Ev görür
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setRedSide((cur) => (cur === "A" ? null : "A"))}
-                style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  backgroundColor: redSide === "A" ? Colors.accent : Colors.headerBlue,
-                }}
-              >
-                <Text
-                  style={{
-                    textAlign: "center",
-                    color: redSide === "A" ? "#fff" : Colors.slate900,
-                    fontWeight: redSide === "A" ? "700" : "500",
-                  }}
-                >
-                  Dep görür
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-      </View>
-
-      {/* Penaltı tahmini */}
-      <View
-        style={{
-          padding: 12,
-          backgroundColor: "#0f172a",
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: Colors.border,
-          gap: 8,
-        }}
-      >
-        <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>Penaltı Tahmini</Text>
-
-        <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
-          <TouchableOpacity
-            onPress={() =>
-              setPenaltyAny((cur) => {
-                const next = cur === true ? null : true;
-                if (next !== true) setPenaltySide(null);
-                return next;
-              })
-            }
-            style={{
-              flex: 1,
-              paddingVertical: 8,
-              borderRadius: 8,
-              backgroundColor: penaltyAny === true ? Colors.accent : Colors.headerBlue,
-            }}
-          >
-            <Text
-              style={{
-                textAlign: "center",
-                color: penaltyAny === true ? "#fff" : Colors.slate900,
-                fontWeight: penaltyAny === true ? "700" : "500",
-                fontSize: 12,
-              }}
-            >
-              Penaltı VAR
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() =>
-              setPenaltyAny((cur) => {
-                const next = cur === false ? null : false;
-                setPenaltySide(null);
-                return next;
-              })
-            }
-            style={{
-              flex: 1,
-              paddingVertical: 8,
-              borderRadius: 8,
-              backgroundColor: penaltyAny === false ? Colors.accent : Colors.headerBlue,
-            }}
-          >
-            <Text
-              style={{
-                textAlign: "center",
-                color: penaltyAny === false ? "#fff" : Colors.slate900,
-                fontWeight: penaltyAny === false ? "700" : "500",
-                fontSize: 12,
-              }}
-            >
-              Penaltı YOK
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {penaltyAny === true && (
-          <>
-            <Text style={{ fontWeight: "700", marginTop: 8, color: "#e2e8f0" }}>Penaltıyı kim kullanır?</Text>
-            <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
-              <TouchableOpacity
-                onPress={() => setPenaltySide((cur) => (cur === "H" ? null : "H"))}
-                style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  backgroundColor: penaltySide === "H" ? Colors.accent : Colors.headerBlue,
-                }}
-              >
-                <Text
-                  style={{
-                    textAlign: "center",
-                    color: penaltySide === "H" ? "#fff" : Colors.slate900,
-                    fontWeight: penaltySide === "H" ? "700" : "500",
-                    fontSize: 12,
-                  }}
-                >
-                  Ev kullanır
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setPenaltySide((cur) => (cur === "A" ? null : "A"))}
-                style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  backgroundColor: penaltySide === "A" ? Colors.accent : Colors.headerBlue,
-                }}
-              >
-                <Text
-                  style={{
-                    textAlign: "center",
-                    color: penaltySide === "A" ? "#fff" : Colors.slate900,
-                    fontWeight: penaltySide === "A" ? "700" : "500",
-                    fontSize: 12,
-                  }}
-                >
-                  Dep kullanır
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-      </View>
-
-      {/* Gönder butonu — ana eylem, en görünür */}
-      <TouchableOpacity
-        onPress={submitPrediction}
-        disabled={sending || lcInsufficient || predLock.locked || sel.count === 0}
-        style={{
-          marginTop: 14,
-          padding: 16,
-          borderRadius: 999,
-          backgroundColor:
-            sending || lcInsufficient || predLock.locked || sel.count === 0 ? "#1e293b" : Colors.primary,
-        }}
-      >
-        <Text
-          style={{
-            textAlign: "center",
-            color: sending || lcInsufficient || predLock.locked || sel.count === 0 ? Colors.muted : "#fff",
-            fontWeight: "800",
-            fontSize: 16,
-          }}
-        >
-          {sending
-            ? "Gönderiliyor..."
-            : predLock.locked
-            ? "Tahmin Kilitli"
-            : lcInsufficient
-            ? "LC Yetersiz"
-            : sel.count === 0
-            ? "Bir seçim yap"
-            : hasPredByMe
-            ? `Tahmini Güncelle (+${sel.gain} puana kadar)`
-            : `Tahmini Gönder (+${sel.gain} puana kadar)`}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Başarılı gönderim sonrası navigasyon */}
-      {justSubmitted && (
-        <View style={{ marginTop: 12, padding: 14, borderRadius: 14, backgroundColor: "#052e16", borderWidth: 1, borderColor: "#22c55e66", gap: 8 }}>
-          <Text style={{ textAlign: "center", color: "#4ade80", fontWeight: "800", fontSize: 14 }}>
-            {justSubmitted.wasUpdate ? "✅ Tahminin güncellendi" : "🎉 Tahminin kaydedildi!"}
-          </Text>
-          {justSubmitted.gain > 0 && (
-            <Text style={{ textAlign: "center", color: "#86efac", fontSize: 12 }}>
-              Bu maçtan en fazla +{justSubmitted.gain} puan kazanabilirsin.
-            </Text>
-          )}
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 4, justifyContent: "center", flexWrap: "wrap" }}>
-            <TouchableOpacity
-              onPress={() => router.push({ pathname: "/match-race/[fixtureId]", params: { fixtureId: fx?.fixtureId, userId } } as any)}
-              style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: "#065f46" }}
-            >
-              <Text style={{ color: "#a7f3d0", fontWeight: "700", fontSize: 12 }}>🏁 Yarışı Takip Et</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.replace({ pathname: "/(tabs)/live", params: { tab: "open" } })}
-              style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: "#1e293b" }}
-            >
-              <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12 }}>⚽ Maçlara Dön</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.replace({ pathname: "/(tabs)/live", params: { tab: "mine" } })}
-              style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: "#1e293b" }}
-            >
-              <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12 }}>📋 Tahminlerim</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* İkincil eylemler — Gönder'in altında, küçük */}
-      {!justSubmitted && (
-      <View style={{ flexDirection: "row", gap: 8, marginTop: 10, justifyContent: "center" }}>
-        {sel.count > 0 && (
-          <TouchableOpacity onPress={clearForm} style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
-            <Text style={{ textAlign: "center", color: Colors.muted, fontWeight: "600", fontSize: 12 }}>
-              🧹 Seçimleri temizle
-            </Text>
-          </TouchableOpacity>
-        )}
-        {hasPredByMe && (
-          <TouchableOpacity onPress={cancelPrediction} style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
-            <Text style={{ textAlign: "center", color: "#f87171", fontWeight: "600", fontSize: 12 }}>
-              🗑 Tahmini iptal et
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      )}
-
-      {/* ===== TAHMİNİM PANELİ ===== */}
-      {myPredDetail && (
-        <View style={{ marginTop: 20, borderRadius: 14, borderWidth: 1, borderColor: "#3b82f644", backgroundColor: "#0f1f2a", overflow: "hidden" }}>
-          <TouchableOpacity
-            onPress={() => setShowMyPred((v) => !v)}
-            style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 12 }}
-          >
-            <Text style={{ color: "#3b82f6", fontWeight: "800", fontSize: 14 }}>📋 Mevcut Tahminim</Text>
-            <Text style={{ color: "#3b82f6", fontSize: 13 }}>{showMyPred ? "▲" : "▼"}</Text>
-          </TouchableOpacity>
-
-          {showMyPred && (() => {
-            const d = myPredDetail;
-            const oc = String(d.outcome || "").toUpperCase();
-            const ocColor = oc === "H" ? "#3b82f6" : oc === "D" ? "#f59e0b" : oc === "A" ? "#ef4444" : "#94a3b8";
-            const ocLabel = oc === "H" ? "Ev Sahibi Kazanır" : oc === "D" ? "Beraberlik" : oc === "A" ? "Deplasman Kazanır" : "—";
-            const rows: { label: string; value: string; color?: string }[] = [];
-
-            if (oc) rows.push({ label: "Sonuç", value: `${oc} — ${ocLabel}`, color: ocColor });
-            if (d.homeScore != null && d.awayScore != null)
-              rows.push({ label: "Skor", value: `${d.homeScore} – ${d.awayScore}`, color: "#a3e635" });
-            if (d.firstGoal) rows.push({ label: "İlk Gol", value: d.firstGoal === "H" ? "Ev Sahibi" : "Deplasman" });
-            if (d.firstHalf) {
-              const fh = String(d.firstHalf).toUpperCase();
-              rows.push({ label: "İlk Yarı", value: fh === "H" ? "Ev Sahibi" : fh === "D" ? "Beraberlik" : "Deplasman" });
-            }
-            if (d.redAny != null)
-              rows.push({ label: "Kırmızı Kart", value: d.redAny ? (d.redSide === "H" ? "Ev Sahibi'ne" : d.redSide === "A" ? "Deplasana" : "Var") : "Yok", color: d.redAny ? "#ef4444" : "#94a3b8" });
-            if (d.penaltyAny != null)
-              rows.push({ label: "Penaltı", value: d.penaltyAny ? (d.penaltySide === "H" ? "Ev Sahibi'ne" : d.penaltySide === "A" ? "Deplasana" : "Var") : "Yok", color: d.penaltyAny ? "#f59e0b" : "#94a3b8" });
-
-            return (
-              <View style={{ paddingHorizontal: 14, paddingBottom: 14, gap: 8 }}>
-                {rows.map((r) => (
-                  <View key={r.label} style={{ flexDirection: "row", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: "#1e293b", paddingBottom: 6 }}>
-                    <Text style={{ color: "#64748b", fontSize: 13 }}>{r.label}</Text>
-                    <Text style={{ color: r.color || "#e2e8f0", fontWeight: "700", fontSize: 13 }}>{r.value}</Text>
-                  </View>
-                ))}
-                {rows.length === 0 && <Text style={{ color: "#64748b", fontSize: 12 }}>Detay bulunamadı.</Text>}
+            {/* Manuel giriş */}
+            <View style={{ flexDirection: "row", gap: 10, alignItems: "center", marginTop: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: Colors.muted, fontSize: 10, marginBottom: 3, textAlign: "center" }}>{homeName}</Text>
+                <TextInput
+                  value={homeScore}
+                  onChangeText={setHomeScore}
+                  keyboardType="numeric"
+                  style={{ borderWidth: 1.5, borderColor: homeScore !== "" ? Colors.accent : Colors.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 10, fontSize: 22, fontWeight: "800", textAlign: "center", color: "#e2e8f0", backgroundColor: homeScore !== "" ? "#0f2040" : "#0a1120" }}
+                />
               </View>
-            );
-          })()}
+              <Text style={{ fontSize: 20, fontWeight: "900", color: "#334155", marginTop: 16 }}>–</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: Colors.muted, fontSize: 10, marginBottom: 3, textAlign: "center" }}>{awayName}</Text>
+                <TextInput
+                  value={awayScore}
+                  onChangeText={setAwayScore}
+                  keyboardType="numeric"
+                  style={{ borderWidth: 1.5, borderColor: awayScore !== "" ? Colors.accent : Colors.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 10, fontSize: 22, fontWeight: "800", textAlign: "center", color: "#e2e8f0", backgroundColor: awayScore !== "" ? "#0f2040" : "#0a1120" }}
+                />
+              </View>
+              {hasScore && (
+                <TouchableOpacity onPress={() => { setHomeScore(""); setAwayScore(""); }} style={{ padding: 8, marginTop: 16 }}>
+                  <Text style={{ fontSize: 16, color: Colors.muted }}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Maç sonucu — yalnızca skor girilmemişse göster */}
+          {!hasScore && (
+            <View style={{ gap: 6 }}>
+              <Text style={{ fontWeight: "700", color: "#94a3b8", fontSize: 12 }}>veya sadece sonuç</Text>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                {(["H", "D", "A"] as Outcome[]).map((v) => {
+                  const active = outcome === v;
+                  const colors = { H: "#3b82f6", D: "#f59e0b", A: "#ef4444" };
+                  const labels = { H: "Ev kazanır", D: "Berabere", A: "Dep kazanır" };
+                  return (
+                    <TouchableOpacity
+                      key={v!}
+                      onPress={() => setOutcome(cur => cur === v ? null : v)}
+                      style={{ flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: active ? colors[v!] : "#1e293b", backgroundColor: active ? colors[v!] + "22" : "#0a1120", alignItems: "center" }}
+                    >
+                      <Text style={{ color: active ? colors[v!] : "#64748b", fontWeight: active ? "800" : "500", fontSize: 12 }}>
+                        {labels[v!]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Kazanç özeti (seçim varsa) */}
+          {sel.count > 0 && (
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 6, borderTopWidth: 1, borderTopColor: "#1e293b" }}>
+              <Text style={{ color: "#64748b", fontSize: 11 }}>{sel.count} seçim</Text>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 15 }}>+{sel.gain} <Text style={{ fontWeight: "400", fontSize: 11, color: "#64748b" }}>puan</Text></Text>
+                <Text style={{ color: "#f87171", fontWeight: "700", fontSize: 13 }}>-{sel.risk} <Text style={{ fontWeight: "400", fontSize: 11, color: "#64748b" }}>risk</Text></Text>
+              </View>
+            </View>
+          )}
         </View>
-      )}
+
+        {/* ── GÖNDER BUTONU ── en üstte, skorun hemen altında ── */}
+        {!justSubmitted && (
+          <TouchableOpacity
+            onPress={submitPrediction}
+            disabled={sending || lcInsufficient || predLock.locked || sel.count === 0}
+            style={{
+              padding: 16, borderRadius: 999,
+              backgroundColor: sending || lcInsufficient || predLock.locked || sel.count === 0 ? "#1e293b" : Colors.primary,
+            }}
+          >
+            <Text style={{ textAlign: "center", fontWeight: "800", fontSize: 16, color: sending || lcInsufficient || predLock.locked || sel.count === 0 ? Colors.muted : "#fff" }}>
+              {sending ? "Gönderiliyor…"
+                : predLock.locked ? "🔒 Tahmin Kilitli"
+                : lcInsufficient ? "LC Yetersiz"
+                : sel.count === 0 ? "Skor tahminini gir"
+                : hasPredByMe ? `Tahmini Güncelle  +${sel.gain} puana kadar`
+                : `Tahmini Gönder  +${sel.gain} puana kadar`}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* İkincil eylemler */}
+        {!justSubmitted && (
+          <View style={{ flexDirection: "row", gap: 6, justifyContent: "center" }}>
+            {sel.count > 0 && (
+              <TouchableOpacity onPress={clearForm} style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
+                <Text style={{ color: Colors.muted, fontWeight: "600", fontSize: 12 }}>🧹 Temizle</Text>
+              </TouchableOpacity>
+            )}
+            {hasPredByMe && (
+              <TouchableOpacity onPress={cancelPrediction} style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
+                <Text style={{ color: "#f87171", fontWeight: "600", fontSize: 12 }}>🗑 İptal et</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* ── EKSTRA TAHMİNLER ACCORDION ── */}
+        <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: hasExtras ? "#2563eb55" : Colors.border, overflow: "hidden" }}>
+          <TouchableOpacity
+            onPress={() => setExtrasOpen(v => !v)}
+            style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14 }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 13 }}>Ekstra Tahminler</Text>
+              <Text style={{ color: "#64748b", fontSize: 11 }}>isteğe bağlı · +6 puana kadar</Text>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              {hasExtras && (
+                <View style={{ backgroundColor: "#2563eb33", borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 }}>
+                  <Text style={{ color: "#60a5fa", fontSize: 10, fontWeight: "800" }}>seçildi</Text>
+                </View>
+              )}
+              <Text style={{ color: "#64748b", fontSize: 14 }}>{extrasOpen ? "▲" : "▼"}</Text>
+            </View>
+          </TouchableOpacity>
+
+          {extrasOpen && (
+            <View style={{ paddingHorizontal: 14, paddingBottom: 14, gap: 12, borderTopWidth: 1, borderTopColor: "#1e293b" }}>
+              {/* İlk Gol */}
+              <View style={{ gap: 6, marginTop: 10 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>İlk Golü Kim Atar?</Text>
+                  <Text style={{ color: "#4ade80", fontSize: 11 }}>+1 puan</Text>
+                </View>
+                <View style={{ flexDirection: "row", gap: 6 }}>
+                  {(["H", "A"] as Side[]).map((v) => (
+                    <TouchableOpacity key={v!} onPress={() => setFirstGoal(cur => cur === v ? null : v)}
+                      style={{ flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: firstGoal === v ? Colors.accent : "#1e293b", backgroundColor: firstGoal === v ? "#1d4ed822" : "#0a1120", alignItems: "center" }}>
+                      <Text style={{ color: firstGoal === v ? "#60a5fa" : "#64748b", fontWeight: firstGoal === v ? "800" : "500", fontSize: 12 }}>
+                        {v === "H" ? homeName : awayName}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* İlk Yarı */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>İlk Yarı Sonucu</Text>
+                  <Text style={{ color: "#4ade80", fontSize: 11 }}>+2 puan</Text>
+                </View>
+                <View style={{ flexDirection: "row", gap: 6 }}>
+                  {(["H", "D", "A"] as Outcome[]).map((v) => {
+                    const labels = { H: "Ev önde", D: "Berabere", A: "Dep önde" };
+                    return (
+                      <TouchableOpacity key={v!} onPress={() => setFirstHalf(cur => cur === v ? null : v)}
+                        style={{ flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: firstHalf === v ? Colors.accent : "#1e293b", backgroundColor: firstHalf === v ? "#1d4ed822" : "#0a1120", alignItems: "center" }}>
+                        <Text style={{ color: firstHalf === v ? "#60a5fa" : "#64748b", fontWeight: firstHalf === v ? "800" : "500", fontSize: 12 }}>
+                          {labels[v!]}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Kırmızı Kart */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>Kırmızı Kart</Text>
+                  <Text style={{ color: "#4ade80", fontSize: 11 }}>+1.5 puan</Text>
+                </View>
+                <View style={{ flexDirection: "row", gap: 6 }}>
+                  {([true, false] as const).map((v) => (
+                    <TouchableOpacity key={String(v)} onPress={() => setRedAny(cur => { const n = cur === v ? null : v; if (n !== true) setRedSide(null); return n; })}
+                      style={{ flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: redAny === v ? (v ? "#ef4444" : Colors.accent) : "#1e293b", backgroundColor: redAny === v ? (v ? "#7f1d1d22" : "#1d4ed822") : "#0a1120", alignItems: "center" }}>
+                      <Text style={{ color: redAny === v ? (v ? "#f87171" : "#60a5fa") : "#64748b", fontWeight: redAny === v ? "800" : "500", fontSize: 12 }}>
+                        {v ? "Kırmızı VAR" : "Kırmızı YOK"}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {redAny === true && (
+                  <View style={{ flexDirection: "row", gap: 6 }}>
+                    {(["H", "A"] as Side[]).map((v) => (
+                      <TouchableOpacity key={v!} onPress={() => setRedSide(cur => cur === v ? null : v)}
+                        style={{ flex: 1, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: redSide === v ? "#ef4444" : "#1e293b", backgroundColor: redSide === v ? "#7f1d1d22" : "#0a1120", alignItems: "center" }}>
+                        <Text style={{ color: redSide === v ? "#f87171" : "#64748b", fontWeight: redSide === v ? "700" : "500", fontSize: 11 }}>
+                          {v === "H" ? `${homeName} görür` : `${awayName} görür`}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Penaltı */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>Penaltı</Text>
+                  <Text style={{ color: "#4ade80", fontSize: 11 }}>+1.5 puan</Text>
+                </View>
+                <View style={{ flexDirection: "row", gap: 6 }}>
+                  {([true, false] as const).map((v) => (
+                    <TouchableOpacity key={String(v)} onPress={() => setPenaltyAny(cur => { const n = cur === v ? null : v; if (n !== true) setPenaltySide(null); return n; })}
+                      style={{ flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: penaltyAny === v ? (v ? "#f59e0b" : Colors.accent) : "#1e293b", backgroundColor: penaltyAny === v ? (v ? "#92400e22" : "#1d4ed822") : "#0a1120", alignItems: "center" }}>
+                      <Text style={{ color: penaltyAny === v ? (v ? "#fbbf24" : "#60a5fa") : "#64748b", fontWeight: penaltyAny === v ? "800" : "500", fontSize: 12 }}>
+                        {v ? "Penaltı VAR" : "Penaltı YOK"}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {penaltyAny === true && (
+                  <View style={{ flexDirection: "row", gap: 6 }}>
+                    {(["H", "A"] as Side[]).map((v) => (
+                      <TouchableOpacity key={v!} onPress={() => setPenaltySide(cur => cur === v ? null : v)}
+                        style={{ flex: 1, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: penaltySide === v ? "#f59e0b" : "#1e293b", backgroundColor: penaltySide === v ? "#92400e22" : "#0a1120", alignItems: "center" }}>
+                        <Text style={{ color: penaltySide === v ? "#fbbf24" : "#64748b", fontWeight: penaltySide === v ? "700" : "500", fontSize: 11 }}>
+                          {v === "H" ? `${homeName} kullanır` : `${awayName} kullanır`}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Puan rehberi */}
+              <View style={{ marginTop: 4, padding: 10, backgroundColor: "#0a1120", borderRadius: 8 }}>
+                <Text style={{ color: "#475569", fontSize: 10, marginBottom: 4 }}>💡 Az kişinin tuttuğu sonucu bilirsen daha çok puan kazanırsın</Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
+                  {[
+                    { label: "İlk Gol", pts: "+1", risk: "-0.2" },
+                    { label: "İlk Yarı", pts: "+2", risk: "-0.4" },
+                    { label: "Kırmızı", pts: "+1.5", risk: "-0.3" },
+                    { label: "Penaltı", pts: "+1.5", risk: "-0.3" },
+                  ].map(({ label, pts, risk }) => (
+                    <View key={label} style={{ flexDirection: "row", gap: 3, backgroundColor: "#1e293b", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 3 }}>
+                      <Text style={{ color: "#64748b", fontSize: 9 }}>{label}</Text>
+                      <Text style={{ color: "#4ade80", fontSize: 9, fontWeight: "700" }}>{pts}</Text>
+                      <Text style={{ color: "#f87171", fontSize: 9 }}>{risk}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* ── BAŞARILI GÖNDERİM ── */}
+        {justSubmitted && (
+          <View style={{ padding: 16, borderRadius: 14, backgroundColor: "#052e16", borderWidth: 1, borderColor: "#22c55e66", gap: 10, alignItems: "center" }}>
+            <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 18 }}>
+              {justSubmitted.wasUpdate ? "✅ Güncellendi!" : "🎉 Kaydedildi!"}
+            </Text>
+            {justSubmitted.gain > 0 && (
+              <Text style={{ color: "#86efac", fontSize: 13, textAlign: "center" }}>
+                Bu maçtan en fazla <Text style={{ fontWeight: "900" }}>+{justSubmitted.gain} puan</Text> kazanabilirsin.
+              </Text>
+            )}
+            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+              {fixtureId && (
+                <TouchableOpacity
+                  onPress={() => router.push({ pathname: "/match-race/[fixtureId]", params: { fixtureId, userId } } as any)}
+                  style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: "#065f46" }}
+                >
+                  <Text style={{ color: "#a7f3d0", fontWeight: "700", fontSize: 13 }}>🏁 Yarışı Takip Et</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() => router.replace({ pathname: "/(tabs)/live", params: { tab: "open" } })}
+                style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: "#1e293b" }}
+              >
+                <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 13 }}>⚽ Maçlara Dön</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* ── MEVcut TAHMİNİM (kompakt, en altta) ── */}
+        {myPredDetail && !justSubmitted && (() => {
+          const d = myPredDetail;
+          const oc = String(d.outcome || "").toUpperCase();
+          const ocLabel = oc === "H" ? "Ev Kazanır" : oc === "D" ? "Beraberlik" : oc === "A" ? "Dep Kazanır" : null;
+          const ocColor = oc === "H" ? "#3b82f6" : oc === "D" ? "#f59e0b" : oc === "A" ? "#ef4444" : "#94a3b8";
+          return (
+            <View style={{ borderRadius: 12, borderWidth: 1, borderColor: "#3b82f622", backgroundColor: "#0f1f2a", overflow: "hidden" }}>
+              <TouchableOpacity
+                onPress={() => setShowMyPred(v => !v)}
+                style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 11 }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Text style={{ color: "#3b82f6", fontWeight: "800", fontSize: 13 }}>📋 Mevcut Tahminim</Text>
+                  {(d.homeScore != null || d.home != null) && (d.awayScore != null || d.away != null) && (
+                    <View style={{ backgroundColor: "#1e3a5f", borderRadius: 5, paddingHorizontal: 7, paddingVertical: 2 }}>
+                      <Text style={{ color: "#93c5fd", fontSize: 11, fontWeight: "800" }}>{d.homeScore ?? d.home}–{d.awayScore ?? d.away}</Text>
+                    </View>
+                  )}
+                  {ocLabel && <Text style={{ color: ocColor, fontSize: 11, fontWeight: "700" }}>{ocLabel}</Text>}
+                </View>
+                <Text style={{ color: "#3b82f6", fontSize: 13 }}>{showMyPred ? "▲" : "▼"}</Text>
+              </TouchableOpacity>
+              {showMyPred && (() => {
+                const rows: { label: string; value: string; color?: string }[] = [];
+                if (ocLabel) rows.push({ label: "Sonuç", value: `${oc} — ${ocLabel}`, color: ocColor });
+                const hs = d.homeScore ?? d.home; const as2 = d.awayScore ?? d.away;
+                if (hs != null && as2 != null) rows.push({ label: "Skor", value: `${hs} – ${as2}`, color: "#a3e635" });
+                if (d.firstGoal) rows.push({ label: "İlk Gol", value: d.firstGoal === "H" ? homeName : awayName });
+                if (d.firstHalf) { const fh = String(d.firstHalf).toUpperCase(); rows.push({ label: "İlk Yarı", value: fh === "H" ? "Ev önde" : fh === "D" ? "Berabere" : "Dep önde" }); }
+                if (d.redAny != null) rows.push({ label: "Kırmızı", value: d.redAny ? (d.redSide === "H" ? `${homeName}’e` : d.redSide === "A" ? `${awayName}’a` : "Var") : "Yok", color: d.redAny ? "#ef4444" : "#94a3b8" });
+                if (d.penaltyAny != null) rows.push({ label: "Penaltı", value: d.penaltyAny ? (d.penaltySide === "H" ? `${homeName}` : d.penaltySide === "A" ? `${awayName}` : "Var") : "Yok", color: d.penaltyAny ? "#f59e0b" : "#94a3b8" });
+                return (
+                  <View style={{ paddingHorizontal: 14, paddingBottom: 12, gap: 6, borderTopWidth: 1, borderTopColor: "#1e293b" }}>
+                    {rows.map(r => (
+                      <View key={r.label} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: "#1e293b11" }}>
+                        <Text style={{ color: "#64748b", fontSize: 12 }}>{r.label}</Text>
+                        <Text style={{ color: r.color || "#e2e8f0", fontWeight: "700", fontSize: 12 }}>{r.value}</Text>
+                      </View>
+                    ))}
+                  </View>
+                );
+              })()}
+            </View>
+          );
+        })()}
+      </>}
     </ScrollView>
   );
 }
