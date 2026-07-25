@@ -24,6 +24,10 @@ type TotRow = {
   totalPoints: number;
   totalPenalty: number;
   matches: number;
+  /** Sıralama anahtarı: güven ağırlıklı maç-başı ortalama (API: rating) */
+  rating?: number;
+  /** Ham maç-başı ortalama (API: avg) */
+  avg?: number;
   lastAt?: string;
 };
 
@@ -211,6 +215,8 @@ export default function StatsScreen() {
             totalPoints,
             totalPenalty: penalties,
             matches,
+            rating: t.rating != null ? Number(t.rating) : undefined,
+            avg: t.avg != null ? Number(t.avg) : undefined,
             lastAt: t.lastAt || t.updatedAt || undefined,
           };
         });
@@ -667,10 +673,20 @@ export default function StatsScreen() {
                                 {isMe ? " (ben)" : ""}
                               </Text>
                               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
-                                Tahmin girilen maç: {r.matches} · Ceza: {r.totalPenalty}
+                                {r.matches} maç · {r.totalPoints} puan · Ceza: {r.totalPenalty}
                               </Text>
                             </View>
-                            <Text style={{ color: "#a3e635", fontWeight: "700", fontSize: 14 }}>{r.totalPoints} puan</Text>
+                            {/* Sıralama maç-başı ortalamaya göre (rating) — toplam puan
+                                değil. 1000 bot her maça girdiği için kümülatif tabloda
+                                insan yetişemiyordu. */}
+                            <View style={{ alignItems: "flex-end" }}>
+                              <Text style={{ color: "#a3e635", fontWeight: "700", fontSize: 15 }}>
+                                {r.rating != null ? r.rating.toFixed(1) : r.totalPoints}
+                              </Text>
+                              <Text style={{ color: Colors.muted, fontSize: 9 }}>
+                                {r.rating != null ? "maç ort." : "puan"}
+                              </Text>
+                            </View>
                           </View>
                         </TouchableOpacity>
                       );
