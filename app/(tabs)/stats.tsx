@@ -68,6 +68,7 @@ type CupMeta = {
 };
 
 type ViewKey = "genel" | "fav" | "me";
+type ScopeKey = "country" | "global";
 type ModeKey = "global" | "cup";
 
 // Tek kalıp: base’i içeriden alıp çağır
@@ -120,6 +121,15 @@ export default function StatsScreen() {
 
   const [totalsRows, setTotalsRows] = useState<TotRow[]>([]);
   const [updatedAtTotals, setUpdatedAtTotals] = useState<string | null>(null);
+
+  // Sıralama kapsamı: kendi ülken mi, tüm dünya mı.
+  // Varsayılan "country" — oyuncu önce kendi ülkesinde yarıştığını görmeli;
+  // küresel liste 1280 botla birlikte ilk açılışta ulaşılmaz görünüyor.
+  const [scope, setScope] = useState<ScopeKey>("country");
+  const [myCountry, setMyCountry] = useState<string | null>(null);
+  // Sunucu ülkeyi çözemediyse (kullanıcı henüz ülke seçmemiş) küresele düşer;
+  // sekmede bunu göstermek yerine sessizce küresel aktif görünsün.
+  const [scopeFellBack, setScopeFellBack] = useState(false);
 
   const [teamRanks, setTeamRanks] = useState<TeamRankRow[]>([]);
   const [teamName, setTeamName] = useState<string>("Galatasaray");
@@ -201,10 +211,19 @@ export default function StatsScreen() {
   }
 
   // Global sezon – leaderboard: /api/leaderboard
-  async function loadTotals() {
+  async function loadTotals(nextScope: ScopeKey = scope) {
     try {
-      const r = await apiFetch(`/api/leaderboard`);
+      const q =
+        nextScope === "country"
+          ? `?scope=country&userId=${encodeURIComponent(userId)}`
+          : "";
+      const r = await apiFetch(`/api/leaderboard${q}`);
       const j = await r.json();
+
+      // Sunucu hangi kapsamı uyguladığını söyler; ülke bilinmiyorsa küresele düşmüştür.
+      setMyCountry(j?.scope?.country || null);
+      setScopeFellBack(j?.scope?.fellBackReason === "COUNTRY_UNKNOWN");
+
       if (j?.ok && Array.isArray(j.leaderboard)) {
         const rows: TotRow[] = (j.leaderboard as any[]).map((t: any) => {
           const totalPoints = Number(t.total ?? t.totalPoints ?? 0);
@@ -519,7 +538,7 @@ export default function StatsScreen() {
                   <Text
                     style={{
                       textAlign: "center",
-                      color: active ? "#fff" : Colors.muted,
+                      color: active ? Colors.onAccent : Colors.muted,
                       fontWeight: active ? "700" : "500",
                       fontSize: 12,
                     }}
@@ -621,12 +640,64 @@ export default function StatsScreen() {
                     onPress={() => setView(tab.key as ViewKey)}
                     style={{ flex: 1, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? Colors.accent : "transparent" }}
                   >
-                    <Text style={{ textAlign: "center", color: active ? "#fff" : Colors.muted, fontWeight: active ? "700" : "500", fontSize: 12 }}>
+                    <Text style={{ textAlign: "center", color: active ? Colors.onAccent : Colors.muted, fontWeight: active ? "700" : "500", fontSize: 12 }}>
                       {tab.label}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
+            </View>
+          )}
+
+          {/* Kapsam: kendi ülken / dünya — sadece Genel listede anlamlı.
+              "Ben" ve "Takımıma göre" zaten kişiye/takıma özel. */}
+          {mode === "global" && view === "genel" && (
+            <View style={{ gap: 6 }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {([
+                  { key: "country" as ScopeKey, label: myCountry ? `🏠 ${myCountry}` : "🏠 Ülkem" },
+                  { key: "global" as ScopeKey, label: "🌍 Dünya" },
+                ]).map((s) => {
+                  const active = scope === s.key;
+                  return (
+                    <TouchableOpacity
+                      key={s.key}
+                      onPress={() => {
+                        if (scope === s.key) return;
+                        setScope(s.key);
+                        loadTotals(s.key);
+                      }}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 9,
+                        borderRadius: 999,
+                        backgroundColor: active ? Colors.accent : Colors.dark,
+                        borderWidth: 1,
+                        borderColor: active ? Colors.accent : "#1f2937",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          textAlign: "center",
+                          color: active ? Colors.onAccent : Colors.muted,
+                          fontWeight: active ? "800" : "600",
+                          fontSize: 13,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {s.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Ülke seçilmemişse sekme boş liste getirir gibi görünmesin */}
+              {scope === "country" && scopeFellBack && (
+                <Text style={{ color: "#f97316", fontSize: 11 }}>
+                  Ülkeni seçmediğin için dünya sıralaması gösteriliyor. Profil ekranından ülkeni seçebilirsin.
+                </Text>
+              )}
             </View>
           )}
 
@@ -938,7 +1009,7 @@ export default function StatsScreen() {
                   opacity: adminSaving ? 0.7 : 1,
                 }}
               >
-                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>{adminSaving ? "Kaydediliyor..." : "Kaydet"}</Text>
+                <Text style={{ color: adminSaving ? "#fff" : Colors.onAccent, fontSize: 12, fontWeight: "700" }}>{adminSaving ? "Kaydediliyor..." : "Kaydet"}</Text>
               </TouchableOpacity>
             </View>
           </View>
