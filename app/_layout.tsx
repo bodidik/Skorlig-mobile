@@ -1,9 +1,14 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+import { Alert } from "react-native";
 import * as Notifications from "expo-notifications";
+import * as Linking from "expo-linking";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { isFirstRun } from "../lib/firstRun";
 import { configureNotificationHandler, registerForPush } from "../lib/push";
+import {
+  capturePendingRef, captureRefFromInitialUrl, applyPendingRef,
+} from "../lib/referral";
 
 configureNotificationHandler();
 
@@ -32,6 +37,7 @@ function AuthGuard() {
   const [firstRunChecked, setFirstRunChecked] = useState(false);
   const [firstRun, setFirstRun]               = useState(false);
   const pushDone = useRef(false);
+  const refDone  = useRef(false);
 
   useEffect(() => {
     isFirstRun().then((v) => {
@@ -61,6 +67,36 @@ function AuthGuard() {
     if (!user || pushDone.current) return;
     pushDone.current = true;
     registerForPush();
+  }, [user]);
+
+  // Paylaşılan bağlantıdaki davet kodunu yakala (uygulama kapalıyken açıldı)
+  useEffect(() => { captureRefFromInitialUrl(); }, []);
+
+  // Uygulama açıkken gelen bağlantı
+  useEffect(() => {
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      try {
+        const ref = Linking.parse(url).queryParams?.ref;
+        if (typeof ref === "string") capturePendingRef(ref);
+      } catch {}
+    });
+    return () => sub.remove();
+  }, []);
+
+  // Bekleyen davet kodunu giriş sonrası uygula — oturum başına bir kez
+  useEffect(() => {
+    if (!user || refDone.current) return;
+    refDone.current = true;
+    applyPendingRef().then((r) => {
+      if (r?.ok) {
+        Alert.alert(
+          "Davet kabul edildi 🎉",
+          r.reward
+            ? `Arkadaşınla bağlandınız, ikinize de +${r.reward} LC eklendi.`
+            : "Arkadaşınla bağlandınız."
+        );
+      }
+    });
   }, [user]);
 
   // Kapalıyken gelen bildirime tıklanıp uygulama açıldıysa

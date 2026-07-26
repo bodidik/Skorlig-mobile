@@ -7,12 +7,11 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Share,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
-import Colors from "../../constants/colors";
+import Colors, { on } from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders } from "../../lib/apiFetch";
 import { getAdminToken, setAdminToken, withAdminHeaders } from "../../lib/adminToken";
@@ -22,6 +21,7 @@ import {
   getPushPrefs, setPushPrefs, registerForPush,
   DEFAULT_PREFS as DEFAULT_PUSH_PREFS, type PushPrefs,
 } from "../../lib/push";
+import { shareInvite as shareInviteLink } from "../../lib/share";
 
 /* ========= Types ========= */
 type Profile = { nickname?: string | null; mainTeam: string | null; country?: string | null; totals: number };
@@ -373,13 +373,12 @@ export default function Me() {
     }
   }, [inviteInputCode, userId, loadWalletSummary]);
 
+  // Paylaşım metinleri lib/share.ts'te — derin bağlantı ve davet kodu
+  // orada tek yerden ekleniyor (bkz. viral döngü notu).
   const shareInvite = useCallback(async () => {
-    if (!inviteCode) return;
-    await Share.share({
-      message: `SkorLig'e katıl, birlikte tahmin yarışalım! 🏆\n\nDavet kodum: ${inviteCode}\n\nProfil ekranında "Davet Kodu Gir" bölümüne yaz, ikimiz de +15 LC kazanalım.`,
-      title: "SkorLig Davet",
-    });
-  }, [inviteCode]);
+    if (!userId) return;
+    await shareInviteLink(userId);
+  }, [userId]);
 
   const loadPredCount = useCallback(async (uid: string) => {
     try {
@@ -1046,7 +1045,7 @@ export default function Me() {
                   backgroundColor: Colors.primary,
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12 }}>Kaydet</Text>
+                <Text style={{ color: Colors.onAccent, fontWeight: "900", fontSize: 12 }}>Kaydet</Text>
               </TouchableOpacity>
             </View>
 
@@ -1060,7 +1059,7 @@ export default function Me() {
                   backgroundColor: Colors.primary,
                 }}
               >
-                <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>Sonuç Yönetimi</Text>
+                <Text style={{ textAlign: "center", color: Colors.onAccent, fontWeight: "900" }}>Sonuç Yönetimi</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1715,7 +1714,7 @@ export default function Me() {
                   paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
                   backgroundColor: Colors.accent,
                 }}>
-                  <Text style={{ fontWeight: "600", fontSize: 12, color: "#fff" }}>
+                  <Text style={{ fontWeight: "600", fontSize: 12, color: Colors.onAccent }}>
                     ⚽ {profile.mainTeam}
                   </Text>
                 </View>
@@ -1728,7 +1727,7 @@ export default function Me() {
                     backgroundColor: Colors.live,
                   }}
                 >
-                  <Text style={{ fontWeight: "600", fontSize: 12, color: "#fff" }}>
+                  <Text style={{ fontWeight: "600", fontSize: 12, color: on(Colors.live) }}>
                     {profile.mainTeam} Paneli →
                   </Text>
                 </TouchableOpacity>
@@ -1767,7 +1766,7 @@ export default function Me() {
                     backgroundColor: active ? Colors.accent : "#fff",
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: "600", color: active ? "#fff" : Colors.slate900 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "600", color: active ? Colors.onAccent : Colors.slate900 }}>
                     {c.flag} {c.localName}
                   </Text>
                 </TouchableOpacity>
@@ -1950,7 +1949,7 @@ export default function Me() {
                     opacity: langSaving ? 0.6 : 1,
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: "600", color: active ? "#fff" : Colors.slate900 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "600", color: active ? Colors.onAccent : Colors.slate900 }}>
                     {l.label}
                   </Text>
                 </TouchableOpacity>
@@ -1978,7 +1977,7 @@ export default function Me() {
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
               {preferredLeagues.map(l => (
                 <View key={l} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: Colors.accent }}>
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: "#fff" }}>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.onAccent }}>
                     {richCountries.find(c => c.name === l || c.localName === l)?.flag || "🏆"} {l}
                   </Text>
                 </View>
@@ -2329,7 +2328,7 @@ export default function Me() {
             onPress={() => nav.push("/kings")}
             style={{ padding: 10, backgroundColor: Colors.accent, borderRadius: 10 }}
           >
-            <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
+            <Text style={{ textAlign: "center", color: Colors.onAccent, fontWeight: "700" }}>
               Gol Kralları
             </Text>
           </TouchableOpacity>

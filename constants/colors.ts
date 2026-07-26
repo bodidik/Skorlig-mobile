@@ -3,6 +3,10 @@ export const Colors = {
   text: "#e2e8f0",
   muted: "#64748b",
   accent: "#f59e0b",
+  // Altın zeminde okunacak metin/ikon rengi. Altın açık bir renk olduğu için
+  // beyaz yazı 2.15:1 veriyor (okunmaz) — koyu yazı 9.39:1. Dolgu accent
+  // butonlarında DAİMA bunu kullan, "#fff" yazma.
+  onAccent: "#020617",
   headerBlue: "#1a1a2e",
   live: "#16a34a",
   finished: "#ef4444",
@@ -25,20 +29,41 @@ export const Colors = {
 export type ColorKeys = keyof typeof Colors;
 export default Colors;
 
-export function on(bg: string): string {
-  // normalize hex like #fff or #ffffff
-  const hex = (bg || "").trim();
-  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex);
-  if (!m) return "#fff";
+/** Rengin bağıl parlaklığı (WCAG 2.1). */
+function luminance(hex: string): number | null {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec((hex || "").trim());
+  if (!m) return null;
   const h = m[1].length === 3
-    ? m[1].split("").map((x)=> x + x).join("")
+    ? m[1].split("").map((x) => x + x).join("")
     : m[1];
-  const r = parseInt(h.slice(0,2), 16) / 255;
-  const g = parseInt(h.slice(2,4), 16) / 255;
-  const b = parseInt(h.slice(4,6), 16) / 255;
-  const toLin = (c:number)=> (c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4));
-  const L = 0.2126*toLin(r) + 0.7152*toLin(g) + 0.0722*toLin(b);
-  // threshold ~0.55 → açık zeminlerde koyu metin, koyu zeminlerde beyaz metin
-  return L > 0.55 ? "#111" : "#fff";
+  const toLin = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const r = toLin(parseInt(h.slice(0, 2), 16) / 255);
+  const g = toLin(parseInt(h.slice(2, 4), 16) / 255);
+  const b = toLin(parseInt(h.slice(4, 6), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** İki renk arasındaki WCAG kontrast oranı (1:1 – 21:1). */
+export function contrast(a: string, b: string): number {
+  const la = luminance(a);
+  const lb = luminance(b);
+  if (la === null || lb === null) return 1;
+  const [hi, lo] = la >= lb ? [la, lb] : [lb, la];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * Verilen zemin üzerinde okunacak metin rengi.
+ *
+ * Sabit bir parlaklık eşiği KULLANMAZ: iki adayın gerçek kontrastını ölçüp
+ * kazananı döndürür. Eşik yöntemi orta parlaklıktaki renklerde yanılıyordu —
+ * örn. altın #f59e0b (parlaklık 0.44) eşiğin altında kaldığı için beyaz
+ * seçiliyordu, oysa beyaz 2.15:1 (okunmaz), koyu 9.39:1 veriyor.
+ */
+export function on(bg: string): string {
+  const DARK = "#020617";
+  const LIGHT = "#ffffff";
+  if (luminance(bg) === null) return LIGHT;
+  return contrast(bg, DARK) >= contrast(bg, LIGHT) ? DARK : LIGHT;
 }
 

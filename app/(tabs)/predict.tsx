@@ -5,6 +5,7 @@ import Colors from "../../constants/colors";
 import { getApiBase, resetApiBase, syncServerTime, nowFromServer } from "../../lib/apiBase";
 import { getAuthHeaders } from "../../lib/apiFetch";
 import { useUserId } from "../../lib/useUserId";
+import { sharePrediction } from "../../lib/share";
 
 type Outcome = "H" | "D" | "A" | null;
 type Side = "H" | "A" | null;
@@ -1241,6 +1242,23 @@ useEffect(() => {
                 Bu maçtan en fazla <Text style={{ fontWeight: "900" }}>+{justSubmitted.gain} puan</Text> kazanabilirsin.
               </Text>
             )}
+            {/* Paylaşım — en görünür yer burası: kullanıcı tahminini yeni
+                yaptı, sonucu merak ediyor, rakip arıyor. */}
+            <TouchableOpacity
+              onPress={() => sharePrediction({
+                match: { fixtureId, home: homeName, away: awayName, league: paramLeague || null },
+                homeScore, awayScore,
+                maxGain: justSubmitted.gain > 0 ? justSubmitted.gain : null,
+                userId,
+              })}
+              style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 999, backgroundColor: Colors.accent }}
+            >
+              <Text style={{ fontSize: 15 }}>📣</Text>
+              <Text style={{ color: Colors.onAccent, fontWeight: "900", fontSize: 14 }}>
+                Arkadaşına Meydan Oku
+              </Text>
+            </TouchableOpacity>
+
             <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
               {fixtureId && (
                 <TouchableOpacity

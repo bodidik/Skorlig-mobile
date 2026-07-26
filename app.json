@@ -16,34 +16,22 @@
       "predictiveBackGestureEnabled": false,
       "intentFilters": [
         {
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ],
-          "data": [
-            {
-              "pathPrefix": "/predict",
-              "host": "",
-              "scheme": "skorlig"
-            }
-          ],
           "action": "VIEW",
-          "autoVerify": false
+          "autoVerify": false,
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": [{ "pathPrefix": "/predict", "host": "", "scheme": "skorlig" }]
         },
         {
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ],
-          "data": [
-            {
-              "pathPrefix": "/predict",
-              "host": "",
-              "scheme": "skorlig"
-            }
-          ],
           "action": "VIEW",
-          "autoVerify": false
+          "autoVerify": false,
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": [{ "pathPrefix": "/match-race", "host": "", "scheme": "skorlig" }]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": [{ "pathPrefix": "/duel", "host": "", "scheme": "skorlig" }]
         }
       ],
       "permissions": [

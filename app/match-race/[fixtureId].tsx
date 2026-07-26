@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders } from "../../lib/apiFetch";
+import { shareResult } from "../../lib/share";
 
 async function apiFetch(path: string, init?: RequestInit) {
   const base = await getApiBase();
@@ -426,6 +427,38 @@ export default function MatchRaceScreen() {
                 <Text style={{ color: data.me.inRace ? "#059669" : "#dc2626", fontSize: 12, fontWeight: "700" }}>
                   {data.me.inRace ? "✅ Skorun hâlâ mümkün" : "❌ Skorun artık imkansız"}
                 </Text>
+
+                {/* Maç bitti ve puan kesinleşti → paylaşılacak bir sonuç var.
+                    Maç sürerken paylaşmak anlamsız, puan hâlâ değişiyor. */}
+                {isFT && (
+                  <TouchableOpacity
+                    onPress={() => shareResult({
+                      match: {
+                        fixtureId: String(fixtureId),
+                        home: st?.home || "Ev",
+                        away: st?.away || "Deplasman",
+                        league: st?.league || null,
+                      },
+                      finalHome: Number(st?.score?.home ?? 0),
+                      finalAway: Number(st?.score?.away ?? 0),
+                      points: Number(data.me.points) || 0,
+                      rank: data.me.rank ?? null,
+                      total: data.totalPlayers ?? null,
+                      userId: String(userId || ""),
+                    })}
+                    style={{
+                      marginTop: 8, flexDirection: "row", alignItems: "center",
+                      justifyContent: "center", gap: 8,
+                      paddingVertical: 11, borderRadius: 999,
+                      backgroundColor: Colors.accent,
+                    }}
+                  >
+                    <Text style={{ fontSize: 15 }}>📣</Text>
+                    <Text style={{ color: Colors.onAccent, fontWeight: "900", fontSize: 14 }}>
+                      Sonucu Paylaş
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : (
               <Text style={{ color: Colors.muted, fontSize: 12 }}>
