@@ -47,7 +47,8 @@
         }
       ],
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.POST_NOTIFICATIONS"
       ],
       "package": "com.skorlig",
       "googleServicesFile": "./google-services.json",
@@ -94,7 +95,13 @@
       "expo-router",
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "color": "#f59e0b"
+        }
+      ]
     ],
     "icon": "assets/icon.png",
     "owner": "hucigo11"
