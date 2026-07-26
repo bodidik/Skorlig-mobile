@@ -18,6 +18,10 @@ import { getAuthHeaders } from "../../lib/apiFetch";
 import { getAdminToken, setAdminToken, withAdminHeaders } from "../../lib/adminToken";
 import Constants from "expo-constants";
 import { getRank, getNextRank, rankProgress, getUnlocked, ACHIEVEMENTS, type AchCtx } from "../../lib/ranks";
+import {
+  getPushPrefs, setPushPrefs, registerForPush,
+  DEFAULT_PREFS as DEFAULT_PUSH_PREFS, type PushPrefs,
+} from "../../lib/push";
 
 /* ========= Types ========= */
 type Profile = { nickname?: string | null; mainTeam: string | null; country?: string | null; totals: number };
@@ -249,6 +253,12 @@ export default function Me() {
   // Dil tercihi
   const [preferredLang, setPreferredLang]   = useState<string | null>(null);
   const [langSaving, setLangSaving]         = useState(false);
+
+  // Bildirim tercihleri
+  const [pushPrefs, setPushPrefsState]  = useState<PushPrefs>(DEFAULT_PUSH_PREFS);
+  const [pushDevices, setPushDevices]   = useState(0);
+  const [pushLoading, setPushLoading]   = useState(true);
+  const [pushSavingKey, setPushSavingKey] = useState<keyof PushPrefs | null>(null);
   const [miniWins, setMiniWins] = useState<MiniWin[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [totalsRow, setTotalsRow] = useState<TotRow | null>(null);
@@ -619,6 +629,7 @@ export default function Me() {
       } else {
         const msg =
           r?.error === "NICKNAME_TAKEN" ? "Bu kullanıcı adı alınmış, başka bir tane dene."
+          : r?.error === "NICKNAME_RESERVED" ? "Bu kullanıcı adı kullanılamaz (rezerve)."
           : r?.error === "NICKNAME_LENGTH" ? "2-20 karakter olmalı."
           : r?.error === "NICKNAME_INVALID" ? "Geçersiz karakter kullandın."
           : r?.detail || r?.error || "Kaydedilemedi.";
@@ -714,6 +725,54 @@ export default function Me() {
     } finally {
       setLangSaving(false);
     }
+  }
+
+  // Bildirim tercihlerini sunucudan çek
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { prefs, deviceCount } = await getPushPrefs();
+        if (!alive) return;
+        setPushPrefsState(prefs);
+        setPushDevices(deviceCount);
+      } finally {
+        if (alive) setPushLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [userId]);
+
+  async function togglePushPref(key: keyof PushPrefs) {
+    const next = { ...pushPrefs, [key]: !pushPrefs[key] };
+    setPushPrefsState(next);           // iyimser güncelleme — anahtar anında dönsün
+    setPushSavingKey(key);
+    try {
+      const ok = await setPushPrefs({ [key]: next[key] });
+      if (!ok) {
+        setPushPrefsState(pushPrefs);  // sunucu reddetti, geri al
+        Alert.alert("Hata", "Bildirim tercihi kaydedilemedi.");
+      }
+    } finally {
+      setPushSavingKey(null);
+    }
+  }
+
+  // Cihaz kayıtlı değilse izin akışını tekrar başlat
+  async function enablePushOnDevice() {
+    setPushLoading(true);
+    const token = await registerForPush();
+    if (token) {
+      const { prefs, deviceCount } = await getPushPrefs();
+      setPushPrefsState(prefs);
+      setPushDevices(deviceCount);
+    } else {
+      Alert.alert(
+        "Bildirim izni",
+        "Bildirim izni verilmedi. Telefon ayarlarından SkorLig için bildirimleri açabilirsin."
+      );
+    }
+    setPushLoading(false);
   }
 
   async function createGroup() {
@@ -1770,6 +1829,91 @@ export default function Me() {
                   </Text>
                 </TouchableOpacity>
               )}
+            </>
+          )}
+        </View>
+
+        {/* ── Bildirimler ── */}
+        <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={{ fontWeight: "800", fontSize: 14 }}>🔔 Bildirimler</Text>
+            {pushLoading && <ActivityIndicator size="small" color={Colors.accent} />}
+          </View>
+
+          {!pushLoading && pushDevices === 0 ? (
+            <>
+              <Text style={{ color: Colors.muted, fontSize: 12 }}>
+                Bu cihaz bildirim almıyor. Maçın başlamasına dakikalar kala ve puanın
+                hesaplandığında haberdar olmak için aç.
+              </Text>
+              <TouchableOpacity
+                onPress={enablePushOnDevice}
+                style={{
+                  alignSelf: "flex-start", paddingHorizontal: 14, paddingVertical: 9,
+                  borderRadius: 999, backgroundColor: Colors.accent,
+                }}
+              >
+                <Text style={{ color: "#020617", fontWeight: "900", fontSize: 13 }}>
+                  Bildirimleri Aç
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={{ color: Colors.muted, fontSize: 12 }}>
+                {pushDevices} cihaz kayıtlı. İstemediğin bildirimi kapatabilirsin.
+              </Text>
+
+              {([
+                { key: "matchStart" as const, icon: "⏱", label: "Maç başlıyor",
+                  desc: "Tahmin ettiğin maça 30 dk kala" },
+                { key: "result" as const, icon: "🏁", label: "Sonuç ve puanım",
+                  desc: "Maç bitip puanın hesaplandığında" },
+                { key: "duel" as const, icon: "⚔️", label: "Düello",
+                  desc: "Meydan okuma ve düello sonucu" },
+                { key: "daily" as const, icon: "🪙", label: "Günlük LC",
+                  desc: "Ücretsiz LC hakkın hazır olduğunda" },
+              ]).map((row) => {
+                const on = pushPrefs[row.key];
+                const busy = pushSavingKey === row.key;
+                return (
+                  <TouchableOpacity
+                    key={row.key}
+                    onPress={() => togglePushPref(row.key)}
+                    disabled={busy}
+                    activeOpacity={0.7}
+                    style={{
+                      flexDirection: "row", alignItems: "center", gap: 12,
+                      paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12,
+                      backgroundColor: "#0b1424",
+                      borderWidth: 1,
+                      borderColor: on ? Colors.accent + "55" : Colors.border,
+                      opacity: busy ? 0.6 : 1,
+                    }}
+                  >
+                    <Text style={{ fontSize: 18 }}>{row.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 13 }}>
+                        {row.label}
+                      </Text>
+                      <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 1 }}>
+                        {row.desc}
+                      </Text>
+                    </View>
+                    {/* Anahtar */}
+                    <View
+                      style={{
+                        width: 44, height: 26, borderRadius: 13, padding: 3,
+                        backgroundColor: on ? Colors.accent : "#1e293b",
+                        justifyContent: "center",
+                        alignItems: on ? "flex-end" : "flex-start",
+                      }}
+                    >
+                      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#fff" }} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </>
           )}
         </View>

@@ -100,13 +100,18 @@ export async function unregisterPush(): Promise<void> {
   } catch {}
 }
 
-export async function getPushPrefs(): Promise<PushPrefs> {
+export async function getPushPrefs(): Promise<{ prefs: PushPrefs; deviceCount: number }> {
   try {
     const r = await apiFetch("/api/push/prefs");
     const j = await r.json();
-    if (j?.ok && j.prefs) return { ...DEFAULT_PREFS, ...j.prefs };
+    if (j?.ok && j.prefs) {
+      return {
+        prefs: { ...DEFAULT_PREFS, ...j.prefs },
+        deviceCount: Number(j.deviceCount || 0),
+      };
+    }
   } catch {}
-  return DEFAULT_PREFS;
+  return { prefs: DEFAULT_PREFS, deviceCount: 0 };
 }
 
 export async function setPushPrefs(prefs: Partial<PushPrefs>): Promise<boolean> {
