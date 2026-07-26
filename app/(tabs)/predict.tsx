@@ -11,6 +11,20 @@ type Side = "H" | "A" | null;
 
 type TeamCode = "GS" | "FB" | "BJK" | "TS";
 
+/** /api/pred/weights yanıtı — settle'ın kullanacağı çarpanlar. */
+type MatchWeights = {
+  odds: { home: number; draw: number; away: number };
+  outcomeMult: { H: number; D: number; A: number };
+  matchDifficulty: number;
+  countryWeight: number;
+  basePoints: {
+    outcome: number; exactScore: number;
+    firstGoal: number; firstHalf: number;
+    redAny: number; redSide: number;
+    penaltyAny: number; penaltySide: number;
+  };
+};
+
 type NextMatchInfo = {
   fixtureId: string;
   home?: string;
@@ -161,6 +175,10 @@ export default function PredictScreen() {
   } | null>(null);
   const [scoreDist, setScoreDist] = useState<Map<string, number>>(new Map());
 
+  // Puanlama ağırlıkları — sunucudan (tek doğruluk kaynağı)
+  const [weights, setWeights] = useState<MatchWeights | null>(null);
+  const [weightsError, setWeightsError] = useState(false);
+
   useEffect(() => {
     if (redAny !== true) setRedSide(null);
   }, [redAny]);
@@ -212,6 +230,40 @@ export default function PredictScreen() {
     })();
     return () => { alive = false; };
   }, [userId]);
+
+  // Puanlama ağırlıklarını çek — takım adları belli olur olmaz.
+  // Topluluk verisini BEKLEMEZ: odds ilk andan itibaren hazır olduğu için
+  // yeni açılmış maçta da doğru puan gösterilir (soğuk başlangıç yok).
+  useEffect(() => {
+    const fx = String(fixtureId || "").trim();
+    const h = paramHome || nextMatch?.home || "";
+    const a = paramAway || nextMatch?.away || "";
+    if (!fx && (!h || !a)) { setWeights(null); return; }
+
+    let alive = true;
+    setWeightsError(false);
+    (async () => {
+      try {
+        const qs = new URLSearchParams();
+        if (fx) qs.set("fixtureId", fx);
+        if (h) qs.set("home", h);
+        if (a) qs.set("away", a);
+        // country göndermiyoruz: sunucu fixtureId'den takvimdeki ülkeyi çözüyor
+
+        const r = await apiFetch(`/api/pred/weights?${qs.toString()}`).then((x) => x.json());
+        if (!alive) return;
+        if (r?.ok && r.basePoints && r.outcomeMult) {
+          setWeights(r as MatchWeights);
+        } else {
+          setWeights(null);
+          setWeightsError(true);
+        }
+      } catch {
+        if (alive) { setWeights(null); setWeightsError(true); }
+      }
+    })();
+    return () => { alive = false; };
+  }, [fixtureId, paramHome, paramAway, nextMatch?.home, nextMatch?.away]);
 
   // Admin'in bu maça yazdığı herkese açık notu çek
   useEffect(() => {
@@ -503,51 +555,77 @@ useEffect(() => {
   const mustPayForMatch = matchCost > 0 && hasPredByMe === false;
   const lcInsufficient = mustPayForMatch && currentBalance < matchCost;
 
-  // Topluluk çarpanı hesaplamaları (backend ile aynı formül)
-  // NOT: Formüller backend (settle2.cjs) ile birebir aynı olmalı; yoksa
-  // gösterilen "+X puan" gerçekleşenle tutmaz. Güven-harmanı: <5 katılımcıda
-  // çarpan 1.0'a yaklaştırılır ama düz kesilmez (soğuk başlangıç).
-  function getOutcomeMultiplier(oc: "H" | "D" | "A"): number {
-    if (!communityStats || communityStats.total < 2) return 1.0;
-    const conf = Math.min(1, communityStats.total / 5);
-    const n = communityStats[oc];
-    const raw = !n ? 4.0 : (communityStats.total / 3) / n;
-    const damped = 1 + (raw - 1) * conf;
-    return Math.max(0.35, Math.min(4.0, damped));
-  }
+  /* ── Puan önizlemesi ───────────────────────────────────────────────────────
+   * Maç sonucu çarpanı, maç zorluğu ve ülke ağırlığı SUNUCUDAN gelir
+   * (/api/pred/weights → services/match-weights.cjs). Burada yeniden
+   * hesaplanmaz.
+   *
+   * NEDEN: Bu ekran bir dönem maç sonucu çarpanını topluluk dağılımından
+   * hesaplıyordu, sunucu ise maç oddsından. Farklı girdiler olduğu için
+   * ekranda "3 puan" yazarken sunucu 12 puan veriyordu — %823'e varan sapma.
+   * Aynı sayıyı iki yerde hesaplamak yerine tek kaynaktan okunuyor.
+   *
+   * Ağırlıklar gelmediyse gösterim yapılmaz (aşağıda weightsReady) —
+   * yanlış sayı göstermek, hiç göstermemekten kötü.
+   */
+  const BASE = weights?.basePoints ?? null;
+
+  // Skor çarpanı topluluk nadirliğine bağlı: her dokunuşta yerel hesaplanır,
+  // formül sunucudaki match-weights.scoreMultiplier ile birebir aynı.
   function getScoreMultiplier(h: string, a: string): number {
     if (!communityStats || communityStats.total < 2) return 1.0;
     const conf = Math.min(1, communityStats.total / 5);
-    const key = `${h}-${a}`;
-    const n = scoreDist.get(key) || 0;
+    const n = scoreDist.get(`${h}-${a}`) || 0;
     const fairShare = communityStats.total * 0.05;
     const raw = !n ? 2.5 : fairShare / n;
     const damped = 1 + (raw - 1) * conf;
     return Math.max(0.6, Math.min(2.5, damped));
   }
+  function getOutcomeMultiplier(oc: "H" | "D" | "A"): number {
+    return weights?.outcomeMult?.[oc] ?? 1.0;
+  }
   function fmtPts(n: number) { return Math.round(n * 10) / 10; }
 
-  // Seçilen tahminlerin potansiyel kazanç / risk hesabı (çarpanlı)
+  /**
+   * Seçim özeti. `count` ve `risk` ağırlıklardan BAĞIMSIZ hesaplanır —
+   * ağırlık isteği başarısız olsa bile kullanıcı tahminini gönderebilmeli.
+   * Yalnızca `gain` ağırlık gerektirir; yoksa null döner ve gösterilmez.
+   */
   function calcSelection() {
-    let gain = 0, risk = 0;
-    if (outcome !== null) {
-      gain += fmtPts(3 * getOutcomeMultiplier(outcome));
-      risk += 1;
-    }
     const hasScore = homeScore.trim() !== "" && awayScore.trim() !== "";
-    if (hasScore) {
-      gain += fmtPts(12 * getScoreMultiplier(homeScore.trim(), awayScore.trim()));
-      risk += 0.1;
-    }
-    if (firstGoal !== null) { gain += 1; risk += 0.2; }
-    if (firstHalf !== null) { gain += 2; risk += 0.4; }
-    if (redAny !== null) { gain += 1.5; risk += 0.3; }
-    if (redAny === true && redSide !== null) { gain += 1; risk += 0.2; }
-    if (penaltyAny !== null) { gain += 1.5; risk += 0.3; }
-    if (penaltyAny === true && penaltySide !== null) { gain += 1; risk += 0.2; }
+    let risk = 0;
+    if (outcome !== null) risk += 1;
+    if (hasScore) risk += 0.1;
+    if (firstGoal !== null) risk += 0.2;
+    if (firstHalf !== null) risk += 0.4;
+    if (redAny !== null) risk += 0.3;
+    if (redAny === true && redSide !== null) risk += 0.2;
+    if (penaltyAny !== null) risk += 0.3;
+    if (penaltyAny === true && penaltySide !== null) risk += 0.2;
+
     const count = (outcome !== null ? 1 : 0) + (hasScore ? 1 : 0) +
       (firstGoal !== null ? 1 : 0) + (firstHalf !== null ? 1 : 0) +
       (redAny !== null ? 1 : 0) + (penaltyAny !== null ? 1 : 0);
+
+    if (!BASE || !weights) return { gain: null as number | null, risk: fmtPts(risk), count };
+
+    const diff = weights.matchDifficulty ?? 1;
+    // Sunucu HER KALEMİ ayrı yuvarlayıp topluyor (settle2: Math.round(x*10)/10).
+    // Aynı sırayı izlemezsek 0.1'lik sapmalar çıkar.
+    let gain = 0;
+    if (outcome !== null) gain += fmtPts(BASE.outcome * getOutcomeMultiplier(outcome));
+    if (hasScore) gain += fmtPts(BASE.exactScore * getScoreMultiplier(homeScore.trim(), awayScore.trim()));
+    // Yan kalemler maç zorluğuyla çarpılır — sunucu da böyle yapıyor
+    if (firstGoal !== null)  gain += fmtPts(BASE.firstGoal  * diff);
+    if (firstHalf !== null)  gain += fmtPts(BASE.firstHalf  * diff);
+    if (redAny !== null)     gain += fmtPts(BASE.redAny     * diff);
+    if (redAny === true && redSide !== null)         gain += fmtPts(BASE.redSide     * diff);
+    if (penaltyAny !== null) gain += fmtPts(BASE.penaltyAny * diff);
+    if (penaltyAny === true && penaltySide !== null) gain += fmtPts(BASE.penaltySide * diff);
+
+    // Toplam ülke/lig ağırlığıyla ölçeklenir (settle2: pts * w)
+    gain *= weights.countryWeight ?? 1;
+
     return { gain: fmtPts(gain), risk: fmtPts(risk), count };
   }
   const sel = calcSelection();
@@ -685,7 +763,7 @@ useEffect(() => {
             onPress={() => router.replace("/(tabs)/live")}
             style={{ paddingHorizontal: 24, paddingVertical: 13, borderRadius: 999, backgroundColor: Colors.primary }}
           >
-            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Maçlara Git</Text>
+            <Text style={{ color: Colors.onAccent, fontWeight: "800", fontSize: 15 }}>Maçlara Git</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -807,25 +885,36 @@ useEffect(() => {
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
 
           {/* Topluluk çubukları (varsa, kompakt) */}
-          {communityStats && communityStats.total >= 2 && (() => {
-            const { total, H, D, A } = communityStats;
-            const pct = (n: number) => total > 0 ? Math.round(n / total * 100) : 0;
+          {/* 1X2 seçici + tahmini puan.
+              Puanlar maç oddsından gelir, topluluk beklemez — yeni açılmış
+              maçta da doğru değer görünür (soğuk başlangıç çözümü).
+              Topluluk yüzdeleri ise ancak 2+ tahmin varsa anlamlı. */}
+          {weights && (() => {
+            const total = communityStats?.total ?? 0;
+            const showPct = total >= 2;
+            const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
             const cols = [
-              { key: "H" as const, label: "Ev", n: H, color: "#3b82f6" },
-              { key: "D" as const, label: "Ber", n: D, color: "#f59e0b" },
-              { key: "A" as const, label: "Dep", n: A, color: "#ef4444" },
+              { key: "H" as const, label: "Ev",  n: communityStats?.H ?? 0, color: "#3b82f6" },
+              { key: "D" as const, label: "Ber", n: communityStats?.D ?? 0, color: "#f59e0b" },
+              { key: "A" as const, label: "Dep", n: communityStats?.A ?? 0, color: "#ef4444" },
             ];
             return (
               <View style={{ gap: 4 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>TOPLULUK</Text>
-                  <Text style={{ color: "#475569", fontSize: 10 }}>{total} tahmin</Text>
+                  <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>
+                    MAÇ SONUCU
+                  </Text>
+                  <Text style={{ color: "#475569", fontSize: 10 }}>
+                    {showPct ? `${total} tahmin` : "ilk tahminlerden biri ol"}
+                  </Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 5 }}>
                   {cols.map(({ key, label, n, color }) => {
                     const p = pct(n);
                     const isSelected = outcome === key;
-                    const estPts = fmtPts(3 * getOutcomeMultiplier(key));
+                    const estPts = fmtPts(
+                      (BASE?.outcome ?? 3) * getOutcomeMultiplier(key) * (weights.countryWeight ?? 1)
+                    );
                     return (
                       <TouchableOpacity
                         key={key}
@@ -833,10 +922,16 @@ useEffect(() => {
                         style={{ flex: 1, borderRadius: 8, borderWidth: 1.5, borderColor: isSelected ? color : "#1e293b", backgroundColor: isSelected ? color + "22" : "#0f172a", padding: 7, alignItems: "center", gap: 2 }}
                       >
                         <Text style={{ color, fontWeight: "900", fontSize: 13 }}>+{estPts}</Text>
-                        <View style={{ width: "100%", height: 3, borderRadius: 2, backgroundColor: "#1e293b" }}>
-                          <View style={{ width: `${p}%` as any, height: 3, borderRadius: 2, backgroundColor: color }} />
-                        </View>
-                        <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "600" }}>{p}% {label}</Text>
+                        {showPct ? (
+                          <>
+                            <View style={{ width: "100%", height: 3, borderRadius: 2, backgroundColor: "#1e293b" }}>
+                              <View style={{ width: `${p}%` as any, height: 3, borderRadius: 2, backgroundColor: color }} />
+                            </View>
+                            <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "600" }}>{p}% {label}</Text>
+                          </>
+                        ) : (
+                          <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "600" }}>{label}</Text>
+                        )}
                       </TouchableOpacity>
                     );
                   })}
@@ -943,7 +1038,11 @@ useEffect(() => {
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 6, borderTopWidth: 1, borderTopColor: "#1e293b" }}>
               <Text style={{ color: "#64748b", fontSize: 11 }}>{sel.count} seçim</Text>
               <View style={{ flexDirection: "row", gap: 10 }}>
-                <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 15 }}>+{sel.gain} <Text style={{ fontWeight: "400", fontSize: 11, color: "#64748b" }}>puan</Text></Text>
+                {sel.gain !== null ? (
+                  <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 15 }}>+{sel.gain} <Text style={{ fontWeight: "400", fontSize: 11, color: "#64748b" }}>puan</Text></Text>
+                ) : (
+                  <Text style={{ color: "#64748b", fontSize: 11 }}>puan hesaplanıyor…</Text>
+                )}
                 <Text style={{ color: "#f87171", fontWeight: "700", fontSize: 13 }}>-{sel.risk} <Text style={{ fontWeight: "400", fontSize: 11, color: "#64748b" }}>risk</Text></Text>
               </View>
             </View>
@@ -960,13 +1059,14 @@ useEffect(() => {
               backgroundColor: sending || lcInsufficient || predLock.locked || sel.count === 0 ? "#1e293b" : Colors.primary,
             }}
           >
-            <Text style={{ textAlign: "center", fontWeight: "800", fontSize: 16, color: sending || lcInsufficient || predLock.locked || sel.count === 0 ? Colors.muted : "#fff" }}>
+            <Text style={{ textAlign: "center", fontWeight: "800", fontSize: 16, color: sending || lcInsufficient || predLock.locked || sel.count === 0 ? Colors.muted : Colors.onAccent }}>
               {sending ? "Gönderiliyor…"
                 : predLock.locked ? "🔒 Tahmin Kilitli"
                 : lcInsufficient ? "LC Yetersiz"
                 : sel.count === 0 ? "Skor tahminini gir"
-                : hasPredByMe ? `Tahmini Güncelle  +${sel.gain} puana kadar`
-                : `Tahmini Gönder  +${sel.gain} puana kadar`}
+                : hasPredByMe
+                  ? (sel.gain !== null ? `Tahmini Güncelle  +${sel.gain} puana kadar` : "Tahmini Güncelle")
+                  : (sel.gain !== null ? `Tahmini Gönder  +${sel.gain} puana kadar` : "Tahmini Gönder")}
             </Text>
           </TouchableOpacity>
         )}
