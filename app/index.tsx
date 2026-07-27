@@ -1,17 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   View, Text, TouchableOpacity, ActivityIndicator,
-  FlatList, Dimensions, useWindowDimensions,
+  FlatList, Dimensions, useWindowDimensions, Modal, TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../contexts/AuthContext";
 import { markFirstRunDone } from "../lib/firstRun";
 import { getDeviceCountry } from "../lib/locale";
 import { apiFetch } from "../lib/apiFetch";
+import { savePendingCountry, flushPendingCountry } from "../lib/pendingCountry";
 
 const GOLD = "#f59e0b";
 const BG   = "#020617";
 const CARD = "#0f172a";
+
+/** GET /api/live2/countries şeması */
+type CountryOpt = { country: string; flag: string };
 
 const SLIDES = [
   {
@@ -65,12 +69,51 @@ export default function WelcomeScreen() {
   const { user } = useAuth();
   const { width } = useWindowDimensions();
 
-  const [slide, setSlide]               = useState(0);
-  const [detectedCountry, setDetectedCountry] = useState<string | null>(null);
-  const [busy, setBusy]                 = useState(false);
+  const [slide, setSlide]           = useState(0);
+  const [country, setCountry]       = useState<string | null>(null);
+  const [autoDetected, setAutoDetected] = useState(false);
+  const [busy, setBusy]             = useState(false);
+
+  // Ülke seçici
+  const [pickerOpen, setPickerOpen]   = useState(false);
+  const [allCountries, setAllCountries] = useState<CountryOpt[]>([]);
+  const [search, setSearch]           = useState("");
   const listRef = useRef<FlatList>(null);
 
-  useEffect(() => { setDetectedCountry(getDeviceCountry()); }, []);
+  // Cihaz dili yalnızca ÖN SEÇİM üretir — kullanıcı onaylar/değiştirir.
+  // (en-US dilli Türk kullanıcı otomatik "ABD" olmamalı.)
+  useEffect(() => {
+    const guess = getDeviceCountry();
+    if (guess) { setCountry(guess); setAutoDetected(true); }
+  }, []);
+
+  // Desteklenen ülkeler — sunucu tek kaynak (canonicalCountry ile uyumlu).
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        // Ülke listesi statik — 5dk önbellek, ekranlar arası tekrar isteği önler.
+        const res  = await apiFetch("/api/live2/countries", { skipAuth: true, cacheMs: 5 * 60_000 });
+        const data = await res.json();
+        // Sunucu şeması: { country, flag }
+        const list: CountryOpt[] = (data?.countries ?? [])
+          .map((c: any) =>
+            typeof c === "string"
+              ? { country: c, flag: "" }
+              : { country: c?.country, flag: c?.flag ?? "" }
+          )
+          .filter((c: CountryOpt) => !!c.country);
+        if (alive) setAllCountries(list);
+      } catch {}
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const filteredCountries = search.trim()
+    ? allCountries.filter((c) =>
+        c.country.toLocaleLowerCase("tr").includes(search.trim().toLocaleLowerCase("tr"))
+      )
+    : allCountries;
 
   const isLast = slide === SLIDES.length - 1;
 
@@ -89,15 +132,19 @@ export default function WelcomeScreen() {
   }
 
   async function handleStart() {
+    // Ülke seçilmeden devam edilemez: ülkesiz kullanıcı hiçbir ülke
+    // sıralamasında görünmez ve maç listesi yereline göre kurulamaz.
+    if (!country) {
+      setPickerOpen(true);
+      return;
+    }
+
     setBusy(true);
     try {
-      if (detectedCountry && user) {
-        await apiFetch("/api/users/set-country", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ country: detectedCountry }),
-        });
-      }
+      // Önce yerele yaz — oturum henüz hazır değilse bile seçim kaybolmasın.
+      await savePendingCountry(country);
+      // Oturum varsa hemen gönder; yoksa _layout açılışta flush eder.
+      if (user) await flushPendingCountry();
     } catch {}
     finally {
       await markFirstRunDone();
@@ -155,15 +202,30 @@ export default function WelcomeScreen() {
               ))}
             </View>
 
-            {/* Ülke tespiti (son slayt) */}
-            {item === SLIDES[SLIDES.length - 1] && detectedCountry && (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: GOLD + "33", paddingHorizontal: 14, paddingVertical: 10 }}>
+            {/* Ülke seçimi (son slayt) — zorunlu, dokunarak değiştirilebilir */}
+            {item === SLIDES[SLIDES.length - 1] && (
+              <TouchableOpacity
+                onPress={() => setPickerOpen(true)}
+                style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: country ? GOLD + "33" : "#ef444466", paddingHorizontal: 14, paddingVertical: 12 }}
+              >
                 <Text style={{ fontSize: 18 }}>📍</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: GOLD, fontWeight: "700", fontSize: 13 }}>Ülken: {detectedCountry}</Text>
-                  <Text style={{ color: "#64748b", fontSize: 11 }}>Profilden değiştirebilirsin</Text>
+                  {country ? (
+                    <>
+                      <Text style={{ color: GOLD, fontWeight: "700", fontSize: 13 }}>Ülken: {country}</Text>
+                      <Text style={{ color: "#64748b", fontSize: 11 }}>
+                        {autoDetected ? "Otomatik seçildi — dokunup değiştirebilirsin" : "Dokunup değiştirebilirsin"}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 13 }}>Ülkeni seç</Text>
+                      <Text style={{ color: "#64748b", fontSize: 11 }}>Sıralamalar ve maç listen buna göre kurulur</Text>
+                    </>
+                  )}
                 </View>
-              </View>
+                <Text style={{ color: "#475569", fontSize: 18 }}>›</Text>
+              </TouchableOpacity>
             )}
           </View>
         )}
@@ -202,13 +264,81 @@ export default function WelcomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Direkt geç */}
+        {/* Direkt geç — tanıtımı atlar ama ülke seçimini atlamaz:
+            handleStart ülke yoksa seçiciyi açar. */}
         {!isLast && (
           <TouchableOpacity onPress={handleStart} style={{ alignItems: "center" }}>
             <Text style={{ color: "#475569", fontSize: 13 }}>Geç</Text>
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Ülke seçici */}
+      <Modal
+        visible={pickerOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setPickerOpen(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "#000000cc", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: BG, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "80%", paddingTop: 16 }}>
+            <View style={{ paddingHorizontal: 20, gap: 12, paddingBottom: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={{ flex: 1, color: "#fff", fontSize: 18, fontWeight: "900" }}>Ülkeni seç</Text>
+                <TouchableOpacity onPress={() => setPickerOpen(false)}>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Kapat</Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Ülke ara..."
+                placeholderTextColor="#475569"
+                style={{ backgroundColor: CARD, borderRadius: 10, borderWidth: 1, borderColor: "#1e293b", paddingHorizontal: 14, paddingVertical: 10, color: "#fff", fontSize: 15 }}
+              />
+            </View>
+
+            {allCountries.length === 0 ? (
+              <View style={{ padding: 32, alignItems: "center", gap: 10 }}>
+                <ActivityIndicator color={GOLD} />
+                <Text style={{ color: "#64748b", fontSize: 13 }}>Ülkeler yükleniyor…</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredCountries}
+                keyExtractor={(c) => c.country}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+                renderItem={({ item: c }) => {
+                  const selected = c.country === country;
+                  return (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setCountry(c.country);
+                        setAutoDetected(false);
+                        setSearch("");
+                        setPickerOpen(false);
+                      }}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: "#0f172a" }}
+                    >
+                      {!!c.flag && <Text style={{ fontSize: 20 }}>{c.flag}</Text>}
+                      <Text style={{ flex: 1, color: selected ? GOLD : "#cbd5e1", fontSize: 15, fontWeight: selected ? "700" : "400" }}>
+                        {c.country}
+                      </Text>
+                      {selected && <Text style={{ color: GOLD, fontSize: 16 }}>✓</Text>}
+                    </TouchableOpacity>
+                  );
+                }}
+                ListEmptyComponent={
+                  <Text style={{ color: "#475569", fontSize: 13, textAlign: "center", paddingVertical: 24 }}>
+                    Eşleşen ülke yok
+                  </Text>
+                }
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
