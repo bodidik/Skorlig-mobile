@@ -9,6 +9,7 @@ import { getApiBase, resetApiBase } from "../../lib/apiBase";
 import { getAuthHeaders } from "../../lib/apiFetch";
 import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
+import { usePolling } from "../../hooks/usePolling";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -322,7 +323,6 @@ export default function ArenaScreen() {
   const [lcBalance, setLcBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok });
@@ -355,14 +355,21 @@ export default function ArenaScreen() {
     }
   }, [userId]);
 
+  // Yoklama yalnızca bu sekme görünürken ve uygulama ön plandayken çalışır.
+  // Sekmeler mount'ta kaldığı için eskiden başka sekmedeyken de istek gidiyordu.
+  // İlk yükleme sessiz DEĞİL: açılışta bir hata olursa kullanıcı görsün.
+  const firstLoad = useRef(true);
+  usePolling(() => {
+    const silent = !firstLoad.current;
+    firstLoad.current = false;
+    loadArena(silent);
+  }, POLL_MS);
+
   useEffect(() => {
-    loadArena();
-    pollTimer.current = setInterval(() => loadArena(true), POLL_MS);
     return () => {
-      if (pollTimer.current) clearInterval(pollTimer.current);
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
-  }, [loadArena]);
+  }, []);
 
   function handleAccepted(duelId: string) {
     showToast("Düello başladı! 🏆 Tahminini yap");

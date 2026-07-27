@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
 import { useRouter } from "expo-router";
 import { getApiBase } from "../lib/apiBase";
 import BackBar from "../components/BackBar";
-import Colors from "../constants/colors";
+import Colors, { on } from "../constants/colors";
+import { usePolling } from "../hooks/usePolling";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -492,11 +493,13 @@ export default function LiveScoresScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-    const iv = setInterval(() => load(true), 30_000);
-    return () => clearInterval(iv);
-  }, [load]);
+  // Ekran görünür + uygulama ön plandayken yokla (bkz. hooks/usePolling).
+  const firstLoad = useRef(true);
+  usePolling(() => {
+    const silent = !firstLoad.current;
+    firstLoad.current = false;
+    load(silent);
+  }, 30_000);
 
   const onRefresh = () => { setRefreshing(true); load(true); };
 
@@ -591,7 +594,7 @@ export default function LiveScoresScreen() {
                 borderColor: selectedCountry === null ? Colors.primary : "#1e293b",
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 11 }}>🌍 Tümü</Text>
+              <Text style={{ color: on(selectedCountry === null ? Colors.primary : "#0f172a"), fontWeight: "700", fontSize: 11 }}>🌍 Tümü</Text>
             </TouchableOpacity>
             {countries.map((c) => {
               const active  = selectedCountry === c;
@@ -609,7 +612,7 @@ export default function LiveScoresScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 12 }}>{flag(c)}</Text>
-                  <Text style={{ color: active ? "#fff" : "#94a3b8", fontWeight: active ? "700" : "400", fontSize: 11 }}>{c}</Text>
+                  <Text style={{ color: active ? Colors.onAccent : "#94a3b8", fontWeight: active ? "700" : "400", fontSize: 11 }}>{c}</Text>
                   {liveCnt > 0 && (
                     <View style={{ backgroundColor: Colors.live, borderRadius: 5, paddingHorizontal: 4, paddingVertical: 1 }}>
                       <Text style={{ color: "#fff", fontSize: 8, fontWeight: "900" }}>{liveCnt}</Text>

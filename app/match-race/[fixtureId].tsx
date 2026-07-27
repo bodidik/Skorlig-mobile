@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { usePolling } from "../../hooks/usePolling";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders } from "../../lib/apiFetch";
@@ -103,7 +104,6 @@ export default function MatchRaceScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notifyOn, setNotifyOn] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Profil modal
   const [profileVisible, setProfileVisible] = useState(false);
@@ -124,17 +124,18 @@ export default function MatchRaceScreen() {
     }
   }, [fixtureId, userId]);
 
-  useEffect(() => { load(); }, [load]);
+  // Aralık maç durumuna göre: canlıysa sık, maç öncesi seyrek, bittiyse hiç.
+  // null → usePolling yoklamayı tamamen durdurur.
+  const pollMs = React.useMemo(() => {
+    const status = String(data?.state?.status || "").toUpperCase();
+    if (LIVE_STATUSES.has(status)) return POLL_MS;
+    if ((data?.phase || "") === "pre") return PRE_POLL_MS;
+    return null;
+  }, [data?.phase, data?.state?.status]);
 
-  useEffect(() => {
-    const phase = data?.phase || "";
-    const status = data?.state?.status || "";
-    const isLive = LIVE_STATUSES.has(String(status).toUpperCase());
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (isLive) timerRef.current = setInterval(load, POLL_MS);
-    else if (phase === "pre") timerRef.current = setInterval(load, PRE_POLL_MS);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [data?.phase, data?.state?.status, load]);
+  // Ekran görünür + uygulama ön plandayken yokla (bkz. hooks/usePolling).
+  // pollMs null olsa bile (maç bitti) ekran açılışında bir kez yükler.
+  usePolling(load, pollMs);
 
   const openProfile = async (targetUserId: string) => {
     setProfileVisible(true);
