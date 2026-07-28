@@ -22,6 +22,7 @@ import {
   DEFAULT_PREFS as DEFAULT_PUSH_PREFS, type PushPrefs,
 } from "../../lib/push";
 import { shareInvite as shareInviteLink } from "../../lib/share";
+import { sortCountries } from "../../lib/countrySort";
 
 /* ========= Types ========= */
 type Profile = { nickname?: string | null; mainTeam: string | null; country?: string | null; totals: number };
@@ -245,6 +246,13 @@ export default function Me() {
   const [teamSearch, setTeamSearch]         = useState("");
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
   const [countrySaving, setCountrySaving] = useState(false);
+
+  // Türkiye başta + tr-alfabetik. Sunucu sırası deterministik değil, listenin
+  // her yenilenişinde göze çarpan sallama olmasın diye burada sabitliyoruz.
+  const sortedRichCountries = useMemo(
+    () => sortCountries(richCountries, (c) => c.localName || c.name),
+    [richCountries]
+  );
 
   // Ek lig seçici
   const [preferredLeagues, setPreferredLeagues] = useState<string[]>([]);
@@ -1743,7 +1751,7 @@ export default function Me() {
             style={{ marginHorizontal: -12 }}
             contentContainerStyle={{ paddingHorizontal: 12, flexDirection: "row", gap: 6 }}
           >
-            {richCountries.map(c => {
+            {sortedRichCountries.map(c => {
               const active = selectedCountryCode === c.code;
               return (
                 <TouchableOpacity
@@ -1985,7 +1993,7 @@ export default function Me() {
             </View>
           )}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            {richCountries.map(c => {
+            {sortedRichCountries.map(c => {
               const selected = preferredLeagues.includes(c.name);
               return (
                 <TouchableOpacity

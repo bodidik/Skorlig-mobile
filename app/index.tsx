@@ -9,6 +9,7 @@ import { markFirstRunDone } from "../lib/firstRun";
 import { getDeviceCountry } from "../lib/locale";
 import { apiFetch } from "../lib/apiFetch";
 import { savePendingCountry, flushPendingCountry } from "../lib/pendingCountry";
+import { filterAndRankCountries } from "../lib/countrySort";
 
 const GOLD = "#f59e0b";
 const BG   = "#020617";
@@ -109,11 +110,11 @@ export default function WelcomeScreen() {
     return () => { alive = false; };
   }, []);
 
-  const filteredCountries = search.trim()
-    ? allCountries.filter((c) =>
-        c.country.toLocaleLowerCase("tr").includes(search.trim().toLocaleLowerCase("tr"))
-      )
-    : allCountries;
+  // Sıralama + arama önceliği — bkz. lib/countrySort.
+  // Boş arama → Türkiye başta, sonrası tr-alfabetik.
+  // Arama → Türkiye önce (varsa), sonra "eng" gibi baştan eşleşenler,
+  // sonra ortada geçenler. `includes` tek başına bunu yapmıyordu.
+  const filteredCountries = filterAndRankCountries(allCountries, search);
 
   const isLast = slide === SLIDES.length - 1;
 
