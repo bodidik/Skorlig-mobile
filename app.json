@@ -14,26 +14,6 @@
     "android": {
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": false,
-          "category": ["BROWSABLE", "DEFAULT"],
-          "data": [{ "pathPrefix": "/predict", "host": "", "scheme": "skorlig" }]
-        },
-        {
-          "action": "VIEW",
-          "autoVerify": false,
-          "category": ["BROWSABLE", "DEFAULT"],
-          "data": [{ "pathPrefix": "/match-race", "host": "", "scheme": "skorlig" }]
-        },
-        {
-          "action": "VIEW",
-          "autoVerify": false,
-          "category": ["BROWSABLE", "DEFAULT"],
-          "data": [{ "pathPrefix": "/duel", "host": "", "scheme": "skorlig" }]
-        }
-      ],
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.POST_NOTIFICATIONS"
