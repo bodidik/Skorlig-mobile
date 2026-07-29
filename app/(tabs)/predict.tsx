@@ -328,6 +328,43 @@ export default function PredictScreen() {
     ]);
   }
 
+  /**
+   * Günlük hakkı BURADAN al — profil sekmesine gitmeden.
+   *
+   * ⚠️ NEDEN BURADA: bakiye yetmediğinde ekran tam bir çıkmazdı ("bakiye
+   * yetersiz" + kapalı buton). Günlük hak yalnızca profil sekmesindeydi, yani
+   * kullanıcı: sorunu anla → sekme değiştir → butonu bul → al → maça geri dön.
+   * Dört adım, hem de sinirli anında. Engelin çözümü engelin yanında olmalı.
+   */
+  const [dailyBusy, setDailyBusy] = useState(false);
+
+  async function claimDailyHere() {
+    const uid = userId.trim();
+    if (!uid || dailyBusy) return;
+    setDailyBusy(true);
+    try {
+      const r = await apiFetch(`/api/rt/lc-wallet/daily-claim`, {
+        method: "POST",
+        body: JSON.stringify({ userId: uid }),
+      });
+      const j = await r.json();
+      if (j?.ok) {
+        await loadWalletSummary(uid);
+      } else {
+        Alert.alert(
+          "SkorLig",
+          j?.error === "DAILY_ALREADY_CLAIMED"
+            ? "Günlük hakkını bugün zaten aldın. Yarın tekrar."
+            : "Günlük hak alınamadı."
+        );
+      }
+    } catch {
+      Alert.alert("SkorLig", "Bağlantı kurulamadı.");
+    } finally {
+      setDailyBusy(false);
+    }
+  }
+
   async function loadWalletSummary(uid: string) {
     const trimmed = uid.trim();
     if (!trimmed) {
@@ -658,31 +695,54 @@ useEffect(() => {
     return;
   }
 
-  // Skor zorunlu: yarış sıralama skor bazlı çalışıyor
+  // ⚠️ SKOR ARTIK ZORUNLU DEĞİL — en büyük giriş engeliydi.
+  //
+  // "Galatasaray kazanır" demek isteyen kullanıcı, 2-1 mi 3-1 mi diye
+  // uğraşmak zorunda kalıyordu. Skor tahmin edilmesi EN ZOR alan ve tek
+  // zorunlu alandı; yani oyuna girmenin bedeli en zor soruyu cevaplamaktı.
+  //
+  // Zorunluluk yalnızca ARAYÜZDE vardı: backend `/pred/submit` sadece
+  // fixtureId + kullanıcı istiyor ve `base` bağımsız bileşenlerin toplamı —
+  // sonuç tahmini TEK BAŞINA puan getiriyor (3 × odds çarpanı).
+  // Ekonomiye etkisi de sağlıklı: favoride ~3 base (net −1), sürprizde ~7
+  // base (net +4). Yani kolay yol otomatik kârlı değil.
   const hasHome = homeScore.trim() !== "";
   const hasAway = awayScore.trim() !== "";
+  const skorVar = hasHome && hasAway;
 
-  if (!hasHome || !hasAway) {
-    Alert.alert("SkorLig", "Skor tahmini zorunlu. Her iki alana da sayı gir.");
+  // Tek kural: BOŞ tahmin gönderilmesin. Sonuç ya da skor, biri yeter.
+  if (!skorVar && outcome === null) {
+    Alert.alert(
+      "SkorLig",
+      "En az bir tahmin gir: kazananı seç ya da skor yaz. İkisini birden girersen daha çok puan."
+    );
     return;
   }
 
-  const hh = Number(homeScore);
-  const aa = Number(awayScore);
-  if (!Number.isFinite(hh) || !Number.isFinite(aa)) {
-    Alert.alert("SkorLig", "Skor alanlarına sayı girin.");
-    return;
+  let h: number | null = null;
+  let a: number | null = null;
+  if (skorVar) {
+    const hh = Number(homeScore);
+    const aa = Number(awayScore);
+    if (!Number.isFinite(hh) || !Number.isFinite(aa)) {
+      Alert.alert("SkorLig", "Skor alanlarına sayı girin.");
+      return;
+    }
+    h = hh;
+    a = aa;
   }
-  const h = hh;
-  const a = aa;
 
   const body: any = {
     fixtureId: fx,
     userId: uid,
   };
 
-  body.home = h;
-  body.away = a;
+  // Skor girilmediyse ALAN HİÇ GÖNDERİLMEZ (null göndermek 0-0 tahmini gibi
+  // yorumlanır ve maç yarışında yanlış yere koyar).
+  if (h !== null && a !== null) {
+    body.home = h;
+    body.away = a;
+  }
   if (outcome !== null) body.outcome = outcome;
   if (firstGoal !== null) body.firstGoal = firstGoal;
   if (firstHalf !== null) body.firstHalf = firstHalf;
@@ -864,9 +924,29 @@ useEffect(() => {
 
           {/* LC yetersiz uyarısı */}
           {lcInsufficient && (
-            <Text style={{ fontSize: 11, color: "#f87171", flex: 1 }}>
-              Giriş bedeli {matchCost} LC — bakiye yetersiz
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+              <Text style={{ fontSize: 11, color: "#f87171", flex: 1 }}>
+                Giriş bedeli {matchCost} LC — bakiye yetersiz
+              </Text>
+              {/* Çıkmazı eyleme çevir: hak varsa tek dokunuş, yoksa ne zaman
+                  geleceğini söyle. Sessiz bir "yetersiz" kullanıcıyı kaybettirir. */}
+              {wallet?.daily?.canClaim ? (
+                <TouchableOpacity
+                  onPress={claimDailyHere}
+                  disabled={dailyBusy}
+                  style={{
+                    backgroundColor: Colors.primary, borderRadius: 999,
+                    paddingHorizontal: 12, paddingVertical: 5, opacity: dailyBusy ? 0.6 : 1,
+                  }}
+                >
+                  <Text style={{ color: Colors.onAccent, fontWeight: "800", fontSize: 11 }}>
+                    {dailyBusy ? "..." : `Günlük +${wallet.daily.amount} LC al`}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={{ fontSize: 10, color: "#64748b" }}>Günlük hak yarın</Text>
+              )}
+            </View>
           )}
 
           {/* Seri rozeti */}
@@ -959,7 +1039,11 @@ useEffect(() => {
           {/* Skor girişi */}
           <View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <Text style={{ fontWeight: "800", color: "#e2e8f0", fontSize: 14 }}>Skor Tahmini</Text>
+              {/* Skor artık zorunlu değil — başlık bunu söylemeli, yoksa
+                  kullanıcı yine "girmem lazım" sanır. */}
+              <Text style={{ fontWeight: "800", color: "#e2e8f0", fontSize: 14 }}>
+                Skor Tahmini <Text style={{ fontWeight: "600", color: "#64748b", fontSize: 12 }}>· isteğe bağlı</Text>
+              </Text>
               {/* Sonuç chip — skordan türetilmiş */}
               {derivedOutcomeFromScore && (
                 <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: derivedOutcomeFromScore === "H" ? "#1d4ed822" : derivedOutcomeFromScore === "D" ? "#92400e22" : "#7f1d1d22", borderWidth: 1, borderColor: derivedOutcomeFromScore === "H" ? "#3b82f644" : derivedOutcomeFromScore === "D" ? "#f59e0b44" : "#ef444444" }}>
@@ -1079,7 +1163,7 @@ useEffect(() => {
               {sending ? "Gönderiliyor…"
                 : predLock.locked ? "🔒 Tahmin Kilitli"
                 : lcInsufficient ? "LC Yetersiz"
-                : sel.count === 0 ? "Skor tahminini gir"
+                : sel.count === 0 ? "Kazananı seç ya da skor gir"
                 : hasPredByMe
                   ? (sel.gain !== null ? `Tahmini Güncelle  +${sel.gain} puana kadar` : "Tahmini Güncelle")
                   : (sel.gain !== null ? `Tahmini Gönder  +${sel.gain} puana kadar` : "Tahmini Gönder")}

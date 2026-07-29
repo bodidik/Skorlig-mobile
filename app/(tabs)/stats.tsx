@@ -130,6 +130,18 @@ export default function StatsScreen() {
   // Sunucu ülkeyi çözemediyse (kullanıcı henüz ülke seçmemiş) küresele düşer;
   // sekmede bunu göstermek yerine sessizce küresel aktif görünsün.
   const [scopeFellBack, setScopeFellBack] = useState(false);
+  /**
+   * "Sadece gerçek oyuncular" süzgeci.
+   *
+   * ⚠️ NEDEN VAR: tabloda 1672 bot, 1 gerçek oyuncu var. Yeni gelen ~1600.
+   * sırada başlıyor ve kiminle yarıştığını bilmiyor — bu kadar demoralize
+   * edici bir açılış az. Botlar maç doldurmak için var, sıralamada rakip
+   * olmak için değil. API `?humans=1` ve `botCount`/`humanCount` döndürüyordu
+   * ama arayüz kullanmıyordu.
+   */
+  const [humansOnly, setHumansOnly] = useState(false);
+  const [botCount, setBotCount] = useState(0);
+  const [humanCount, setHumanCount] = useState(0);
 
   const [teamRanks, setTeamRanks] = useState<TeamRankRow[]>([]);
   const [teamName, setTeamName] = useState<string>("Galatasaray");
@@ -211,18 +223,22 @@ export default function StatsScreen() {
   }
 
   // Global sezon – leaderboard: /api/leaderboard
-  async function loadTotals(nextScope: ScopeKey = scope) {
+  async function loadTotals(nextScope: ScopeKey = scope, sadeceInsan = humansOnly) {
     try {
-      const q =
-        nextScope === "country"
-          ? `?scope=country&userId=${encodeURIComponent(userId)}`
-          : "";
+      const parcalar: string[] = [];
+      if (nextScope === "country") {
+        parcalar.push("scope=country", `userId=${encodeURIComponent(userId)}`);
+      }
+      if (sadeceInsan) parcalar.push("humans=1");
+      const q = parcalar.length ? `?${parcalar.join("&")}` : "";
       const r = await apiFetch(`/api/leaderboard${q}`);
       const j = await r.json();
 
       // Sunucu hangi kapsamı uyguladığını söyler; ülke bilinmiyorsa küresele düşmüştür.
       setMyCountry(j?.scope?.country || null);
       setScopeFellBack(j?.scope?.fellBackReason === "COUNTRY_UNKNOWN");
+      setBotCount(Number(j?.scope?.botCount || 0));
+      setHumanCount(Number(j?.scope?.humanCount || 0));
 
       if (j?.ok && Array.isArray(j.leaderboard)) {
         const rows: TotRow[] = (j.leaderboard as any[]).map((t: any) => {
@@ -691,6 +707,30 @@ export default function StatsScreen() {
                   );
                 })}
               </View>
+
+              {/* Kiminle yarıştığını göster ve seçim hakkı ver. */}
+              {botCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => {
+                    const yeni = !humansOnly;
+                    setHumansOnly(yeni);
+                    loadTotals(scope, yeni);
+                  }}
+                  style={{
+                    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+                    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10,
+                    backgroundColor: humansOnly ? "#14532d33" : Colors.dark,
+                    borderWidth: 1, borderColor: humansOnly ? "#16a34a66" : "#1f2937",
+                  }}
+                >
+                  <Text style={{ color: humansOnly ? "#4ade80" : Colors.muted, fontSize: 12, fontWeight: "700" }}>
+                    {humansOnly ? "✓ Sadece gerçek oyuncular" : "Sadece gerçek oyuncuları göster"}
+                  </Text>
+                  <Text style={{ color: Colors.muted, fontSize: 11 }}>
+                    {humanCount} oyuncu · {botCount} bot
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               {/* Ülke seçilmemişse sekme boş liste getirir gibi görünmesin */}
               {scope === "country" && scopeFellBack && (
