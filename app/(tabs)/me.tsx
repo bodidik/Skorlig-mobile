@@ -25,7 +25,8 @@ import { shareInvite as shareInviteLink } from "../../lib/share";
 import { sortCountries } from "../../lib/countrySort";
 
 /* ========= Types ========= */
-type Profile = { nickname?: string | null; mainTeam: string | null; country?: string | null; totals: number };
+// `is1987` api/routes/users.cjs profil yanıtında dönüyor (1987 segmenti).
+type Profile = { nickname?: string | null; mainTeam: string | null; country?: string | null; totals: number; is1987?: boolean };
 type CountryOpt = { country: string; flag: string };
 type MiniWin = { id: string; name: string; finishedAt: string; rewardLc: number; shared?: boolean };
 type Group = { id?: string; name: string; members?: any[] };
@@ -178,6 +179,21 @@ export default function Me() {
     Alert.alert("Admin token", t ? "Kaydedildi." : "Silindi.");
   }, [adminTokenInput]);
 
+  // ⚠️ BU BLOK YUKARI TAŞINDI — aşağıdaydı ve gerçek bir çökme üretiyordu.
+  // `banUser` useCallback'inin BAĞIMLILIK DİZİSİ (`[banInput, banReason, ...]`)
+  // render sırasında değerlendirilir; state tanımları callback'ten SONRA
+  // geldiği için `const` geçici ölü bölgesine (TDZ) düşüyor ve Me ekranı
+  // her render'da `ReferenceError: Cannot access 'banInput' before
+  // initialization` atıyordu. Callback GÖVDESİ sonra çalıştığı için sorun
+  // gövdede değil, dizide. Aynı sınıf hata settle2'de de yakalanmıştı.
+  // Ban yönetimi
+  const [banInput, setBanInput]         = useState("");
+  const [banReason, setBanReason]       = useState("");
+  const [banBusy, setBanBusy]           = useState(false);
+  const [banMsg, setBanMsg]             = useState<string | null>(null);
+  const [bannedList, setBannedList]     = useState<{userId:string;reason:string|null;bannedAt:string}[]>([]);
+  const [bannedLoading, setBannedLoading] = useState(false);
+
   const loadBannedList = useCallback(async () => {
     setBannedLoading(true);
     try {
@@ -294,13 +310,6 @@ export default function Me() {
     bestSeries: number; currentTier: { label: string } | null;
   } | null>(null);
 
-  // Ban yönetimi
-  const [banInput, setBanInput]         = useState("");
-  const [banReason, setBanReason]       = useState("");
-  const [banBusy, setBanBusy]           = useState(false);
-  const [banMsg, setBanMsg]             = useState<string | null>(null);
-  const [bannedList, setBannedList]     = useState<{userId:string;reason:string|null;bannedAt:string}[]>([]);
-  const [bannedLoading, setBannedLoading] = useState(false);
   const [showBanPanel, setShowBanPanel] = useState(false);
   const [predCountLoading, setPredCountLoading] = useState(false);
 

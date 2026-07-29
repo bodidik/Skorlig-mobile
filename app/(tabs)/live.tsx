@@ -62,12 +62,17 @@ type Fx = {
 };
 
 type OpenWindow = { backH?: number; fwdH?: number };
-type WindowDays = { backDays?: number; fwdDays?: number };
+// `backH` (saat cinsinden geriye pencere) api/routes/fixtures.cjs schedule
+// yanıtında dönüyor; tipte yoktu.
+type WindowDays = { backDays?: number; fwdDays?: number; backH?: number };
 
 type RuntimeMode = {
   profile?: string;
   maxTeams?: number | null;
   maxLeagues?: number | null;
+  // PILOT_MANUAL profilinde tanımlı (bkz. api/routes/admin-runtime.cjs PRESETS)
+  maxFixtures?: number | null;
+  providerDisabled?: boolean;
   notes?: string | null;
   updatedAt?: string | null;
   updatedBy?: string | null;
@@ -121,14 +126,28 @@ type MyPredItem = {
   } | null;
 };
 
+/**
+ * ⚠️ TİP API'YE UYDURULDU. Eskiden `id`, `fixtures`, `finishedAt`,
+ * `memberCount` alanları EKSİKTİ; kod bunları doğru okuyordu ama tsc 17 hata
+ * üretiyordu. Zararsız görünen bu gürültü gerçek bir çökmeyi sakladı:
+ * me.tsx'te bir TDZ hatası (banInput) 27 hatanın arasında fark edilmemişti.
+ * Kaynak: api/routes/mini.cjs → publicView().
+ */
 type MiniTournament = {
+  id: string;
   code: string;
   name: string;
+  ownerId?: string;
+  fixtures: { fixtureId: string; home?: string; away?: string; kickoffISO?: string; league?: string }[];
   members: string[];
-  status: string;
+  memberCount: number;
+  fixtureCount?: number;
+  status?: string;
   createdAt: string;
+  finishedAt?: string | null;
   finalized?: boolean;
-  winners?: string[];
+  winners?: string[] | null;
+  rewardLc?: number | null;
 };
 
 type EmptyLiveMatch = {
@@ -1301,7 +1320,12 @@ export default function LiveScreen() {
           mode === "mine" || mode === "tournaments" || mode === "gs1987" ? []  // içerik ListHeaderComponent'te
           : items
         }
-        keyExtractor={(it) => String(it.fixtureId || it.code || Math.random())}
+        // ⚠️ `it.code` yedeği KALDIRILDI: ölü koddu. Turnuva/1987 modlarında
+        // `data` zaten [] (içerik ListHeaderComponent'te), yani buraya hiçbir
+        // zaman MiniTournament gelmiyor — tip hatası bunu gösteriyordu.
+        // Ayrıca eski hâldeki `Math.random()` yedeği her render'da yeni anahtar
+        // üretip satırları gereksiz yere yeniden kurardı.
+        keyExtractor={(it) => String(it.fixtureId)}
         renderItem={({ item, index }) => {
           // Normal maç
           const fid = String(item.fixtureId || "").trim();

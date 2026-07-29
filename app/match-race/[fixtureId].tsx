@@ -23,8 +23,10 @@ async function apiFetch(path: string, init?: RequestInit) {
   return fetch(`${base}${p}`, { ...init, headers: { ...authH, ...(init?.headers as any) } });
 }
 
-type RaceRow = { rank: number; userId: string; points: number; inRace: boolean; distance?: number | null; predScore?: { home: number; away: number } | null };
-type Participant = { userId: string; joinedAt?: string | null };
+// `displayName` api/routes/settle2.cjs yarış yanıtında dönüyor (nickname
+// yoksa userId'ye düşer).
+type RaceRow = { rank: number; userId: string; displayName?: string | null; points: number; inRace: boolean; distance?: number | null; predScore?: { home: number; away: number } | null };
+type Participant = { userId: string; displayName?: string | null; joinedAt?: string | null; predScore?: { home: number; away: number } | null };
 type RaceResp = {
   ok: boolean;
   phase?: "pre" | "live";

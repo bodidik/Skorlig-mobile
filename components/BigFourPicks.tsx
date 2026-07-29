@@ -4,7 +4,11 @@ import {
   StyleSheet, ScrollView, RefreshControl,
 } from "react-native";
 import Constants from "expo-constants";
-import { getAuth } from "@react-native-firebase/auth";
+// ⚠️ `@react-native-firebase/auth` bu projede KURULU DEĞİL (yalnızca
+// `firebase` var). Bu bileşen hiçbir ekrandan çağrılmadığı için hata
+// çıkmıyordu; import edildiği an paketleme aşamasında çökerdi.
+// Projenin geri kalanıyla aynı kaynağa bağlandı.
+import { auth } from "../lib/firebase";
 
 const API = Constants.expoConfig?.extra?.apiBase ?? "https://skorlig87.onrender.com";
 
@@ -56,7 +60,7 @@ export default function BigFourPicks() {
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const userId = getAuth().currentUser?.uid ?? null;
+  const userId = auth.currentUser?.uid ?? null;
 
   const fetchPicks = useCallback(async () => {
     try {
@@ -79,7 +83,7 @@ export default function BigFourPicks() {
     if (!userId) return;
     setSubmitting(fixtureId + outcome);
     try {
-      const token = await getAuth().currentUser?.getIdToken();
+      const token = await auth.currentUser?.getIdToken();
       const res = await fetch(`${API}/api/weekly-picks/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
