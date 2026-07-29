@@ -5,6 +5,7 @@ import Colors from "../../constants/colors";
 import { getApiBase, resetApiBase, syncServerTime, nowFromServer } from "../../lib/apiBase";
 import { getAuthHeaders } from "../../lib/apiFetch";
 import { useUserId } from "../../lib/useUserId";
+import { useAuth } from "../../contexts/AuthContext";
 import { sharePrediction } from "../../lib/share";
 
 type Outcome = "H" | "D" | "A" | null;
@@ -666,13 +667,31 @@ useEffect(() => {
 
     return { gain: fmtPts(gain), risk: fmtPts(risk), count };
   }
+  // Misafir kullanıcı tahmin denediğinde girişe DÖNÜŞTÜR (bkz. aşağıda).
+  const { user, signInWithGoogle } = useAuth();
+
   const sel = calcSelection();
 
   async function submitPrediction() {
   const fx = fixtureId.trim();
   const uid = userId.trim();
-  if (!fx || !uid) {
-    Alert.alert("SkorLig", "FixtureId ve kullanıcı zorunlu.");
+  if (!uid || !user) {
+    // ⚠️ MİSAFİRİN NİYET ANI — en değerli dönüşüm noktası.
+    // Eski mesaj "FixtureId ve kullanıcı zorunlu." idi: geliştirici jargonu,
+    // ne olduğunu söylemiyor, çıkış yolu vermiyor. Giriş duvarı kaldırıldığı
+    // için (bkz. app/_layout.tsx) artık buraya gerçekten misafirler geliyor.
+    Alert.alert(
+      "Tahmin için giriş gerekli",
+      "Puanların ve LC'n hesabına kaydedilsin diye giriş yapman gerekiyor. Tek dokunuş.",
+      [
+        { text: "Şimdi değil", style: "cancel" },
+        { text: "Google ile giriş yap", onPress: () => { signInWithGoogle().catch(() => {}); } },
+      ]
+    );
+    return;
+  }
+  if (!fx) {
+    Alert.alert("SkorLig", "Maç bilgisi okunamadı, listeye dönüp tekrar dene.");
     return;
   }
 

@@ -54,12 +54,29 @@ function AuthGuard() {
 
     const inLogin = segments[0] === "login";
 
-    if (!user && !inLogin) {
-      router.replace("/login");
-    } else if (user && inLogin) {
-      // İlk giriş → onboarding; dönüş → direkt live
+    /**
+     * ⚠️ GİRİŞ DUVARI KALDIRILDI — misafir gezinebilir.
+     *
+     * Eskiden `user` yoksa KOŞULSUZ `/login`'e atılıyordu: yeni kullanıcı tek
+     * bir maç bile görmeden Google girişiyle karşılaşıyordu. Uygulamanın ne
+     * yaptığını görmeden hesap açmak istemeyen kişi orada kayboluyor.
+     *
+     * Üstelik bu, kodun kendi tasarımıyla ÇELİŞİYORDU: AuthContext
+     * "başarısız olursa MİSAFİR devam, uygulama maç listesini ve sıralamaları
+     * zaten oturumsuz gösteriyor" diyor. Ama anonim giriş Firebase'de kapalı
+     * olduğu için `user` hep null kalıyor ve yönlendirme misafir yolunu
+     * erişilemez kılıyordu. `GuestBanner` de bu yüzden hiç görünmüyordu.
+     *
+     * Okuma uçları (maç listesi, sıralama) kimlik istemiyor; YAZAN uçların
+     * hepsinde `verifyToken` var. Yani misafir güvenle gezebilir, eylem
+     * denediğinde girişe yönlendirilir.
+     */
+    if (user && inLogin) {
+      // Girişten sonra: ilk kez ise onboarding, değilse doğrudan maçlar.
       router.replace(firstRun ? "/" : "/(tabs)/live");
     }
+    // Misafir (user yok): yönlendirme YOK. Kök rota app/index.tsx zaten
+    // onboarding'i gösterip maç listesine bırakıyor ve kimliksiz çalışıyor.
     // user + welcome → WelcomeScreen handle eder
     // user + tabs   → dokunma
   }, [user, loading, segments, firstRunChecked, firstRun]);

@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../contexts/AuthContext";
-import { markFirstRunDone } from "../lib/firstRun";
+import { markFirstRunDone, isFirstRun } from "../lib/firstRun";
 import { getDeviceCountry } from "../lib/locale";
 import { apiFetch } from "../lib/apiFetch";
 import { savePendingCountry, flushPendingCountry } from "../lib/pendingCountry";
@@ -82,6 +82,23 @@ export default function WelcomeScreen() {
   const [allCountries, setAllCountries] = useState<CountryOpt[]>(FALLBACK_COUNTRIES);
   const [search, setSearch]           = useState("");
   const listRef = useRef<FlatList>(null);
+
+  /**
+   * ⚠️ ONBOARDING'İ BİR KEZ GÖSTER.
+   *
+   * Bu ekran `markFirstRunDone()` çağırıyordu ama `isFirstRun()`'ı hiç
+   * kontrol etmiyordu. Önceden fark edilmiyordu çünkü _layout, girişten
+   * sonra onboarding'i bitirmiş kullanıcıyı doğrudan maçlara yönlendiriyordu.
+   * Giriş duvarı kalkınca (misafir gezinebiliyor) kök rotaya düşen dönüş
+   * kullanıcısı slaytları HER AÇILIŞTA yeniden görürdü.
+   */
+  useEffect(() => {
+    let alive = true;
+    isFirstRun().then((ilkMi) => {
+      if (alive && !ilkMi) router.replace("/(tabs)/live");
+    });
+    return () => { alive = false; };
+  }, []);
 
   // Cihaz dili yalnızca ÖN SEÇİM üretir — kullanıcı onaylar/değiştirir.
   // (en-US dilli Türk kullanıcı otomatik "ABD" olmamalı.)

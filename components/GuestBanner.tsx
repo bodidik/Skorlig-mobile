@@ -3,21 +3,30 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "rea
 import { useAuth } from "../contexts/AuthContext";
 
 /**
- * Anonim kullanıcılar için küçük, engelleyici olmayan kayıt şeridi.
- * Google ile bağlandığında otomatik kaybolur.
+ * Misafir kullanıcılar için küçük, engelleyici olmayan kayıt şeridi.
+ * Giriş yapılınca otomatik kaybolur.
+ *
+ * ⚠️ ESKİDEN HİÇ GÖRÜNMÜYORDU: koşul `isAnonymous` idi, yani Firebase anonim
+ * oturumu gerektiriyordu — ama anonim giriş bu projede KAPALI. Dolayısıyla
+ * bileşen ölü koddu. Artık koşul "oturum yok": giriş duvarı kaldırıldığı için
+ * (bkz. app/_layout.tsx) gerçekten misafir kullanıcılar var.
+ *
+ * `linkWithGoogle` yerine `signInWithGoogle`: bağlanacak anonim hesap yok,
+ * baştan giriş yapılıyor.
  */
 export default function GuestBanner() {
-  const { isAnonymous, linkWithGoogle } = useAuth();
+  const { user, isAnonymous, signInWithGoogle } = useAuth();
   const [busy, setBusy] = useState(false);
   const [err, setErr]   = useState(false);
 
-  if (!isAnonymous) return null;
+  // Oturum varsa ve anonim değilse: gösterme.
+  if (user && !isAnonymous) return null;
 
   const handleLink = async () => {
     setBusy(true);
     setErr(false);
     try {
-      await linkWithGoogle();
+      await signInWithGoogle();
     } catch {
       setErr(true);
     }
@@ -28,7 +37,7 @@ export default function GuestBanner() {
     <TouchableOpacity style={s.bar} onPress={handleLink} disabled={busy} activeOpacity={0.8}>
       <Text style={s.icon}>👤</Text>
       <Text style={s.text}>
-        {err ? "Hata oluştu, tekrar dene" : "Misafir olarak oynuyorsun · Kaydet"}
+        {err ? "Hata oluştu, tekrar dene" : "Misafir olarak geziyorsun · Tahmin için giriş yap"}
       </Text>
       {busy
         ? <ActivityIndicator size="small" color="#f59e0b" />
