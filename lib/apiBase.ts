@@ -47,7 +47,14 @@ function resolveApiBase(): string {
     (Constants?.expoConfig?.extra?.apiBase as string) ||
       (Constants as any)?.manifest?.extra?.apiBase
   );
-  const acikBase = envBase0 || extraBase0;
+
+  // `EXPO_PUBLIC_API_BASE=auto` → "yerel makinemdeki API'yi bul".
+  //
+  // NEDEN AYRI ANAHTAR: Yerel sunucuya dönmek için hem .env'i hem app.json'u
+  // elle yorumlamak gerekiyordu (ikisi de production'ı gösteriyor) ve sonra
+  // geri almayı unutmak kolay. Tek satırla gidip gelmek için açık bir değer.
+  const otomatikIstendi = /^(auto|lan|local)$/i.test(envBase0);
+  const acikBase = otomatikIstendi ? "" : envBase0 || extraBase0;
 
   // 1) Açıkça UZAK bir adres verilmişse otomatik tespit devreye GİRMEZ.
   //    Geliştirici production/staging'e bakmak istiyor demektir.
@@ -60,17 +67,35 @@ function resolveApiBase(): string {
   }
 
   if (__DEV__) {
-    const dbg =
-      (Constants as any)?.expoConfig?.hostUri ||
-      (Constants as any)?.manifest2?.extra?.expoClient?.hostUri ||
-      (Constants as any)?.manifest?.debuggerHost ||
-      (Constants as any)?.manifest2?.extra?.expoClient?.debuggerHost ||
-      "";
+    const C = Constants as any;
+    // Expo sürümleri bu bilgiyi farklı yerlerde tutuyor; tek bir yola
+    // güvenmek sessiz başarısızlık demek (yaşandı: hepsi boş döndü ve
+    // uygulama localhost'a düşüp "Network request failed" verdi).
+    const adaylar: string[] = [
+      C?.expoConfig?.hostUri,
+      C?.expoGoConfig?.debuggerHost,
+      C?.manifest2?.extra?.expoClient?.hostUri,
+      C?.manifest?.debuggerHost,
+      C?.manifest?.hostUri,
+      C?.manifest2?.extra?.expoClient?.debuggerHost,
+      C?.experienceUrl,
+      C?.linkingUri,
+    ].filter(Boolean).map(String);
 
-    const host = String(dbg || "");
-    const ip = host.split(":")[0]?.trim();
-    if (ip && /^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
-      return `http://${ip}:4102`;
+    for (const aday of adaylar) {
+      // "exp://192.168.0.58:8081", "192.168.0.58:8081" gibi biçimlerden IP çek
+      const m = aday.match(/(\d{1,3}(?:\.\d{1,3}){3})/);
+      if (m) return `http://${m[1]}:4102`;
+    }
+
+    if (otomatikIstendi) {
+      // Açıkça "auto" istendi ama IP bulunamadı — sessizce localhost'a düşmek
+      // "Network request failed" olarak görünür ve sebebi anlaşılmaz.
+      console.warn(
+        "[apiBase] EXPO_PUBLIC_API_BASE=auto ama Metro IP'si bulunamadi. " +
+          "Bakilan alanlar bos. .env'e adresi elle yazin: " +
+          "EXPO_PUBLIC_API_BASE=http://<bilgisayar-ip>:4102"
+      );
     }
   }
 
@@ -81,7 +106,46 @@ function resolveApiBase(): string {
   return "http://localhost:4102";
 }
 
-const FALLBACK_BASE = resolveApiBase();
+/**
+ * YAYIN DERLEMESİ KORUMASI.
+ *
+ * `EXPO_PUBLIC_*` değişkenleri paket derlenirken KODUN İÇİNE gömülür. Geliştirme
+ * sırasında `.env`'de LAN IP tutmak normaldir (`http://192.168.0.58:4102`) —
+ * ama o hâlde alınan bir YAYIN derlemesi, tüm kullanıcılarda ulaşılamayan bir
+ * özel ağ adresini arar. Uygulama herkeste tamamen ölü çıkar ve bu ancak
+ * mağazadan indirildikten sonra fark edilir.
+ *
+ * Bu yüzden production derlemesinde yerel adres KABUL EDİLMEZ: app.json'daki
+ * uzak adrese düşülür. app.json da yerelse hata net biçimde loglanır —
+ * sessizce kırık bir sürüm yayınlamaktan iyidir.
+ */
+function guvenliBase(aday: string): string {
+  if (__DEV__) return aday;
+  if (!isLocalAddress(aday)) return aday;
+
+  const uzakYedek =
+    (Constants?.expoConfig?.extra?.apiBase as string) ||
+    (Constants as any)?.manifest?.extra?.apiBase ||
+    "";
+
+  if (uzakYedek && !isLocalAddress(uzakYedek)) {
+    console.warn(
+      `[apiBase] YAYIN derlemesinde yerel adres (${aday}) yok sayildi; ` +
+        `app.json'daki ${uzakYedek} kullaniliyor.`
+    );
+    return String(uzakYedek);
+  }
+
+  console.error(
+    `[apiBase] YAYIN derlemesi YEREL adrese isaret ediyor (${aday}) ve uzak ` +
+      `yedek yok. Uygulama sunucuya ULASAMAZ. .env'deki ` +
+      `EXPO_PUBLIC_API_BASE degerini derlemeden once production adresi yapin.`
+  );
+  return aday;
+}
+
+// guvenliBase: yayın derlemesinde yerel adrese düşmeyi engeller (bkz. yukarı).
+const FALLBACK_BASE = guvenliBase(resolveApiBase());
 
 export async function getApiBase(): Promise<string> {
   if (resolvedBase) return resolvedBase;
