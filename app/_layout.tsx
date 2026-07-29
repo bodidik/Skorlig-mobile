@@ -6,6 +6,8 @@ import * as Linking from "expo-linking";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { isFirstRun } from "../lib/firstRun";
 import { configureNotificationHandler, registerForPush } from "../lib/push";
+import { flushPendingCountry } from "../lib/pendingCountry";
+import CountryBackfillPrompt from "../components/CountryBackfillPrompt";
 import {
   capturePendingRef, captureRefFromInitialUrl, applyPendingRef,
 } from "../lib/referral";
@@ -36,8 +38,9 @@ function AuthGuard() {
 
   const [firstRunChecked, setFirstRunChecked] = useState(false);
   const [firstRun, setFirstRun]               = useState(false);
-  const pushDone = useRef(false);
-  const refDone  = useRef(false);
+  const pushDone    = useRef(false);
+  const refDone     = useRef(false);
+  const countryDone = useRef(false);
 
   useEffect(() => {
     isFirstRun().then((v) => {
@@ -67,6 +70,15 @@ function AuthGuard() {
     if (!user || pushDone.current) return;
     pushDone.current = true;
     registerForPush();
+  }, [user]);
+
+  // Onboarding'de seçilen ülke oturum yokken gönderilememiş olabilir —
+  // kimlik oturur oturmaz gönder. Başarısızsa kayıt durur, sonraki açılışta
+  // tekrar denenir.
+  useEffect(() => {
+    if (!user || countryDone.current) return;
+    countryDone.current = true;
+    flushPendingCountry();
   }, [user]);
 
   // Paylaşılan bağlantıdaki davet kodunu yakala (uygulama kapalıyken açıldı)
@@ -127,6 +139,8 @@ export default function RootLayout() {
     <AuthProvider>
       <AuthGuard />
       <Stack screenOptions={{ headerShown: false }} />
+      {/* Ülkesi eksik mevcut kullanıcılar için geri doldurma (engellemez) */}
+      <CountryBackfillPrompt />
     </AuthProvider>
   );
 }

@@ -1,68 +1,42 @@
-// ISO 3166-1 alpha-2 region kodu → API'nin beklediği ülke adı
-// Aynı liste ileride IP-based detection için de kullanılabilir.
+/**
+ * ISO 3166-1 alpha-2 region kodu → API'nin KANONİK ülke adı.
+ *
+ * ⚠️ Buradaki değerler sunucunun canonicalCountry() fonksiyonunun kabul ettiği
+ * adlarla birebir aynı olmalıdır (kaynak: GET /api/live2/countries).
+ * Türkçe ad göndermek "Türkiye" dışında COUNTRY_NOT_SUPPORTED ile reddedilir —
+ * eski sürümdeki sessiz hata buydu.
+ *
+ * Listede olmayan bölge null döner: kullanıcı onboarding'de elle seçer.
+ */
 const REGION_TO_COUNTRY: Record<string, string> = {
-  // Türkiye
   TR: "Türkiye",
-  // Batı Avrupa
-  GB: "İngiltere",
-  DE: "Almanya",
-  FR: "Fransa",
-  ES: "İspanya",
-  IT: "İtalya",
-  PT: "Portekiz",
-  NL: "Hollanda",
-  BE: "Belçika",
-  AT: "Avusturya",
-  CH: "İsviçre",
-  SE: "İsveç",
-  NO: "Norveç",
-  DK: "Danimarka",
-  FI: "Finlandiya",
-  IE: "İrlanda",
-  GR: "Yunanistan",
-  // Doğu Avrupa
-  PL: "Polonya",
-  CZ: "Çekya",
-  SK: "Slovakya",
-  HU: "Macaristan",
-  RO: "Romanya",
-  HR: "Hırvatistan",
-  RS: "Sırbistan",
-  UA: "Ukrayna",
-  RU: "Rusya",
-  // Güney Amerika
-  AR: "Arjantin",
-  BR: "Brezilya",
-  BO: "Bolivya",
-  CL: "Şili",
-  CO: "Kolombiya",
-  PE: "Peru",
-  UY: "Uruguay",
-  EC: "Ekvador",
-  PY: "Paraguay",
-  VE: "Venezuela",
-  // Kuzey & Orta Amerika
-  MX: "Meksika",
-  US: "ABD",
-  CA: "Kanada",
-  // Afrika
-  NG: "Nijerya",
-  GH: "Gana",
-  EG: "Mısır",
-  ZA: "Güney Afrika",
-  MA: "Fas",
-  CI: "Fildişi Sahili",
-  SN: "Senegal",
-  // Orta Doğu
-  SA: "Suudi Arabistan",
-  AE: "BAE",
-  QA: "Katar",
-  // Asya & Okyanusya
-  JP: "Japonya",
-  KR: "Güney Kore",
-  CN: "Çin",
-  AU: "Avustralya",
-  IN: "Hindistan",
+  GB: "England",
+  ES: "Spain",
+  DE: "Germany",
+  IT: "Italy",
+  FR: "France",
+  NL: "Netherlands",
+  BE: "Belgium",
+  GR: "Greece",
+  PT: "Portugal",
+  BR: "Brazil",
+  AR: "Argentina",
+  JP: "Japan",
+  RU: "Russia",
+  UA: "Ukraine",
+  US: "USA",
+  SA: "Saudi Arabia",
+  AT: "Austria",
+  CH: "Switzerland",
+  PL: "Poland",
+  MX: "Mexico",
+  HR: "Croatia",
+  RS: "Serbia",
+  CZ: "Czech Republic",
+  RO: "Romania",
+  HU: "Hungary",
+  SK: "Slovakia",
+  BG: "Bulgaria",
 };
 
 export function getDeviceCountry(): string | null {

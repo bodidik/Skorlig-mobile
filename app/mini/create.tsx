@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Colors from "../../constants/colors";
+import Colors, { on } from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders } from "../../lib/apiFetch";
 
@@ -237,7 +237,7 @@ export default function MiniCreateScreen() {
           marginBottom: 24,
         }}
       >
-        <Text style={{ textAlign: "center", color: "#fff", fontWeight: "800" }}>
+        <Text style={{ textAlign: "center", color: on(canCreate ? Colors.accent : Colors.border), fontWeight: "800" }}>
           {creating ? "Kuruluyor..." : "Turnuvayı Kur"}
         </Text>
       </TouchableOpacity>

@@ -180,7 +180,7 @@ export default function TrLeagueScreen() {
                   backgroundColor: active ? Colors.accent : "#fff",
                 }}
               >
-                <Text style={{ fontSize: 12, fontWeight: "600", color: active ? "#fff" : Colors.slate900 }}>
+                <Text style={{ fontSize: 12, fontWeight: "600", color: active ? Colors.onAccent : Colors.slate900 }}>
                   {w.weekKey.replace(/^\d+-W/, "H")} {w.status === "settled" ? "✓" : ""}
                 </Text>
               </TouchableOpacity>

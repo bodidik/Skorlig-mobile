@@ -10,7 +10,7 @@ import {
   RefreshControl,
   ScrollView,
 } from "react-native";
-import Colors from "../../constants/colors";
+import Colors, { on } from "../../constants/colors";
 import { getApiBase, syncServerTime } from "../../lib/apiBase";
 import { withAdminHeaders, hasAdminToken } from "../../lib/adminToken";
 import BackBar from "../../components/BackBar";
@@ -293,7 +293,7 @@ export default function AdminResultsScreen() {
               >
                 <Text style={{
                   textAlign: "center", fontWeight: "800", fontSize: 12,
-                  color: active ? "#fff" : Colors.slate900,
+                  color: active ? Colors.onAccent : Colors.slate900,
                 }}>
                   {label}
                 </Text>
@@ -449,7 +449,7 @@ export default function AdminResultsScreen() {
               backgroundColor: !canSave || saving ? Colors.border : Colors.primary,
             }}
           >
-            <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900", fontSize: 15 }}>
+            <Text style={{ textAlign: "center", color: on(!canSave || saving ? Colors.border : Colors.primary), fontWeight: "900", fontSize: 15 }}>
               {saving ? "Kaydediliyor..." : "✓ Kaydet ve Settle Et"}
             </Text>
           </TouchableOpacity>

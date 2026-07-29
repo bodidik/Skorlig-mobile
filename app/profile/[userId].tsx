@@ -8,7 +8,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Colors from "../../constants/colors";
+import Colors, { on } from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders } from "../../lib/apiFetch";
 import { useAuth } from "../../contexts/AuthContext";
@@ -194,7 +194,7 @@ export default function ProfileUserScreen() {
               backgroundColor: Colors.accent,
               alignItems: "center", justifyContent: "center",
             }}>
-              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 22 }}>
+              <Text style={{ color: Colors.onAccent, fontWeight: "900", fontSize: 22 }}>
                 {initials(profile?.userId || userId)}
               </Text>
             </View>
@@ -210,7 +210,7 @@ export default function ProfileUserScreen() {
                 )}
                 {profile?.mainTeam && (
                   <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: Colors.live }}>
-                    <Text style={{ fontSize: 11, fontWeight: "600", color: "#fff" }}>⚽ {profile.mainTeam}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: on(Colors.live) }}>⚽ {profile.mainTeam}</Text>
                   </View>
                 )}
                 {profile?.is1987 && (

@@ -15,14 +15,14 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.CAMERA",
         "android.permission.POST_NOTIFICATIONS"
       ],
       "package": "com.skorlig",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#111827"
-      }
+      },
+      "versionCode": 1
     },
     "ios": {
       "supportsTablet": true

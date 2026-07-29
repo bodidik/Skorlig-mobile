@@ -4,7 +4,7 @@ import {
   View, Text, TextInput, TouchableOpacity,
   ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl,
 } from "react-native";
-import Colors from "../constants/colors";
+import Colors, { on } from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders } from "../lib/apiFetch";
 
@@ -550,7 +550,7 @@ export default function AdminLiveScreen() {
           backgroundColor: saving ? "#334155" : Colors.accent,
         }}
       >
-        <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900", fontSize: 15 }}>
+        <Text style={{ textAlign: "center", color: on(saving ? "#334155" : Colors.accent), fontWeight: "900", fontSize: 15 }}>
           {saving ? "Kaydediliyor..." : "💾 Güncelle"}
         </Text>
       </TouchableOpacity>

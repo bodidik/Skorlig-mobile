@@ -10,13 +10,11 @@ import { getDeviceCountry } from "../lib/locale";
 import { apiFetch } from "../lib/apiFetch";
 import { savePendingCountry, flushPendingCountry } from "../lib/pendingCountry";
 import { filterAndRankCountries } from "../lib/countrySort";
+import { FALLBACK_COUNTRIES, type CountryOpt } from "../lib/countriesFallback";
 
 const GOLD = "#f59e0b";
 const BG   = "#020617";
 const CARD = "#0f172a";
-
-/** GET /api/live2/countries şeması */
-type CountryOpt = { country: string; flag: string };
 
 const SLIDES = [
   {
@@ -77,7 +75,11 @@ export default function WelcomeScreen() {
 
   // Ülke seçici
   const [pickerOpen, setPickerOpen]   = useState(false);
-  const [allCountries, setAllCountries] = useState<CountryOpt[]>([]);
+  // Gömülü listeyle BAŞLA: onboarding ağa bağlı kalmasın. Sunucu yanıtı
+  // gelince tazelenir. Eskiden boş başlıyordu ve istek düşerse ekran
+  // sonsuza kadar spinner'da kalıyordu (Render soğuk başlangıcı 30-60sn,
+  // apiFetch 15sn × 3 deneme → hepsi düşüyordu).
+  const [allCountries, setAllCountries] = useState<CountryOpt[]>(FALLBACK_COUNTRIES);
   const [search, setSearch]           = useState("");
   const listRef = useRef<FlatList>(null);
 
@@ -104,8 +106,15 @@ export default function WelcomeScreen() {
               : { country: c?.country, flag: c?.flag ?? "" }
           )
           .filter((c: CountryOpt) => !!c.country);
-        if (alive) setAllCountries(list);
-      } catch {}
+        // BOŞ yanıt gömülü listeyi EZMEMELİ — sunucu geçici olarak boş
+        // dönerse kullanıcı ülke seçemez hale gelirdi.
+        if (alive && list.length) setAllCountries(list);
+      } catch (e) {
+        // Sessizce yutma: gömülü liste devreye girdiği için kullanıcı
+        // engellenmiyor, ama sebebi bilmek gerekiyor (eskiden `catch {}`
+        // yüzünden sonsuz spinner'ın nedeni hiçbir yerde görünmüyordu).
+        console.warn("[onboarding] ülke listesi alınamadı, gömülü liste kullanılıyor:", e);
+      }
     })();
     return () => { alive = false; };
   }, []);
@@ -299,10 +308,15 @@ export default function WelcomeScreen() {
               />
             </View>
 
-            {allCountries.length === 0 ? (
-              <View style={{ padding: 32, alignItems: "center", gap: 10 }}>
-                <ActivityIndicator color={GOLD} />
-                <Text style={{ color: "#64748b", fontSize: 13 }}>Ülkeler yükleniyor…</Text>
+            {/* "Ülkeler yükleniyor…" spinner'ı KALDIRILDI: liste artık gömülü
+                listeyle dolu başlıyor, hiç boş olmuyor. Eski hâlinde
+                `allCountries.length === 0` hem "yükleniyor" hem "istek
+                başarısız" anlamına geliyordu ve ikincisinde spinner sonsuza
+                kadar dönüyordu. */}
+            {search.trim() && filteredCountries.length === 0 ? (
+              <View style={{ padding: 32, alignItems: "center", gap: 6 }}>
+                <Text style={{ color: "#64748b", fontSize: 14 }}>Ülke bulunamadı</Text>
+                <Text style={{ color: "#475569", fontSize: 12 }}>Farklı bir arama deneyin</Text>
               </View>
             ) : (
               <FlatList

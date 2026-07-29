@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Constants from "expo-constants";
-import Colors from "../constants/colors";
+import Colors, { on } from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders } from "../lib/apiFetch";
 
@@ -580,7 +580,7 @@ export default function MyStatusScreen() {
                   <Text
                     style={{
                       textAlign: "center",
-                      color: "#fff",
+                      color: Colors.onAccent,
                       fontWeight: "700",
                       fontSize: 13,
                     }}
@@ -606,7 +606,7 @@ export default function MyStatusScreen() {
                   <Text
                     style={{
                       textAlign: "center",
-                      color: "#fff",
+                      color: Colors.onAccent,
                       fontWeight: "700",
                       fontSize: 13,
                     }}
@@ -780,7 +780,7 @@ export default function MyStatusScreen() {
                     backgroundColor: verifyingCode ? Colors.muted : Colors.primary,
                   }}
                 >
-                  <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700", fontSize: 14 }}>
+                  <Text style={{ textAlign: "center", color: on(verifyingCode ? Colors.muted : Colors.primary), fontWeight: "700", fontSize: 14 }}>
                     {verifyingCode ? "Doğrulanıyor..." : "1987 Kodunu Kullan"}
                   </Text>
                 </TouchableOpacity>

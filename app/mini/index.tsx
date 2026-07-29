@@ -119,7 +119,7 @@ export default function MiniTournamentsScreen() {
         onPress={() => router.push({ pathname: "/mini/create", params: { userId } })}
         style={{ padding: 12, backgroundColor: Colors.accent, borderRadius: 12 }}
       >
-        <Text style={{ textAlign: "center", color: "#fff", fontWeight: "800" }}>+ Yeni Mini Turnuva Kur</Text>
+        <Text style={{ textAlign: "center", color: Colors.onAccent, fontWeight: "800" }}>+ Yeni Mini Turnuva Kur</Text>
       </TouchableOpacity>
 
       {/* Kodla katıl */}

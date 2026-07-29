@@ -794,16 +794,31 @@ useEffect(() => {
             </Text>
           ) : null}
           {fixtureId ? (
-            <TouchableOpacity
-              onPress={() => router.push({
-                pathname: "/duel/[fixtureId]",
-                params: { fixtureId, home: homeName, away: awayName, league: paramLeague || "", kickoffISO: paramKickoff || nextMatch?.kickoffISO || "" },
-              })}
-              style={{ marginTop: 6, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#1e293b", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7, alignSelf: "center" }}
-            >
-              <Text style={{ fontSize: 14 }}>⚔️</Text>
-              <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>Duello Modu</Text>
-            </TouchableOpacity>
+            // Üç mod, üç amaç (bkz. docs/ekonomi-tasarim.md §4.2):
+            //   Tahmin = puan/sıralama · Havuz = para · Düello = kişisel meydan okuma
+            <View style={{ marginTop: 6, flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "center" }}>
+              <TouchableOpacity
+                onPress={() => router.push({
+                  pathname: "/duel/[fixtureId]",
+                  params: { fixtureId, home: homeName, away: awayName, league: paramLeague || "", kickoffISO: paramKickoff || nextMatch?.kickoffISO || "" },
+                })}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#1e293b", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 }}
+              >
+                <Text style={{ fontSize: 14 }}>⚔️</Text>
+                <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>Duello Modu</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => router.push({
+                  pathname: "/pool/[fixtureId]",
+                  params: { fixtureId },
+                })}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#1e293b", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 }}
+              >
+                <Text style={{ fontSize: 14 }}>💰</Text>
+                <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>Havuz</Text>
+              </TouchableOpacity>
+            </View>
           ) : null}
         </View>
 

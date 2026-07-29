@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { NativeModules, Platform } from "react-native";
 
 let resolvedBase: string | null = null;
 
@@ -61,17 +62,43 @@ function resolveApiBase(): string {
   if (acikBase && !isLocalAddress(acikBase)) return acikBase;
 
   // Web: sayfa hangi host'tan servis ediliyorsa API de o makinede (4102) varsayılır.
-  // Ağ/IP değişimlerinden etkilenmez (tarayıcı zaten doğru makineye bağlı).
-  if (typeof window !== "undefined" && window.location?.hostname) {
+  //
+  // ⚠️ `typeof window !== "undefined"` İLE KONTROL ETMEYİN. React Native'de
+  // `window` TANIMLIDIR ve `window.location.hostname` "localhost" döner. O
+  // koşul kullanıldığında bu dal TELEFONDA da çalışıyor, adres koşulsuz
+  // `http://localhost:4102` oluyor ve altındaki hiçbir kod (scriptURL tespiti,
+  // .env, app.json) devreye giremiyordu. Uygulama her ekranda
+  // "Network request failed" veriyordu ve sebebi görünmüyordu — bu tuzak
+  // saatlerce yanlış katmanlarda arattı.
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.location?.hostname) {
     return `http://${window.location.hostname}:4102`;
   }
 
   if (__DEV__) {
     const C = Constants as any;
-    // Expo sürümleri bu bilgiyi farklı yerlerde tutuyor; tek bir yola
-    // güvenmek sessiz başarısızlık demek (yaşandı: hepsi boş döndü ve
-    // uygulama localhost'a düşüp "Network request failed" verdi).
+    // EN GÜVENİLİR KAYNAK ÖNCE: paketin indirildiği adres.
+    //
+    // `NativeModules.SourceCode.scriptURL` uygulamanın JS paketini HANGİ
+    // sunucudan aldığını söyler (örn. "http://192.168.43.245:8081/index.bundle").
+    // Uygulama çalışıyorsa bu adres tanım gereği erişilebilirdir — API de aynı
+    // makinede olduğu için doğru IP budur.
+    //
+    // NEDEN ÖNCE BU: Expo'nun `hostUri`/`debuggerHost` alanları ÖZEL GELİŞTİRME
+    // DERLEMELERİNDE (dev client) boş dönüyor. Bu projede Google girişi Expo
+    // Go'da çalışmadığı için dev client kullanılıyor — yani o alanlar hep boştu,
+    // uygulama sessizce localhost'a düşüyor ve her ekranda
+    // "Network request failed" veriyordu.
+    //
+    // Ayrıca ağ değişince IP de değişir (ölçüldü: 192.168.0.58 → 192.168.43.245).
+    // scriptURL her zaman GÜNCEL adresi verir; .env'e yazılan IP bayatlar.
+    const scriptURL = String(
+      (NativeModules as any)?.SourceCode?.scriptURL || ""
+    );
+
+    // Expo sürümleri kalan bilgiyi farklı yerlerde tutuyor; tek bir yola
+    // güvenmek sessiz başarısızlık demek.
     const adaylar: string[] = [
+      scriptURL,
       C?.expoConfig?.hostUri,
       C?.expoGoConfig?.debuggerHost,
       C?.manifest2?.extra?.expoClient?.hostUri,
@@ -146,6 +173,29 @@ function guvenliBase(aday: string): string {
 
 // guvenliBase: yayın derlemesinde yerel adrese düşmeyi engeller (bkz. yukarı).
 const FALLBACK_BASE = guvenliBase(resolveApiBase());
+
+/**
+ * TEŞHİS: hangi kaynaktan ne geldiği tek satırda.
+ *
+ * NEDEN KALICI: Bu dosyanın yanlış adres seçmesi "Network request failed"
+ * olarak görünüyor ve sebebi hiçbir yerde yazmıyordu. Bir kurulumda gün
+ * kaybettirdi: Windows'ta KALICI bir ortam değişkeni `.env` dosyasını tamamen
+ * etkisiz kılıyordu, Expo'nun `hostUri` alanı özel derlemede boş dönüyordu ve
+ * makinenin IP'si değişmişti — üçü aynı anda. Hiçbiri loglanmıyordu.
+ */
+try {
+  const C = Constants as any;
+  console.log(
+    "[apiBase] secilen:", FALLBACK_BASE,
+    "| __DEV__:", typeof __DEV__ !== "undefined" ? __DEV__ : "?",
+    "| env:", JSON.stringify(process.env.EXPO_PUBLIC_API_BASE ?? null),
+    "| app.json:", JSON.stringify(C?.expoConfig?.extra?.apiBase ?? null),
+    "| scriptURL:", JSON.stringify(
+      String((NativeModules as any)?.SourceCode?.scriptURL || "").slice(0, 60) || null
+    ),
+    "| hostUri:", JSON.stringify(C?.expoConfig?.hostUri ?? null)
+  );
+} catch {}
 
 export async function getApiBase(): Promise<string> {
   if (resolvedBase) return resolvedBase;
