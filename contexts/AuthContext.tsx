@@ -60,12 +60,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(u);
         setLoading(false);
       } else {
-        // Oturum yok → anonim giriş yap (sessizce)
+        // Oturum yok → anonim giriş dene. Başarısız olursa MİSAFİR devam:
+        // uygulama maç listesini, sıralamaları vs. zaten oturumsuz gösteriyor.
         try {
           const cred = await fbSignInAnonymously(auth);
           setUser(cred.user);
         } catch (e: any) {
-          console.error("[auth] anonymous sign-in failed:", e?.message || e);
+          const kod = String(e?.code || "");
+          // Firebase konsolunda "Anonymous" sağlayıcısı KAPALIYSA bu hata gelir.
+          // Google girişi kullanan bir kurulumda bu bilinçli bir tercihtir —
+          // hata DEĞİL. console.error kullanmak geliştirmede kırmızı LogBox
+          // ekranı açıp ekranı kapatıyordu; beklenen durum için gürültü.
+          if (kod === "auth/admin-restricted-operation" || kod === "auth/operation-not-allowed") {
+            console.warn(
+              "[auth] anonim giriş kapalı (Firebase), misafir olarak devam ediliyor. " +
+                "Açmak isterseniz: Firebase Console → Authentication → Sign-in method → Anonymous."
+            );
+          } else {
+            console.error("[auth] anonim giriş başarısız:", e?.message || e);
+          }
           setUser(null);
         }
         setLoading(false);
