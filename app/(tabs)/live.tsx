@@ -21,15 +21,26 @@ import TournamentCreate from "../../components/TournamentCreate";
 import TournamentJoin from "../../components/TournamentJoin";
 import Picks1987 from "../../components/Picks1987";
 import GuestBanner from "../../components/GuestBanner";
+import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { t } from "../../lib/i18n";
 
 type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
 
+/**
+ * Öncelik grubu — SUNUCU üretir (lib/fixture-priority.cjs).
+ * İstemcide yeniden hesaplanmıyor: aynı kuralı iki yerde tanımlamak bu projede
+ * defalarca sessiz ayrışmaya yol açtı.
+ */
+type PriorityGroup = "country" | "global" | "big" | "other" | "friendly";
+
 type Fx = {
   fixtureId: string;
   home: string;
   away: string;
+
+  /** Grup başlığı için; sıra değiştiğinde başlık basılır. */
+  priorityGroup?: PriorityGroup | null;
 
   kickoffISO?: string | null;
   kickoffDate?: string | null;
@@ -77,6 +88,14 @@ type Live2Resp = {
 
   runtimeMode?: RuntimeMode;
   cap?: number;
+
+  /**
+   * Kullanıcının ülkesinde maç bulunamadığı için dünya listesi döndü.
+   * Sunucu bunu açıkça bildiriyor; belirtmezsek kullanıcı Brezilya maçı
+   * görünce hata sanır. (Süper Lig sezon arasındayken Türk kullanıcı için
+   * ölçülen boşluk 14 gündü — boş ekran yerine oynanabilir maç gösteriliyor.)
+   */
+  countryFallback?: boolean;
 };
 
 type Mode = "schedule" | "open" | "mine" | "tournaments" | "gs1987";
@@ -499,7 +518,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>⚽ Tahmin</Text>
+                <Text style={{ color: Colors.onAccent, fontWeight: "700", fontSize: 12 }}>⚽ Tahmin</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => onDuel(item)}
@@ -594,6 +613,8 @@ export default function LiveScreen() {
   const [winDays, setWinDays] = useState<WindowDays | null>(null);
   const [cap, setCap] = useState<number | null>(null);
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode | null>(null);
+  // Ülkede maç yok → dünya listesi gösteriliyor (sunucu bildiriyor).
+  const [countryFallback, setCountryFallback] = useState(false);
   const [lockBeforeMin, setLockBeforeMin] = useState<number | null>(null);
 
   const [predFlags, setPredFlags] = useState<Record<string, boolean>>({});
@@ -733,6 +754,8 @@ export default function LiveScreen() {
         setCap(null);
         setRuntimeMode(null);
         setLockBeforeMin(null);
+        // Hata durumunda şerit asılı kalmasın — liste zaten boş.
+        setCountryFallback(false);
         return;
       }
 
@@ -743,6 +766,7 @@ export default function LiveScreen() {
       setWinDays(j?.windowDays ?? { backDays: SCHEDULE_BACK_HOURS / 24, fwdDays: SCHEDULE_FWD_DAYS });
       setCap(typeof j?.cap === "number" ? j.cap : null);
       setRuntimeMode(j?.runtimeMode ?? null);
+      setCountryFallback(!!j?.countryFallback);
       setLockBeforeMin(typeof j?.lockBeforeMin === "number" ? j.lockBeforeMin : null);
 
       if (list.length === 0) setError(null);
@@ -1278,11 +1302,23 @@ export default function LiveScreen() {
           : items
         }
         keyExtractor={(it) => String(it.fixtureId || it.code || Math.random())}
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           // Normal maç
           const fid = String(item.fixtureId || "").trim();
           const hasPred = fid ? predFlags[fid] : null;
+
+          // GRUP BAŞLIĞI: liste sunucudan öncelik sırasında geliyor
+          // (ülke → küresel → büyük lig → diğer → hazırlık). Grup değiştiği
+          // ilk maçta başlık basılır. Eleme yok — kullanıcı aşağı kaydırarak
+          // her maça ulaşır, başlıklar yalnızca nerede olduğunu söyler.
+          const grup = item.priorityGroup || null;
+          const oncekiGrup =
+            index > 0 ? (items[index - 1]?.priorityGroup || null) : null;
+          const basligiGoster = !!grup && grup !== oncekiGrup;
+
           return (
+            <>
+            {basligiGoster && <GroupHeader group={grup} country={userCountry} />}
             <Item
               item={item}
               mode={mode}
@@ -1294,6 +1330,7 @@ export default function LiveScreen() {
               selected={adminMode && !!selectedFid && fid === selectedFid}
               onSelect={selectFx}
             />
+            </>
           );
         }}
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
@@ -1301,6 +1338,33 @@ export default function LiveScreen() {
           <View style={{ marginBottom: 12 }}>
             {/* ===== MİSAFİR ŞERTI ===== */}
             <GuestBanner />
+
+            {/* ===== ÜLKEDE MAÇ YOK ŞERİDİ =====
+                Sunucu ülke süzgeci sonuçsuz kalınca dünya listesine geri
+                düşüyor (countryFallback). Açıklama olmadan kullanıcı kendi
+                ülkesi dışından maç görünce bunu hata sanar. Ölçülen gerçek
+                durum: Süper Lig sezon arasındayken Türk kullanıcının ilk
+                maçı 14 gün sonraydı. */}
+            {countryFallback && (
+              <View
+                style={{
+                  flexDirection: "row", alignItems: "center", gap: 10,
+                  backgroundColor: "#1c1917", borderRadius: 12,
+                  borderWidth: 1, borderColor: "#f59e0b44",
+                  paddingHorizontal: 14, paddingVertical: 11, marginBottom: 10,
+                }}
+              >
+                <Text style={{ fontSize: 18 }}>🌍</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: "#f59e0b", fontWeight: "800", fontSize: 13 }}>
+                    Ülkenizde şu an maç yok
+                  </Text>
+                  <Text style={{ color: "#a8a29e", fontSize: 11, marginTop: 2 }}>
+                    Dünyadan maçlar gösteriliyor — hepsini oynayabilirsiniz.
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* ===== HIZLI OYNA ===== */}
             {mode === "open" && (
@@ -1369,7 +1433,7 @@ export default function LiveScreen() {
                       <Text
                         style={{
                           textAlign: "center",
-                          color: active ? "#fff" : Colors.muted,
+                          color: active ? Colors.onAccent : Colors.muted,
                           fontWeight: active ? "700" : "500",
                           fontSize: 11,
                         }}
