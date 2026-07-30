@@ -40,6 +40,12 @@ const SOZLUK: Record<string, string> = {
   SELF_NOT_ALLOWED: "Kendine bu işlemi yapamazsın.",
   NOT_FRIENDS: "Bunun için arkadaş olmanız gerekiyor.",
   NOT_A_MEMBER: "Bu turnuvanın üyesi değilsin.",
+  // Turnuva giriş ücreti artık gerçekten tahsil ediliyor (önceden bedavaydı ve
+  // havuz karşılıksız büyüyordu) — yani bu hata artık görülebilir.
+  INSUFFICIENT_LC: "LigCoin'in yetmiyor. Bakiyeni artırıp tekrar dene.",
+  ENTRY_CHARGE_FAILED: "Giriş ücreti alınamadı. Bakiyen değişmedi, tekrar dene.",
+  WALLET_UNAVAILABLE: "Cüzdana şu an ulaşılamıyor. Birazdan tekrar dene.",
+  ALREADY_JOINED: "Bu turnuvaya zaten katıldın.",
 
   // ── Kimlik / yetki ───────────────────────────────────────────────
   UNAUTHORIZED: "Bu işlem için giriş yapman gerekiyor.",
