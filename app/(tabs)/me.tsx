@@ -472,7 +472,13 @@ export default function Me() {
       setGroups(g?.ok ? g.items || [] : []);
 
       try {
-        const t = await apiFetch(`/api/rt/totals`).then((r) => r.json());
+        // ⚠️ `userId` ŞART. Onsuz sunucu TÜM sıralamayı gönderiyordu (1707 satır
+        // / 182 KB) ve biz aşağıda tek satırımızı arayıp gerisini atıyorduk.
+        // Sunucu zaten süzebiliyor (profile/[userId].tsx böyle çağırıyordu):
+        // 182 KB → 167 bayt. `.find()` tek elemanlı listede de çalışır.
+        const t = await apiFetch(
+          `/api/rt/totals?userId=${encodeURIComponent(userId)}`
+        ).then((r) => r.json());
         if (t?.ok && Array.isArray(t.items)) {
           const mine = (t.items as TotRow[]).find(
             (row) => String(row.userId || "").toLowerCase() === userId.toLowerCase()

@@ -124,7 +124,11 @@ export default function KingsScreen() {
   // ================================
   const loadTotals = useCallback(async () => {
     try {
-      const res = await apiFetch(`/api/rt/totals`);
+      // ⚠️ Ekran zaten ilk 100'ü gösteriyor ("Daha fazla göster" ile açılıyor)
+      // ama sunucu 1707 satırın hepsini yolluyordu (182 KB). `limit` sunucuda
+      // SIRALADIKTAN sonra kesiyor, yani aşağıdaki sıra numaraları doğru kalır.
+      // 300 seçildi: gösterilen 100'ün üstünde pay bırakır. Ölçüldü: 182 KB → 32 KB.
+      const res = await apiFetch(`/api/rt/totals?limit=300`);
       const j: TotalsResponse = await res.json();
       if (!j?.ok || !Array.isArray(j.items)) {
         setRows([]);

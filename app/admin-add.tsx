@@ -6,7 +6,6 @@ import {
   ScrollView, ActivityIndicator, Alert, RefreshControl,
 } from "react-native";
 import Colors from "../constants/colors";
-import { getApiBase } from "../lib/apiBase";
 import { withAdminHeaders, hasAdminToken } from "../lib/adminToken";
 import BackBar from "../components/BackBar";
 
@@ -71,8 +70,13 @@ export default function AdminAddScreen() {
     if (searchQ.trim().length < 2) return;
     try {
       setSearching(true); setSearchDone(false); setSearchResults([]);
-      const base = await getApiBase();
-      const r = await fetch(`${base}/api/admin/search-match?q=${encodeURIComponent(searchQ.trim())}`).then(x => x.json());
+      // ⚠️ Burası ham `fetch` kullanıyordu — yukarıdaki `apiFetch` sarmalayıcısını
+      // atlıyordu, yani ne yönetici token'ı ne zaman aşımı vardı. Sunucu tarafında
+      // /api/admin/search-match artık token istiyor (kimliksizken herkes sunucuya
+      // TheSportsDB'ye istek attırıp kotayı tüketebiliyordu).
+      const r = await apiFetch(
+        `/api/admin/search-match?q=${encodeURIComponent(searchQ.trim())}`
+      ).then(x => x.json());
       if (r?.ok) setSearchResults(r.events || []);
       else Alert.alert("Hata", r?.error || "ARAMA_HATASI");
     } catch (e: any) {
