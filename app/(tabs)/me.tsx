@@ -1441,6 +1441,19 @@ export default function Me() {
               action: () => nav.push({ pathname: "/friends/board", params: { userId } } as any),
             },
             {
+              // Haftalik kupon: yeni oyun. Giris noktasi olmadan kullanici
+              // ekrani hic bulamaz — sunucu hazir olsa da ozellik gorunmez.
+              key: "kupon",
+              done: false,
+              icon: "🎟️",
+              title: "Haftalık Kupon",
+              desc: "Haftanın maçları tek kuponda — ödül başarına göre",
+              color: "#0e7490",
+              bg: "#082f3a",
+              textColor: "#67e8f9",
+              action: () => nav.push({ pathname: "/kupon" } as any),
+            },
+            {
               key: "gs1987",
               done: !!profile?.is1987,
               icon: "🔴",
