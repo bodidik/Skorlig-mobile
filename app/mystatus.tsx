@@ -175,9 +175,18 @@ export default function MyStatusScreen() {
 
   // 1) Bu fixture için kullanıcının tahminini getir (/api/pred/list)
   const loadMyPred = useCallback(async () => {
-    if (!fixtureId) return;
+    // ⚠️ userId de ŞART. Sunucu artık `userId` yoksa yönetici token'ı istiyor:
+    // eskiden bu uç o maçtaki HERKESİN tahminini döndürüyordu ve biz aşağıda
+    // kendimizinkini arıyorduk. Kimliksiz istekte karşılaştırma "" === "" ile
+    // yanlış kayda da denk gelebiliyordu.
+    if (!fixtureId || !userId.trim()) {
+      setMyPred(null);
+      return;
+    }
     try {
-      const url = `/api/pred/list?fixtureId=${encodeURIComponent(fixtureId)}`;
+      const url =
+        `/api/pred/list?fixtureId=${encodeURIComponent(fixtureId)}` +
+        `&userId=${encodeURIComponent(userId.trim())}`;
       const r = await apiFetch(url);
       const j = await r.json();
       if (!j?.ok) {

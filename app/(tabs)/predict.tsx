@@ -413,7 +413,12 @@ export default function PredictScreen() {
     }
     try {
       setCheckingPred(true);
-      const res = await apiFetch(`/api/pred/list?fixtureId=${encodeURIComponent(f)}`);
+      // ⚠️ `userId` ŞART: onsuz sunucu o maçtaki HERKESİN tahminini döndürüyordu
+      // (1280 bot dahil) ve biz aşağıda kendimizinkini arayıp gerisini atıyorduk.
+      // Artık sunucu süzüyor; token gerekmiyor çünkü kendi kaydımızı istiyoruz.
+      const res = await apiFetch(
+        `/api/pred/list?fixtureId=${encodeURIComponent(f)}&userId=${encodeURIComponent(u)}`
+      );
       const j = await res.json();
       if (j?.ok && Array.isArray(j.items)) {
         const list = j.items as any[];
