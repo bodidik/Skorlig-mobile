@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { isFirstRun } from "../lib/firstRun";
 import { configureNotificationHandler, registerForPush } from "../lib/push";
 import { flushPendingCountry } from "../lib/pendingCountry";
+import ErrorBoundary from "../components/ErrorBoundary";
 import CountryBackfillPrompt from "../components/CountryBackfillPrompt";
 import {
   capturePendingRef, captureRefFromInitialUrl, applyPendingRef,
@@ -153,11 +154,16 @@ function AuthGuard() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <AuthGuard />
-      <Stack screenOptions={{ headerShown: false }} />
-      {/* Ülkesi eksik mevcut kullanıcılar için geri doldurma (engellemez) */}
-      <CountryBackfillPrompt />
-    </AuthProvider>
+    // ⚠️ EN DIŞTA: uygulamada hiç hata sınırı yoktu. Render sırasındaki tek bir
+    // hata tüm ağacı söküyor, yayında uygulama beyaz ekrana/kapanmaya gidiyordu.
+    // Kullanıcı ne olduğunu anlamadan gidiyor. bkz. components/ErrorBoundary.tsx
+    <ErrorBoundary>
+      <AuthProvider>
+        <AuthGuard />
+        <Stack screenOptions={{ headerShown: false }} />
+        {/* Ülkesi eksik mevcut kullanıcılar için geri doldurma (engellemez) */}
+        <CountryBackfillPrompt />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

@@ -14,7 +14,7 @@ import { useUserId } from "../../lib/useUserId";
 import { useFocusEffect } from "@react-navigation/native";
 import Colors from "../../constants/colors";
 import { getApiBase, syncServerTime, nowFromServer } from "../../lib/apiBase";
-import { getAuthHeaders } from "../../lib/apiFetch";
+import { getAuthHeaders, apiJson as sharedApiJson } from "../../lib/apiFetch";
 import DailyMenuStrip from "../../components/DailyMenuStrip";
 import QuickPlaySection from "../../components/QuickPlaySection";
 import TournamentCreate from "../../components/TournamentCreate";
@@ -709,17 +709,11 @@ export default function LiveScreen() {
     return fetchWithTimeout(`${base}${p}`, { ...init, headers: { ...authH, ...(init?.headers as any) } }, 12000);
   }
 
-  async function apiJson(path: string, init?: RequestInit) {
-    const r = await apiFetch(path, init);
-    const t = await r.text();
-    let j: any = null;
-    try {
-      j = t ? JSON.parse(t) : null;
-    } catch {
-      j = { ok: false, error: "BAD_JSON", detail: (t || "").slice(0, 240) };
-    }
-    return j;
-  }
+  // ⚠️ Bu yardımcı buraya özeldi ve diğer 113 `.json()` çağrısını korumasız
+  // bırakıyordu. lib/apiFetch.ts'e taşındı; burada yalnızca ona yönlendiriyoruz
+  // ki ikinci bir kopya oluşup davranış ayrışmasın.
+  const apiJson = (path: string, init?: RequestInit) =>
+    sharedApiJson(path, init as any);
 
   const check1987Membership = useCallback(async () => {
     if (!userId || is1987Member) return;

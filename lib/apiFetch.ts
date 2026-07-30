@@ -105,3 +105,39 @@ async function istekYap(
     throw e;
   }
 }
+
+/**
+ * JSON bekleyen istekler için güvenli sarmalayıcı.
+ *
+ * ⚠️ NEDEN VAR: uygulamada 114 yerde doğrudan `(await apiFetch(...)).json()`
+ * çağrılıyordu. Sunucu JSON DÖNDÜRMEYEBİLİR — Render 502/504 verdiğinde HTML
+ * hata sayfası döner, soğuk kap açılırken gövde boş gelebilir. O durumda
+ * `.json()` FIRLATIR; çağrı bir try/catch içinde değilse ekran çöker ya da
+ * sessizce yarım kalır.
+ *
+ * Bu desen `live.tsx` içinde yerel olarak zaten çözülmüştü; tek ekranda kalması
+ * diğer 113 çağrıyı korumasız bırakıyordu. Ortak katmana taşındı.
+ *
+ * Fırlatmaz: her zaman bir nesne döner. Ayrıştırılamayan yanıt
+ * `{ ok:false, error:"BAD_JSON" }` olur — hataMesaji.ts bunu kullanıcıya
+ * anlaşılır bir cümleyle çevirir.
+ *
+ * ⚠️ `ok` alanı SUNUCUNUN alanıdır, HTTP durumu değil. HTTP durumunu da
+ * bilmen gerekiyorsa `apiFetch` kullanıp yanıtı kendin oku.
+ */
+export async function apiJson(path: string, opts: FetchOptions = {}): Promise<any> {
+  let metin = "";
+  try {
+    const r = await apiFetch(path, opts);
+    metin = await r.text();
+  } catch (e: any) {
+    // Ağ/zaman aşımı: apiFetch kendi politikasını uyguladı ve yine de başarısız.
+    return { ok: false, error: "NETWORK", detail: String(e?.message || e) };
+  }
+  if (!metin) return { ok: false, error: "EMPTY_RESPONSE" };
+  try {
+    return JSON.parse(metin);
+  } catch {
+    return { ok: false, error: "BAD_JSON", detail: metin.slice(0, 240) };
+  }
+}

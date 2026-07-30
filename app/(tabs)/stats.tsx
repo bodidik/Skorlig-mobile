@@ -29,6 +29,14 @@ type TotRow = {
   rating?: number;
   /** Ham maç-başı ortalama (API: avg) */
   avg?: number;
+  /**
+   * Nitelik eşiğini geçti mi (API: qualified). Eşiğin altındaki oyuncunun
+   * rating'i havuz ortalamasını AŞAMAZ — tek şanslı maç zirveye çıkmasın diye.
+   * Oyuncu listeden düşmez, yalnızca tavanlanır.
+   */
+  qualified?: boolean;
+  /** Eşik değeri (API: minPlayed) — "N maç daha" mesajı için. */
+  minPlayed?: number;
   lastAt?: string;
 };
 
@@ -803,6 +811,15 @@ export default function StatsScreen() {
                               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
                                 {r.matches} maç · {r.totalPoints} puan · Ceza: {r.totalPenalty}
                               </Text>
+                              {/* Nitelik eşiği: eşiğin altındaki oyuncunun rating'i havuz
+                                  ortalamasını aşamaz (tek şanslı maç zirveye çıkmasın).
+                                  Sebebini söylemezsek kullanıcı "neden hep alttayım"
+                                  diye düşünür — kaç maç kaldığını yazıyoruz. */}
+                              {r.qualified === false && r.minPlayed ? (
+                                <Text style={{ color: "#eab308", fontSize: 10, marginTop: 2 }}>
+                                  Sıralamaya girmek için {Math.max(0, r.minPlayed - r.matches)} maç daha
+                                </Text>
+                              ) : null}
                             </View>
                             {/* Sıralama maç-başı ortalamaya göre (rating) — toplam puan
                                 değil. 1000 bot her maça girdiği için kümülatif tabloda

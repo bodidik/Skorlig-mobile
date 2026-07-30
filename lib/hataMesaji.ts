@@ -18,6 +18,11 @@ const SOZLUK: Record<string, string> = {
   LC_NOT_ENOUGH: "LC bakiyen yetersiz. Günlük hakkını alabilir ya da başka bir maç seçebilirsin.",
   DAILY_ALREADY_CLAIMED: "Günlük hakkını bugün zaten aldın. Yarın tekrar.",
   WALLET_NOT_FOUND: "Cüzdanın henüz oluşmamış. Bir tahmin yaptığında otomatik açılır.",
+  // Sunucu JSON yerine baska bir sey dondurdu (Render 502 HTML sayfasi,
+  // sogumus kapta bos govde). Kullanicinin yapabilecegi tek sey beklemek.
+  BAD_JSON: "Sunucudan beklenmeyen bir yanıt geldi. Birazdan tekrar dene.",
+  EMPTY_RESPONSE: "Sunucu boş yanıt döndü. Birazdan tekrar dene.",
+  NETWORK: "Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.",
   STORE_DISABLED: "Mağaza şu an kapalı.",
   STORE_PROVIDER_NOT_IMPLEMENTED: "Bu ödeme yöntemi henüz aktif değil.",
 
