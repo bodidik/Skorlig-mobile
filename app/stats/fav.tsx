@@ -8,6 +8,8 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useUserId } from "../../lib/useUserId";
+import { hataMesaji } from "../../lib/hataMesaji";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
@@ -29,7 +31,8 @@ async function apiFetch(path: string, init?: RequestInit) {
 export default function FavTeamScreen() {
   const router = useRouter();
 
-  const [userId, setUserId] = useState("demo1");
+  // Kimlik oturumdan gelir; elle yazdırmak hem hatalı hem güvensizdi.
+  const userId = useUserId();
   const [team, setTeam] = useState("");
   const [flag, setFlag] = useState("");
 
@@ -43,7 +46,7 @@ export default function FavTeamScreen() {
     const f = String(flag || "").trim();
 
     if (!uid) {
-      Alert.alert("SkorLig", "Kullanıcı ID boş olamaz.");
+      Alert.alert("SkorLig", "Giriş yapman gerekiyor.");
       return;
     }
     if (!t) {
@@ -52,17 +55,21 @@ export default function FavTeamScreen() {
     }
 
     try {
-      const res = await apiFetch(`/api/rt/fav-team`, {
+      // ⚠️ YOL DÜZELTİLDİ: `/api/rt/fav-team` diye bir uç YOK — bu ekran da
+      // hiçbir zaman kaydetmiyordu. (İkiz ekran app/live/fav.tsx aynı hatayı
+      // farklı bir yanlış yolla yapıyordu: `/api/stats/fav`.)
+      // Gerçek uç: POST /api/users/set-main-team; kimlik verifyToken'dan gelir.
+      const res = await apiFetch(`/api/users/set-main-team`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: uid, team: t, flag: f || null }),
+        body: JSON.stringify({ team: t, flag: f || null }),
       });
       const j = await res.json();
       if (j?.ok) {
         Alert.alert("SkorLig", "Favori takım kaydedildi.");
         router.back();
       } else {
-        Alert.alert("Hata", j?.error || "FAV_SAVE_FAILED");
+        Alert.alert("Hata", hataMesaji(j?.error));
       }
     } catch (e: any) {
       Alert.alert("Hata", String(e?.message || e));
@@ -85,20 +92,13 @@ export default function FavTeamScreen() {
           borderColor: Colors.border,
         }}
       >
-        <Text style={{ color: Colors.muted, marginBottom: 6 }}>
-          Kullanıcı ID
+        {/* ⚠️ "Kullanıcı ID" GİRİŞİ KALDIRILDI: kullanıcıdan 28 karakterlik
+            Firebase kimliğini ELLE YAZMASI isteniyordu — kimse yapamaz.
+            Kimlik artık istekle birlikte token'dan gidiyor
+            (POST /api/users/set-main-team + verifyToken). */}
+        <Text style={{ color: Colors.muted, fontSize: 12 }}>
+          Hesabına kayıtlı takım güncellenecek.
         </Text>
-        <TextInput
-          value={userId}
-          onChangeText={setUserId}
-          autoCapitalize="none"
-          style={{
-            borderWidth: 1,
-            borderColor: Colors.border,
-            borderRadius: 8,
-            padding: 10,
-          }}
-        />
       </View>
 
       <View

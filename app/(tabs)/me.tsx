@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { hataMesaji } from "../../lib/hataMesaji";
 import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
 import Colors, { on } from "../../constants/colors";
@@ -624,7 +625,7 @@ export default function Me() {
         Alert.alert("SkorLig", `Yerel görünümün ${country} olarak ayarlandı. Maçlar sekmesi buna göre kişiselleşecek.`);
         load();
       } else {
-        Alert.alert("Hata", r?.error || "SET_COUNTRY_FAILED");
+        Alert.alert("Hata", hataMesaji(r?.error));
       }
     } catch (e: any) {
       Alert.alert("Hata", String(e?.message || e));
@@ -675,7 +676,7 @@ export default function Me() {
       if (r?.ok) {
         Alert.alert("SkorLig", "Ana takım kaydedildi");
         load();
-      } else Alert.alert("Hata", r?.error || "SAVE_FAILED");
+      } else Alert.alert("Hata", hataMesaji(r?.error));
     } catch (e: any) {
       Alert.alert("Hata", String(e?.message || e));
     }
@@ -721,7 +722,7 @@ export default function Me() {
       if (r?.ok) {
         setPreferredLeagues(r.leagues || leagues);
         Alert.alert("SkorLig", "Lig tercihlerin kaydedildi");
-      } else Alert.alert("Hata", r?.error || "SAVE_LEAGUES_FAILED");
+      } else Alert.alert("Hata", hataMesaji(r?.error));
     } catch (e: any) {
       Alert.alert("Hata", String(e?.message || e));
     } finally {
@@ -742,7 +743,7 @@ export default function Me() {
         const { setLang } = require("../../lib/i18n");
         setLang(lang);
         Alert.alert("SkorLig", "Dil tercihin kaydedildi");
-      } else Alert.alert("Hata", r?.error || "SAVE_LANG_FAILED");
+      } else Alert.alert("Hata", hataMesaji(r?.error));
     } catch (e: any) {
       Alert.alert("Hata", String(e?.message || e));
     } finally {
@@ -838,7 +839,7 @@ export default function Me() {
         setFriendTarget("");
         load();
       } else {
-        Alert.alert("Hata", r?.error || "FRIEND_REQUEST_FAILED");
+        Alert.alert("Hata", hataMesaji(r?.error));
       }
     } catch (e: any) {
       Alert.alert("Hata", String(e?.message || e));

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { hataMesaji } from "../../lib/hataMesaji";
 import {
   View,
   Text,
@@ -119,7 +120,7 @@ export default function FriendsBoardScreen() {
             `${toId} için arkadaşlık isteği işlendi. (Karşı taraf kabul edince listeye düşecek.)`
           );
         } else {
-          Alert.alert("Hata", j?.error || "ARKADAS_ISTEK_GONDERILEMEDI");
+          Alert.alert("Hata", hataMesaji(j?.error));
         }
       } catch (e: any) {
         Alert.alert("Hata", String(e?.message || e));

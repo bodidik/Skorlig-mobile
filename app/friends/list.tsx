@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { hataMesaji } from "../../lib/hataMesaji";
 import {
   View,
   Text,
@@ -112,7 +113,7 @@ export default function FriendsListScreen() {
         Alert.alert("SkorLig", `${from} isteği kabul edildi.`);
         loadList();
       } else {
-        Alert.alert("Hata", j?.error || "FRIEND_ACCEPT_FAILED");
+        Alert.alert("Hata", hataMesaji(j?.error));
       }
     } catch (e: any) {
       Alert.alert("Hata", String(e?.message || e));
@@ -137,7 +138,7 @@ export default function FriendsListScreen() {
         Alert.alert("SkorLig", `${from} isteği reddedildi.`);
         loadList();
       } else {
-        Alert.alert("Hata", j?.error || "FRIEND_REJECT_FAILED");
+        Alert.alert("Hata", hataMesaji(j?.error));
       }
     } catch (e: any) {
       Alert.alert("Hata", String(e?.message || e));

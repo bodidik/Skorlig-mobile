@@ -10,6 +10,7 @@ import {
   TextInput,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { hataMesaji } from "../../lib/hataMesaji";
 import { useUserId } from "../../lib/useUserId";
 import Colors from "../../constants/colors";
 import { useRuntimeConfig } from "../../lib/runtimeConfig";
@@ -205,7 +206,7 @@ export default function StatsScreen() {
             });
             const j = await r.json();
             if (j?.ok) Alert.alert("SkorLig", "Arkadaşlık isteği gönderildi ✅");
-            else Alert.alert("Hata", j?.error || "FRIEND_REQUEST_FAILED");
+            else Alert.alert("Hata", hataMesaji(j?.error));
           } catch (e: any) {
             Alert.alert("Hata", String(e?.message || e));
           }
@@ -454,7 +455,7 @@ export default function StatsScreen() {
       const j = await res.json();
 
       if (!res.ok || !j?.ok) {
-        Alert.alert("Hata", j?.error || "RUNTIME_MODE_SAVE_FAILED");
+        Alert.alert("Hata", hataMesaji(j?.error));
         return;
       }
 
@@ -592,7 +593,6 @@ export default function StatsScreen() {
               { label: "Bayraklı Liderlik", pathname: "/stats/board2" },
               { label: "Favori Takım Ayarları", pathname: "/stats/fav" },
               { label: "Kupa Krallığı", pathname: "/stats/competition-kings" },
-              { label: "Favori Takımım Canlı", pathname: "/live/fav" },
             ].map((item) => (
               <TouchableOpacity
                 key={item.pathname}
