@@ -168,6 +168,17 @@ export default function PredictScreen() {
   const [hasPredByMe, setHasPredByMe] = useState<boolean | null>(null);
   const [checkingPred, setCheckingPred] = useState(false);
   const [myPredDetail, setMyPredDetail] = useState<any | null>(null);
+  /**
+   * Kayıtlı tahmin forma BİR KEZ yüklendi mi (maç başına).
+   *
+   * ⚠️ NEDEN GEREKLİ: `checkExistingPrediction` yalnızca "tahmin var mı"
+   * bilgisini alıyor, form alanlarını DOLDURMUYORDU. Kullanıcı ekrandan çıkıp
+   * geri geldiğinde tahmini kayıtlı ama form BOŞ görünüyordu — "ekstra ekle"
+   * demek için önce her şeyi baştan girmesi gerekiyordu.
+   * Bayrak şart: her yüklemede doldurmak, kullanıcının o an yaptığı seçimleri
+   * eski kayıtla ezerdi.
+   */
+  const yuklenenTahmin = useRef<string | null>(null);
   const [showMyPred, setShowMyPred] = useState(false);
   const [extrasOpen, setExtrasOpen] = useState(false);
 
@@ -416,6 +427,20 @@ export default function PredictScreen() {
         );
         setHasPredByMe(!!myRec);
         setMyPredDetail(myRec || null);
+
+        // Kayıtlı tahmini forma geri yükle — maç başına yalnızca bir kez.
+        if (myRec && yuklenenTahmin.current !== f) {
+          yuklenenTahmin.current = f;
+          if (myRec.outcome) setOutcome(String(myRec.outcome).toUpperCase() as Outcome);
+          if (myRec.home != null) setHomeScore(String(myRec.home));
+          if (myRec.away != null) setAwayScore(String(myRec.away));
+          if (myRec.firstGoal) setFirstGoal(String(myRec.firstGoal).toUpperCase() as Side);
+          if (myRec.firstHalf) setFirstHalf(String(myRec.firstHalf).toUpperCase() as Outcome);
+          if (typeof myRec.redAny === "boolean") setRedAny(myRec.redAny);
+          if (myRec.redSide) setRedSide(String(myRec.redSide).toUpperCase() as Side);
+          if (typeof myRec.penaltyAny === "boolean") setPenaltyAny(myRec.penaltyAny);
+          if (myRec.penaltySide) setPenaltySide(String(myRec.penaltySide).toUpperCase() as Side);
+        }
 
         // Topluluk dağılımı — bot olmayan tahminler
         const humans = list.filter((p: any) => !p.isBot);
@@ -1384,6 +1409,23 @@ useEffect(() => {
                   style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: "#065f46" }}
                 >
                   <Text style={{ color: "#a7f3d0", fontWeight: "700", fontSize: 13 }}>🏁 Yarışı Takip Et</Text>
+                </TouchableOpacity>
+              )}
+              {/* ⚠️ TAHMİNE DÖNÜŞ — eksik olan buydu.
+                  Kaydettikten sonra form tamamen gizleniyordu ({!justSubmitted}
+                  koşulu) ve bu kartta yalnızca "paylaş / yarışı izle / maçlara
+                  dön" vardı. Kullanıcı kaydettikten SONRA ekstra tahmin (ilk
+                  gol, kart, penaltı) eklemek istediğinde hiçbir yol yoktu;
+                  ekrandan çıkıp geri gelmek zorundaydı.
+                  Maç kilitlenmişse göstermenin anlamı yok. */}
+              {!predLock.locked && (
+                <TouchableOpacity
+                  onPress={() => setJustSubmitted(null)}
+                  style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: "#134e4a" }}
+                >
+                  <Text style={{ color: "#99f6e4", fontWeight: "700", fontSize: 13 }}>
+                    {hasExtras ? "✏️ Tahmini düzenle" : "➕ Ekstra tahmin ekle"}
+                  </Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
