@@ -46,6 +46,8 @@ const SOZLUK: Record<string, string> = {
   ENTRY_CHARGE_FAILED: "Giriş ücreti alınamadı. Bakiyen değişmedi, tekrar dene.",
   WALLET_UNAVAILABLE: "Cüzdana şu an ulaşılamıyor. Birazdan tekrar dene.",
   ALREADY_JOINED: "Bu turnuvaya zaten katıldın.",
+  TOO_MANY_OPEN_MINI:
+    "Aynı anda bu kadar bitmemiş mini turnuvan olamaz. Birinin maçları oynanıp bitmesini bekle.",
 
   // ── Kimlik / yetki ───────────────────────────────────────────────
   UNAUTHORIZED: "Bu işlem için giriş yapman gerekiyor.",
