@@ -23,8 +23,47 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
   return { "x-auth-token": token, "x-user-id": user.uid };
 }
 
+/**
+ * BAŞARISIZ İSTEKLER SESSİZ KALMAZ.
+ *
+ * ⚠️ NEDEN VAR: bugün dört ekran, VAR OLMAYAN uçlara istek atarken aylarca
+ * fark edilmeden çalıştı:
+ *   • kings      → /api/users            (404) → "Takımım" sekmesi küresel
+ *                                                listeyi takım sanıp gösterdi
+ *   • board2     → /api/stats/board2     (404) → ekran hep boş
+ *   • live/fav   → /api/stats/fav        (404) → favori takım hiç kaydedilmedi
+ *   • stats/fav  → /api/rt/fav-team      (404) → aynısı, farklı yanlış yol
+ *
+ * Dördü de aynı desenle saklandı: `catch {}` ya da `if (!j.ok) return` —
+ * hata yutuluyor, ekran boş/işlevsiz kalıyor, hiçbir yerde iz yok.
+ *
+ * DÖRDÜ DE 404'TÜ. Yani tek bir kural hepsini yakalardı, ve artık yakalıyor:
+ * 2xx dışındaki her yanıt loga düşüyor. Yanıtın GÖVDESİ okunmuyor (klonlamak
+ * her isteği iki kez ayrıştırmak demekti; sezon tablosu 182 KB) — durum kodu
+ * bu sınıf hata için zaten yeterli.
+ *
+ * ⚠️ SADECE LOG: davranış değişmiyor, hata fırlatılmıyor. Çağıranların akışını
+ * bozmak, sessiz hatayı gürültülü çökmeye çevirirdi.
+ */
+function basarisizligiBildir(path: string, res: Response) {
+  if (res.ok) return;
+
+  const ipucu =
+    res.status === 404
+      ? " — böyle bir uç YOK. Yol yanlış olabilir (mount edildiği prefix'i kontrol et)."
+      : res.status === 401 || res.status === 403
+      ? " — yetki/kimlik sorunu."
+      : res.status >= 500
+      ? " — sunucu hatası."
+      : "";
+
+  console.warn(`[apiFetch] ${res.status} ${path}${ipucu}`);
+}
+
 export async function apiFetch(path: string, opts: FetchOptions = {}): Promise<Response> {
-  return istekYap(path, opts, false);
+  const res = await istekYap(path, opts, false);
+  basarisizligiBildir(path, res);
+  return res;
 }
 
 /**
