@@ -37,6 +37,8 @@ type Plan = { id: string; days: number; priceTRY: number; label: string; popular
 type StatusResp = {
   ok: boolean;
   mode?: string;
+  /** Maç giriş bedeli (LC) — sunucudaki tek kaynaktan; metne gömülmez. */
+  matchEntryCost?: number;
   active?: boolean;
   premiumUntil?: string | null;
   via?: string | null;
@@ -126,7 +128,10 @@ export default function PremiumScreen() {
         Her ay yenilenen büyük LC kasası, daha hızlı token birikimi ve mağazada bonus LC. Bol bol tahmin gir.
       </Text>
       <Text style={{ color: "#059669", fontSize: 11, fontWeight: "600" }}>
-        ⚖️ Adil oyun: Puanlar, maç ödülleri ve maç girişi ücreti herkes için eşittir (3 LC). Premium sıralamada
+        {/* ⚠️ Bedel METNE GÖMÜLÜYDU ("(3 LC)"). Sunucudaki değer değişirse ekran
+            yalan söylerdi; artık sunucudan geliyor, gelmezse sayı hiç yazılmıyor. */}
+        ⚖️ Adil oyun: Puanlar, maç ödülleri ve maç girişi ücreti herkes için eşittir
+        {data?.matchEntryCost != null ? ` (${data.matchEntryCost} LC)` : ""}. Premium sıralamada
         avantaj vermez, sadece token'a daha rahat ulaşmanı sağlar.
       </Text>
 
