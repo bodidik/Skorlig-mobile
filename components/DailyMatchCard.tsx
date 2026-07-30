@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
   View, Text, TouchableOpacity, ActivityIndicator,
-  Animated, StyleSheet,
+  Animated, StyleSheet, Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { getApiBase } from "../lib/apiBase";
+import hataMesaji from "../lib/hataMesaji";
 import { getAuthHeaders } from "../lib/apiFetch";
 
 type Fixture = {
@@ -60,7 +61,11 @@ export default function DailyMatchCard({ country, userId }: Props) {
     try {
       const base = await getApiBase();
       const authH = await getAuthHeaders();
-      await fetch(`${base}/api/pred/submit`, {
+      // ⚠️ YANIT KONTROL EDILIYOR. Eskiden `await fetch(...)` sonrasi dogrudan
+      // "kaydedildi" gosteriliyordu: sunucu "bakiyen yetmiyor" / "mac basladi"
+      // / "zaten tahmin ettin" dese bile kullanici tahminini kaydettigini
+      // saniyordu. Para yolunda sessiz basarisizlik.
+      const res = await fetch(`${base}/api/pred/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authH },
         body: JSON.stringify({
@@ -69,6 +74,13 @@ export default function DailyMatchCard({ country, userId }: Props) {
           type: "result",
         }),
       });
+      const j = await res.json().catch(() => null);
+      if (!res.ok || j?.ok === false) {
+        setSelected(null);
+        Alert.alert("Tahmin kaydedilemedi", hataMesaji(j?.error));
+        setBusy(false);
+        return;
+      }
       setSubmitted(true);
       // LC animasyonu
       Animated.sequence([

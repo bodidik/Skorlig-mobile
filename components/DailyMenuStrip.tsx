@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Animated,
+  View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Animated, Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { getApiBase } from "../lib/apiBase";
+import hataMesaji from "../lib/hataMesaji";
 import { getAuthHeaders } from "../lib/apiFetch";
 
 type Fixture = {
@@ -42,11 +43,22 @@ function MatchCard({ fx, onDone }: { fx: Fixture; onDone: () => void }) {
     try {
       const base = await getApiBase();
       const authH = await getAuthHeaders();
-      await fetch(`${base}/api/pred/submit`, {
+      // ⚠️ YANIT KONTROL EDILIYOR. Eskiden `await fetch(...)` sonrasi dogrudan
+      // "kaydedildi" gosteriliyordu: sunucu "bakiyen yetmiyor" / "mac basladi"
+      // / "zaten tahmin ettin" dese bile kullanici tahminini kaydettigini
+      // saniyordu. Para yolunda sessiz basarisizlik.
+      const res = await fetch(`${base}/api/pred/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authH },
         body: JSON.stringify({ fixtureId: fx.fixtureId, outcome: apiVal, type: "result" }),
       });
+      const j = await res.json().catch(() => null);
+      if (!res.ok || j?.ok === false) {
+        setSelected(null);
+        Alert.alert("Tahmin kaydedilemedi", hataMesaji(j?.error));
+        setBusy(false);
+        return;
+      }
       setDone(true);
       Animated.sequence([
         Animated.timing(fade, { toValue: 1, duration: 300, useNativeDriver: true }),

@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TouchableOpacity, ActivityIndicator,
-  StyleSheet, ScrollView, RefreshControl, Switch,
+  StyleSheet, ScrollView, RefreshControl, Switch, Alert,
 } from "react-native";
 import Constants from "expo-constants";
+import hataMesaji from "../lib/hataMesaji";
 import { auth } from "../lib/firebase";
 
 const API = Constants.expoConfig?.extra?.apiBase ?? "https://skorlig87.onrender.com";
@@ -211,11 +212,20 @@ export default function Picks1987() {
     setSubmitting(pick.fixtureId);
     try {
       const token = await auth.currentUser?.getIdToken();
-      await fetch(`${API}/api/weekly-picks/predict`, {
+      // ⚠️ Yanit okunmuyordu: reddedilen bir gonderimde de ekran
+      // "kaydedildi" gibi davraniyordu. Yenileme gercegi ortaya cikariyor
+      // ama kullanici NEDEN kaydolmadigini ogrenemiyordu.
+      const res = await fetch(`${API}/api/weekly-picks/predict`, {
         method:  "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body:    JSON.stringify({ fixtureId: pick.fixtureId, ...draft }),
       });
+      const j = await res.json().catch(() => null);
+      if (!res.ok || j?.ok === false) {
+        Alert.alert("Seçim kaydedilemedi", hataMesaji(j?.error));
+        setSubmitting(null);
+        return;
+      }
       await fetchPicks();
       setExpanded(null);
     } catch {}

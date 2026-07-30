@@ -1,9 +1,10 @@
 import React, { useState, useRef } from "react";
 import {
   View, Text, TouchableOpacity, ActivityIndicator,
-  Animated, StyleSheet,
+  Animated, StyleSheet, Alert,
 } from "react-native";
 import { getApiBase } from "../lib/apiBase";
+import hataMesaji from "../lib/hataMesaji";
 import { getAuthHeaders } from "../lib/apiFetch";
 
 type Odds = { home: number; draw: number; away: number };
@@ -50,7 +51,10 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
     try {
       const base = await getApiBase();
       const authH = await getAuthHeaders();
-      await fetch(`${base}/api/pred/submit`, {
+      // ⚠️ YANIT KONTROL EDILIYOR. Eskiden sonuc okunmadan "kazandin"
+      // rozeti gosteriliyordu: sunucu reddetse bile (bakiye, mac basladi,
+      // zaten tahmin edildi) kullanici LC kazandigini saniyordu.
+      const res = await fetch(`${base}/api/pred/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authH },
         body: JSON.stringify({
@@ -59,6 +63,11 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
           type: "result",
         }),
       });
+      const j = await res.json().catch(() => null);
+      if (!res.ok || j?.ok === false) {
+        Alert.alert("Tahmin kaydedilemedi", hataMesaji(j?.error));
+        return;
+      }
       const reward = fixture.rewards[outcomeKey];
       setEarnedLC(reward);
       setSubmitted(true);
