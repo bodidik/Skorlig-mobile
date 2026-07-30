@@ -1547,9 +1547,9 @@ export default function LiveScreen() {
             {mode === "mine" && (
               <View style={{ gap: 8, marginTop: 4 }}>
                 {myPredsLoading && <Text style={{ color: Colors.muted, fontSize: 12 }}>Yükleniyor...</Text>}
-                {!myPredsLoading && myPreds.current.length === 0 && myPreds.old.length === 0 && (
-                  <Text style={{ color: Colors.muted, fontSize: 13 }}>Henüz tahmin yapmadın.</Text>
-                )}
+                {/* Boş durum ALTTA, ListEmptyComponent içinde (eylem düğmeli).
+                    Burada ikinci bir "henüz tahmin yok" metni göstermek,
+                    aşağıdaki kartla birlikte iki kez tekrar demekti. */}
 
                 {myPreds.current.map((mp) => {
                   const isFT = String(mp.status || "").toUpperCase() === "FT";
@@ -2402,6 +2402,22 @@ export default function LiveScreen() {
              *    yükleniyor mu bitti mi belli değil.
              */
             (() => {
+              /**
+               * ⚠️ "mine" / "tournaments" / "gs1987" modlarında listenin `data`
+               * alanı HER ZAMAN [] — içerik ListHeaderComponent'te çiziliyor.
+               * Yani ListEmptyComponent, tahminler VARKEN de render ediliyordu:
+               * kullanıcı hem tahminlerini hem altında "Henüz tahmin yapmadın"
+               * kartını görüyordu. Boş durumu büyütüp düğme eklediğim için
+               * çelişki iyice göze batar hale geldi.
+               * Çözüm: bu modlarda gerçek içeriğe bak, boşsa göster.
+               */
+              if (mode === "mine" && (myPredsLoading || myPreds.current.length > 0 || myPreds.old.length > 0)) {
+                return null;
+              }
+              if (mode === "tournaments" && (myTournamentsLoading || myTournaments.length > 0)) {
+                return null;
+              }
+
               const bos =
                 mode === "mine"
                   ? {
