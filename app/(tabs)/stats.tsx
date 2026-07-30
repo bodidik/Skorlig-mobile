@@ -146,6 +146,13 @@ export default function StatsScreen() {
   // Sunucu ülkeyi çözemediyse (kullanıcı henüz ülke seçmemiş) küresele düşer;
   // sekmede bunu göstermek yerine sessizce küresel aktif görünsün.
   const [scopeFellBack, setScopeFellBack] = useState(false);
+  // Sezon gezinmesi (bkz. loadTotals): aylık sezonda ay başında tablo sıfırlanır.
+  const [sezon, setSezon] = useState<string | null>(null);
+  const [sezonEtiket, setSezonEtiket] = useState<string | null>(null);
+  const [guncelSezonMu, setGuncelSezonMu] = useState(true);
+  const [oncekiSezon, setOncekiSezon] = useState<string | null>(null);
+  const [arsivKisitli, setArsivKisitli] = useState(false);
+  const [bakilanSezon, setBakilanSezon] = useState<string | null>(null);
   /**
    * "Sadece gerçek oyuncular" süzgeci.
    *
@@ -246,6 +253,11 @@ export default function StatsScreen() {
         parcalar.push("scope=country", `userId=${encodeURIComponent(userId)}`);
       }
       if (sadeceInsan) parcalar.push("humans=1");
+      // Kullanıcı geçmiş sezona baktıysa onu iste; boşsa sunucu güncel sezonu döner.
+      if (bakilanSezon) {
+        parcalar.push(`season=${encodeURIComponent(bakilanSezon)}`);
+        if (userId) parcalar.push(`userId=${encodeURIComponent(userId)}`);
+      }
       const q = parcalar.length ? `?${parcalar.join("&")}` : "";
       const r = await apiFetch(`/api/leaderboard${q}`);
       const j = await r.json();
@@ -255,6 +267,14 @@ export default function StatsScreen() {
       setScopeFellBack(j?.scope?.fellBackReason === "COUNTRY_UNKNOWN");
       setBotCount(Number(j?.scope?.botCount || 0));
       setHumanCount(Number(j?.scope?.humanCount || 0));
+      // ⚠️ SEZON BİLGİSİ. Sunucu bunları hep gönderiyordu ama istemci hiç
+      // okumuyordu: sezon aylık, yani ayın 1'inde tablo SESSİZCE boşalıyor ve
+      // kullanıcı ne olduğunu anlamadan bir aylık emeğini kayıp sanıyor.
+      setSezon(j?.scope?.season || null);
+      setSezonEtiket(j?.scope?.seasonLabel || null);
+      setGuncelSezonMu(j?.scope?.isCurrentSeason !== false);
+      setOncekiSezon(j?.scope?.previousSeason || null);
+      setArsivKisitli(!!j?.scope?.archiveLimited);
 
       if (j?.ok && Array.isArray(j.leaderboard)) {
         const rows: TotRow[] = (j.leaderboard as any[]).map((t: any) => {
@@ -268,6 +288,11 @@ export default function StatsScreen() {
             matches,
             rating: t.rating != null ? Number(t.rating) : undefined,
             avg: t.avg != null ? Number(t.avg) : undefined,
+            // ⚠️ Bu iki alan eşlemede DÜŞÜYORDU: sunucu gönderiyor, tip tanımı
+            // vardı, satır bileşeni okuyordu — ama buraya kopyalanmadığı için
+            // "Sıralamaya girmek için N maç daha" hiç görünmüyordu.
+            qualified: typeof t.qualified === "boolean" ? t.qualified : undefined,
+            minPlayed: t.minPlayed != null ? Number(t.minPlayed) : undefined,
             lastAt: t.lastAt || t.updatedAt || undefined,
           };
         });
@@ -732,6 +757,53 @@ export default function StatsScreen() {
                   );
                 })}
               </View>
+
+              {/* SEZON ŞERİDİ.
+                  ⚠️ Sezon AYLIK: ayın 1'inde tablo sıfırlanıyordu ve istemci
+                  bunu hiç göstermiyordu — kullanıcı bir aylık emeğinin
+                  kaybolduğunu sanırdı. Sunucu `season`/`seasonLabel`/
+                  `previousSeason` alanlarını hep gönderiyordu, okunmuyordu. */}
+              {sezonEtiket && (
+                <View
+                  style={{
+                    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+                    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10,
+                    backgroundColor: guncelSezonMu ? Colors.dark : "#78350f33",
+                    borderWidth: 1, borderColor: guncelSezonMu ? "#1f2937" : "#b4530966",
+                    marginBottom: 8,
+                  }}
+                >
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={{ color: Colors.text, fontSize: 12, fontWeight: "700" }}>
+                      {sezonEtiket} sezonu{guncelSezonMu ? "" : "  (arşiv)"}
+                    </Text>
+                    <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 2 }}>
+                      {guncelSezonMu
+                        ? (totalsRows.length === 0
+                            ? "Yeni sezon başladı, tablo sıfırlandı. İlk tahminini yap!"
+                            : "Sıralama her ay başında sıfırlanır.")
+                        : "Geçmiş sezonun kapanış tablosu."}
+                      {arsivKisitli ? "  Daha eski sezonlar Premium'da." : ""}
+                    </Text>
+                  </View>
+
+                  {guncelSezonMu && oncekiSezon ? (
+                    <TouchableOpacity
+                      onPress={() => { setBakilanSezon(oncekiSezon); loadTotals(scope, humansOnly); }}
+                      style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "#1f2937" }}
+                    >
+                      <Text style={{ color: "#a3e635", fontSize: 11, fontWeight: "700" }}>Geçen sezon</Text>
+                    </TouchableOpacity>
+                  ) : !guncelSezonMu ? (
+                    <TouchableOpacity
+                      onPress={() => { setBakilanSezon(null); loadTotals(scope, humansOnly); }}
+                      style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "#1f2937" }}
+                    >
+                      <Text style={{ color: "#a3e635", fontSize: 11, fontWeight: "700" }}>Bu sezon</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              )}
 
               {/* Kiminle yarıştığını göster ve seçim hakkı ver. */}
               {botCount > 0 && (
