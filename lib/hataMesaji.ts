@@ -50,6 +50,10 @@ const SOZLUK: Record<string, string> = {
   WRONG_CODE: "Kod yanlış.",
   CODE_EXHAUSTED: "Bu kodun kullanım hakkı dolmuş.",
   INVALID_CODE: "Kod geçersiz.",
+  // Sunucuda grup kodu tanımlı değil. Kullanıcının yapabileceği bir şey yok;
+  // "kod yanlış" demek onu boşuna yeniden denemeye iter.
+  GROUP_CODE_NOT_CONFIGURED:
+    "1987GS kod doğrulaması şu an kapalı. Bu bizden kaynaklı, birazdan tekrar dene.",
 
   // ── Yönetim (kullanıcı normalde görmez) ──────────────────────────
   ADMIN_TOKEN_REQUIRED: "Bu alana erişim yetkin yok.",
