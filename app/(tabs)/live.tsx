@@ -21,6 +21,7 @@ import TournamentCreate from "../../components/TournamentCreate";
 import TournamentJoin from "../../components/TournamentJoin";
 import Picks1987 from "../../components/Picks1987";
 import GuestBanner from "../../components/GuestBanner";
+import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { t } from "../../lib/i18n";
@@ -747,7 +748,7 @@ export default function LiveScreen() {
       if (j?.ok) {
         setIs1987Member(true);
       } else {
-        setGs1987Error(j?.error === "WRONG_CODE" ? "Kod yanlış. Facebook grubundaki kodu dene." : String(j?.error || "Hata oluştu"));
+        setGs1987Error(j?.error === "WRONG_CODE" ? "Kod yanlış. Facebook grubundaki kodu dene." : hataMesaji(j?.error));
       }
     } catch (e: any) {
       setGs1987Error(e.message || "Bağlantı hatası");
@@ -1538,7 +1539,7 @@ export default function LiveScreen() {
 
             {error && (
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
-                {adminMode ? `Hata: ${error}` : "Maçlar yüklenemedi — aşağı çekerek yenileyin"}
+                {adminMode ? `Hata: ${error}` : hataMesaji(error, "Maçlar yüklenemedi — aşağı çekerek yenileyin")}
               </Text>
             )}
 
@@ -2388,14 +2389,70 @@ export default function LiveScreen() {
               )}
             </View>
           ) : (
-            <View style={{ paddingVertical: 24, alignItems: "center", paddingHorizontal: 16 }}>
-              <Text style={{ color: Colors.muted, fontSize: 12, textAlign: "center" }}>
-                {mode === "mine" ? "Henüz tahmin yapmadın."
-                  : mode === "tournaments" ? "Henüz bir turnuvada değilsin."
-                  : mode === "gs1987" ? ""
-                  : "Liste penceresinde maç görünmüyor."}
-              </Text>
-            </View>
+            /**
+             * BOŞ DURUM = SORU + CEVAP.
+             *
+             * ⚠️ Eski hâli üç kusur taşıyordu:
+             *  • Hiçbiri EYLEM sunmuyordu — "Henüz tahmin yapmadın." deyip
+             *    kullanıcıyı boş ekranda bırakıyordu. Boş liste, terk etmenin
+             *    en kolay olduğu andır; oradan çıkış yolu göstermek şart.
+             *  • "Liste penceresinde maç görünmüyor" iç jargon (kullanıcı
+             *    "liste penceresi"nin ne olduğunu bilmiyor).
+             *  • gs1987 modunda metin BOŞ STRING'di: ekranda hiçbir şey yok,
+             *    yükleniyor mu bitti mi belli değil.
+             */
+            (() => {
+              const bos =
+                mode === "mine"
+                  ? {
+                      baslik: "Henüz tahmin yapmadın",
+                      alt: "Yaklaşan maçlardan birini seç, kazananı tahmin et. Skor girmek zorunlu değil.",
+                      cta: "Maçlara göz at",
+                      git: () => setMode("schedule"),
+                    }
+                  : mode === "tournaments"
+                  ? {
+                      baslik: "Henüz bir turnuvada değilsin",
+                      alt: "Arkadaşlarınla küçük bir turnuva kur; aynı maçlara tahmin yapıp kendi aranızda yarışın.",
+                      cta: "Turnuva kur",
+                      git: () => router.push({ pathname: "/mini/create", params: { userId } } as any),
+                    }
+                  : mode === "gs1987"
+                  ? {
+                      baslik: "Bu haftalık maç yok",
+                      alt: "1987 seçimleri maç haftası başlayınca burada listelenir.",
+                      cta: "Tüm maçlara bak",
+                      git: () => setMode("schedule"),
+                    }
+                  : {
+                      // Buraya yalnızca "schedule" modu düşer: "open" modu
+                      // yukarıda kendi dalında ele alınıyor.
+                      baslik: "Programda maç görünmüyor",
+                      alt: "Seçtiğin ülke ve liglere göre yaklaşan maç bulunamadı. Aşağı çekerek yenileyebilirsin.",
+                      cta: "Yenile",
+                      git: () => onRefresh(),
+                    };
+
+              return (
+                <View style={{ paddingVertical: 32, alignItems: "center", paddingHorizontal: 24, gap: 8 }}>
+                  <Text style={{ color: "#e2e8f0", fontSize: 15, fontWeight: "800", textAlign: "center" }}>
+                    {bos.baslik}
+                  </Text>
+                  <Text style={{ color: Colors.muted, fontSize: 12.5, textAlign: "center", lineHeight: 18 }}>
+                    {bos.alt}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={bos.git}
+                    style={{
+                      marginTop: 8, backgroundColor: Colors.primary, borderRadius: 999,
+                      paddingHorizontal: 18, paddingVertical: 9,
+                    }}
+                  >
+                    <Text style={{ color: Colors.onAccent, fontWeight: "800", fontSize: 13 }}>{bos.cta}</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })()
           )
         }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

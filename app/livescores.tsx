@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { getApiBase } from "../lib/apiBase";
+import { hataMesaji } from "../lib/hataMesaji";
 import BackBar from "../components/BackBar";
 import Colors, { on } from "../constants/colors";
 import { usePolling } from "../hooks/usePolling";
@@ -657,7 +658,7 @@ export default function LiveScoresScreen() {
         ) : error ? (
           <View style={{ margin: 12, padding: 16, borderRadius: 12, backgroundColor: "#1a0a0a", borderWidth: 1, borderColor: "#dc262644" }}>
             <Text style={{ color: "#fca5a5", fontWeight: "700", fontSize: 13 }}>Bağlantı hatası</Text>
-            <Text style={{ color: "#7f1d1d", fontSize: 11, marginTop: 4 }}>{error}</Text>
+            <Text style={{ color: "#fca5a5", fontSize: 11.5, marginTop: 4, opacity: 0.85 }}>{hataMesaji(error)}</Text>
             <TouchableOpacity
               onPress={() => load()}
               style={{ marginTop: 12, backgroundColor: "#dc2626", paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, alignSelf: "flex-start" }}

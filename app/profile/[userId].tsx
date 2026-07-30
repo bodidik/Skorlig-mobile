@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { hataMesaji } from "../../lib/hataMesaji";
 import {
   View,
   Text,
@@ -178,7 +179,7 @@ export default function ProfileUserScreen() {
       ) : error && !profile ? (
         <View style={{ margin: 16, padding: 12, borderRadius: 12, backgroundColor: "#7f1d1d" }}>
           <Text style={{ color: "#fee2e2", fontWeight: "700" }}>Kullanıcı bulunamadı</Text>
-          <Text style={{ color: "#fecaca", fontSize: 12, marginTop: 4 }}>{error}</Text>
+          <Text style={{ color: "#fecaca", fontSize: 12, marginTop: 4 }}>{hataMesaji(error, "Bu kullanıcıya ulaşılamadı.")}</Text>
         </View>
       ) : (
         <View style={{ padding: 16, gap: 12 }}>
