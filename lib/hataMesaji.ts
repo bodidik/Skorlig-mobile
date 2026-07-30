@@ -38,6 +38,13 @@ const SOZLUK: Record<string, string> = {
   LIVE2_OPEN_FAILED: "Açık maçlar alınamadı. Aşağı çekerek yenile.",
 
   // ── Turnuva / düello / grup ──────────────────────────────────────
+  // Duello kilidi artik kapali basarisizlik: bilinmeyen/dogrulanamayan mac
+  // icin bahis acilamaz (deploy sonrasi durum dosyalari silindigi icin
+  // eskiden gecmis maclar "acik" gorunuyordu).
+  FIXTURE_CHECK_FAILED: "Maç bilgisi doğrulanamadı. Birazdan tekrar dene.",
+  NO_KICKOFF: "Bu maçın başlama saati belli değil, bahse açılamaz.",
+  BAD_KICKOFF: "Bu maçın başlama saati okunamadı, bahse açılamaz.",
+  DUEL_LOCKED_BEFORE_KICKOFF: "Maç başlamak üzere, düello kapandı.",
   TOURNAMENT_NOT_FOUND: "Turnuva bulunamadı. Kod doğru mu?",
   TOURNAMENT_FULL: "Turnuva dolu.",
   TOO_MANY_OPEN_DUELS: "Aynı anda bu kadar açık düellon olamaz. Birinin sonuçlanmasını bekle.",
