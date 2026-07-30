@@ -118,11 +118,29 @@ function resolveApiBase(): string {
     if (otomatikIstendi) {
       // Açıkça "auto" istendi ama IP bulunamadı — sessizce localhost'a düşmek
       // "Network request failed" olarak görünür ve sebebi anlaşılmaz.
-      console.warn(
-        "[apiBase] EXPO_PUBLIC_API_BASE=auto ama Metro IP'si bulunamadi. " +
-          "Bakilan alanlar bos. .env'e adresi elle yazin: " +
-          "EXPO_PUBLIC_API_BASE=http://<bilgisayar-ip>:4102"
-      );
+      //
+      // ⚠️ EN SIK SEBEP: USB BAĞLANTISI. Telefon Metro'ya USB üzerinden
+      // bağlıysa scriptURL "http://localhost:8081/..." olur ve içinden IP
+      // ÇIKMAZ — bu bir hata değil, adb reverse'in doğal sonucu. O modda
+      // `localhost:4102` DOĞRU adrestir; eksik olan tek şey API portunun da
+      // yönlendirilmesidir. Metro yalnızca 8081'i otomatik yönlendirir.
+      // Yaşandı (2026-07-29): uygulama açıldı ama tek maç gelmedi; sebep
+      // buydu ve hiçbir mesaj bunu söylemiyordu.
+      const usbGibi = adaylar.some((a) => /localhost|127\.0\.0\.1/.test(a));
+      if (usbGibi) {
+        console.warn(
+          "[apiBase] Metro'ya USB uzerinden bagli gorunuyorsun (scriptURL localhost). " +
+            "API portu da yonlendirilmeli, yoksa hicbir veri gelmez. " +
+            "Calistir:  adb reverse tcp:4102 tcp:4102  " +
+            "Sonra uygulamayi yeniden yukleyin."
+        );
+      } else {
+        console.warn(
+          "[apiBase] EXPO_PUBLIC_API_BASE=auto ama Metro IP'si bulunamadi. " +
+            "Bakilan alanlar bos. .env'e adresi elle yazin: " +
+            "EXPO_PUBLIC_API_BASE=http://<bilgisayar-ip>:4102"
+        );
+      }
     }
   }
 
