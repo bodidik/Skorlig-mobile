@@ -6,7 +6,7 @@ import {
 } from "react-native";
 import Colors, { on } from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
-import { getAuthHeaders } from "../lib/apiFetch";
+import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
 
 import { withAdminHeaders } from "../lib/adminToken";
 import BackBar from "../components/BackBar";
@@ -25,15 +25,18 @@ type Fx = {
 };
 
 // ─── Helpers ─────────────────────────────────────────────
-async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getApiBase();
-  const authH = await getAuthHeaders();
+/**
+ * Paylasilan apiFetch'e delege eder; admin basliklarini ekleyerek.
+ *
+ * ⚠️ Buradaki kopya ham `fetch` kullaniyordu: zaman asimi ve yeniden deneme
+ * politikasi yoktu, istek asilirsa ekran sonsuza kadar bekliyordu.
+ */
+async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   const p = path.startsWith("/") ? path : `/${path}`;
-  const headers: Record<string, string> = await withAdminHeaders({
-    ...authH,
+  const headers = await withAdminHeaders({
     ...((init?.headers as Record<string, string>) || {}),
   });
-  return fetch(`${base}${p}`, { ...(init || {}), headers });
+  return sharedApiFetch(p, { ...(init as any), headers });
 }
 
 function toNum(v: any) {

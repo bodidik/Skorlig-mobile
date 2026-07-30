@@ -9,13 +9,20 @@ import {
 import { useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
-import { getAuthHeaders } from "../../lib/apiFetch";
+import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 
+/**
+ * Paylasilan apiFetch'e delege eder.
+ *
+ * ⚠️ BURADA HAM `fetch` VARDI: zaman asimi ve yeniden deneme politikasi yoktu
+ * (bkz. lib/fetchPolicy). Istek asildiginda ekran sonsuza kadar spinner
+ * gosteriyor, kullanicinin iptal edecek bir seyi olmuyordu — "kings"
+ * sekmesinde tam olarak bu yasandi. Ayni kopya 29 dosyada vardi.
+ * Paylasilan surum auth basliklarini da kendisi ekliyor.
+ */
 async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getApiBase();
-  const authH = await getAuthHeaders();
   const p = path.startsWith("/") ? path : `/${path}`;
-  return fetch(`${base}${p}`, { ...init, headers: { ...authH, ...(init?.headers as any) } });
+  return sharedApiFetch(p, init as any);
 }
 
 type BoardRow = {
@@ -33,7 +40,10 @@ export default function Board2Screen() {
   async function load() {
     try {
       setLoading(true);
-      const r = await apiFetch("/api/stats/board2");
+      // ⚠️ YOL DÜZELTİLDİ: `/api/stats/board2` diye bir uç YOK (404) — ekran hep
+      // boş kalıyordu. Rota `totals-read.cjs` içinde ve `/api/rt` altında mount
+      // ediliyor. Aynı sınıf hata "kings" ekranında da vardı (`/api/users`).
+      const r = await apiFetch("/api/rt/board2");
       const j = await r.json();
 
       if (j?.ok && Array.isArray(j.items)) {
@@ -90,7 +100,7 @@ export default function Board2Screen() {
             Kayıt bulunamadı.
           </Text>
         ) : (
-          items.map((x, idx) => (
+          items.slice(0, 100).map((x, idx) => (
             <View
               key={x.userId + "_" + idx}
               style={{

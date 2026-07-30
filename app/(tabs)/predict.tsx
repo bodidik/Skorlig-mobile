@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityInd
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase, resetApiBase, syncServerTime, nowFromServer } from "../../lib/apiBase";
-import { getAuthHeaders } from "../../lib/apiFetch";
+import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
 import { sharePrediction } from "../../lib/share";
@@ -84,21 +84,18 @@ const QUICK_SCORES: { h: number; a: number }[] = [
 export default function PredictScreen() {
 
   // Tek kalıp: base’i içeriden alıp çağır (IP değişince 1 kez reset + retry)
-  async function apiFetch(path: string, init?: RequestInit, _retried = false) {
-    const base = await getApiBase();
-    const authH = await getAuthHeaders();
+  /**
+   * Paylasilan apiFetch'e delege eder.
+   *
+   * ⚠️ Buradaki kopya ham `fetch` kullaniyordu (zaman asimi/yeniden deneme yok)
+   * ama bir seyi DOGRU yapiyordu: ag hatasinda `resetApiBase()` ile adresi
+   * tazeleyip bir kez yeniden deniyordu. O davranis kaybolmasin diye
+   * lib/apiFetch icine tasindi — ve orada yalnizca GET/HEAD icin uygulaniyor
+   * (POST'u tekrarlamak cifte tahmin/bahis demek olurdu).
+   */
+  async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
     const p = path.startsWith("/") ? path : `/${path}`;
-    const url = `${base}${p}`;
-
-    try {
-      return await fetch(url, { ...init, headers: { ...authH, ...(init?.headers as any) } });
-    } catch (e) {
-      if (!_retried) {
-        resetApiBase(); // LAN IP değiştiyse cache’i bırak
-        return apiFetch(path, init, true); // 1 kez retry
-      }
-      throw e;
-    }
+    return sharedApiFetch(p, init as any);
   }
 
   const { fixtureId: qFx, userId: qUser, home: qHome, away: qAway, league: qLeague, kickoffISO: qKickoff } =

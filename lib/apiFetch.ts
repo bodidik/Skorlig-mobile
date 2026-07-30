@@ -1,5 +1,5 @@
 import { auth } from "./firebase";
-import { getApiBase } from "./apiBase";
+import { getApiBase, resetApiBase } from "./apiBase";
 import { fetchWithPolicy, PolicyOptions } from "./fetchPolicy";
 
 /**
@@ -24,6 +24,26 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
 }
 
 export async function apiFetch(path: string, opts: FetchOptions = {}): Promise<Response> {
+  return istekYap(path, opts, false);
+}
+
+/**
+ * ⚠️ AĞ HATASINDA API ADRESİNİ TAZELE — geliştirmede LAN IP'si değişiyor.
+ *
+ * Bu davranış 4 ekranın KENDİ yerel apiFetch kopyasında vardı (arena, predict,
+ * duel, pool); paylaşılan sürümde yoktu. Kopyaları teke indirirken kaybolmasın
+ * diye buraya taşındı — böylece tüm ekranlar kazanıyor.
+ *
+ * ⚠️ YALNIZCA GÜVENLİ YÖNTEMLER (GET/HEAD) tekrarlanır. POST'u tekrarlamak
+ * çifte tahmin / çifte bahis demek olurdu; lib/fetchPolicy zaten aynı kuralı
+ * uyguluyor ("POST'lar KASITLI olarak tekrarlanmaz") ve burada onu delmemek
+ * gerekiyor.
+ */
+async function istekYap(
+  path: string,
+  opts: FetchOptions,
+  yenidenDenendi: boolean
+): Promise<Response> {
   const base    = await getApiBase();
   const url     = `${base}${path}`;
   const { skipAuth, ...rest } = opts;
@@ -34,5 +54,15 @@ export async function apiFetch(path: string, opts: FetchOptions = {}): Promise<R
     for (const [k, v] of Object.entries(authH)) headers.set(k, v);
   }
 
-  return fetchWithPolicy(fetch, url, { ...rest, headers });
+  try {
+    return await fetchWithPolicy(fetch, url, { ...rest, headers });
+  } catch (e) {
+    const method = String((rest as any).method || "GET").toUpperCase();
+    const guvenli = method === "GET" || method === "HEAD";
+    if (!yenidenDenendi && guvenli) {
+      resetApiBase();
+      return istekYap(path, opts, true);
+    }
+    throw e;
+  }
 }

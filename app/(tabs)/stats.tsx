@@ -14,7 +14,7 @@ import { useUserId } from "../../lib/useUserId";
 import Colors from "../../constants/colors";
 import { useRuntimeConfig } from "../../lib/runtimeConfig";
 import { getApiBase } from "../../lib/apiBase";
-import { getAuthHeaders } from "../../lib/apiFetch";
+import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { withAdminHeaders } from "../../lib/adminToken";
 
 const DEFAULT_COMPETITION_ID = process.env.EXPO_PUBLIC_DEFAULT_COMPETITION_ID || "";
@@ -72,11 +72,18 @@ type ScopeKey = "country" | "global";
 type ModeKey = "global" | "cup";
 
 // Tek kalıp: base’i içeriden alıp çağır
+/**
+ * Paylasilan apiFetch'e delege eder.
+ *
+ * ⚠️ BURADA HAM `fetch` VARDI: zaman asimi ve yeniden deneme politikasi yoktu
+ * (bkz. lib/fetchPolicy). Istek asildiginda ekran sonsuza kadar spinner
+ * gosteriyor, kullanicinin iptal edecek bir seyi olmuyordu — "kings"
+ * sekmesinde tam olarak bu yasandi. Ayni kopya 29 dosyada vardi.
+ * Paylasilan surum auth basliklarini da kendisi ekliyor.
+ */
 async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getApiBase();
-  const authH = await getAuthHeaders();
   const p = path.startsWith("/") ? path : `/${path}`;
-  return fetch(`${base}${p}`, { ...init, headers: { ...authH, ...(init?.headers as any) } });
+  return sharedApiFetch(p, init as any);
 }
 
 export default function StatsScreen() {
@@ -366,6 +373,16 @@ export default function StatsScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meStats]);
+
+  /**
+   * Ekranda çizilecek satır sayısı.
+   *
+   * ⚠️ NEDEN VAR: bu ekran sanallaştırılmamış bir ScrollView içinde
+   * `genelRows.map()` yapıyor ve sezon tablosu 1700 satır döndürüyor. Hepsini
+   * tek render'da çizmek JS iş parçacığını kilitliyor; "kings" sekmesinde
+   * kullanıcı bu yüzden ekrandan çıkamadı. Aynı desen burada da vardı.
+   */
+  const [gosterilecek, setGosterilecek] = useState(100);
 
   const genelRows = useMemo(() => totalsRows, [totalsRows]);
   const favRows = useMemo(() => teamRanks, [teamRanks]);
@@ -766,7 +783,7 @@ export default function StatsScreen() {
             {mode === "global" && (
               <>
                 {view === "genel" &&
-                  (genelRows.length ? genelRows : ([{ userId: "-", totalPoints: 0, totalPenalty: 0, matches: 0 } as TotRow] as TotRow[])).map(
+                  (genelRows.length ? genelRows.slice(0, gosterilecek) : ([{ userId: "-", totalPoints: 0, totalPenalty: 0, matches: 0 } as TotRow] as TotRow[])).map(
                     (r, ix) => {
                       const isMe = String(r.userId || "").toLowerCase() === userId.toLowerCase();
                       return (
@@ -803,6 +820,23 @@ export default function StatsScreen() {
                       );
                     }
                   )}
+
+                {/* Kalan satırlar isteğe bağlı — hepsini birden çizmek
+                    arayüzü donduruyordu (bkz. `gosterilecek`). */}
+                {view === "genel" && genelRows.length > gosterilecek && (
+                  <TouchableOpacity
+                    onPress={() => setGosterilecek((n) => n + 100)}
+                    style={{
+                      marginTop: 10, alignSelf: "center", paddingHorizontal: 18,
+                      paddingVertical: 9, borderRadius: 999, backgroundColor: Colors.dark,
+                      borderWidth: 1, borderColor: "#1f2937",
+                    }}
+                  >
+                    <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12.5 }}>
+                      Daha fazla göster ({genelRows.length - gosterilecek} kaldı)
+                    </Text>
+                  </TouchableOpacity>
+                )}
 
                 {view === "fav" &&
                   (favRows.length ? favRows : ([{ userId: "-", total: 0 } as TeamRankRow] as TeamRankRow[])).map((r, ix) => {

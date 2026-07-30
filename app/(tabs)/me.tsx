@@ -13,7 +13,7 @@ import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
 import Colors, { on } from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
-import { getAuthHeaders } from "../../lib/apiFetch";
+import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { getAdminToken, setAdminToken, withAdminHeaders } from "../../lib/adminToken";
 import Constants from "expo-constants";
 import { getRank, getNextRank, rankProgress, getUnlocked, ACHIEVEMENTS, type AchCtx } from "../../lib/ranks";
@@ -95,11 +95,18 @@ const EXTRA: any =
 // ENV: EXPO_PUBLIC_ADMIN_USERIDS="demo1,admin,uzay1999"
 const ADMIN_USERIDS_RAW = EXTRA?.adminUserIds || process.env.EXPO_PUBLIC_ADMIN_USERIDS || "";
 
+/**
+ * Paylasilan apiFetch'e delege eder.
+ *
+ * ⚠️ BURADA HAM `fetch` VARDI: zaman asimi ve yeniden deneme politikasi yoktu
+ * (bkz. lib/fetchPolicy). Istek asildiginda ekran sonsuza kadar spinner
+ * gosteriyor, kullanicinin iptal edecek bir seyi olmuyordu — "kings"
+ * sekmesinde tam olarak bu yasandi. Ayni kopya 29 dosyada vardi.
+ * Paylasilan surum auth basliklarini da kendisi ekliyor.
+ */
 async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getApiBase();
-  const authH = await getAuthHeaders();
   const p = path.startsWith("/") ? path : `/${path}`;
-  return fetch(`${base}${p}`, { ...init, headers: { ...authH, ...(init?.headers as any) } });
+  return sharedApiFetch(p, init as any);
 }
 
 // Koda gömülü admin UID'leri (app.json/.env cache sorununu bypass eder)

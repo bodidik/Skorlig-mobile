@@ -10,7 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
-import { getAuthHeaders } from "../lib/apiFetch";
+import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
 
 type Member = {
   userId: string;
@@ -28,11 +28,18 @@ type MembersResponse = {
   items?: Member[];
 };
 
+/**
+ * Paylasilan apiFetch'e delege eder.
+ *
+ * ⚠️ BURADA HAM `fetch` VARDI: zaman asimi ve yeniden deneme politikasi yoktu
+ * (bkz. lib/fetchPolicy). Istek asildiginda ekran sonsuza kadar spinner
+ * gosteriyor, kullanicinin iptal edecek bir seyi olmuyordu — "kings"
+ * sekmesinde tam olarak bu yasandi. Ayni kopya 29 dosyada vardi.
+ * Paylasilan surum auth basliklarini da kendisi ekliyor.
+ */
 async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getApiBase();
-  const authH = await getAuthHeaders();
   const p = path.startsWith("/") ? path : `/${path}`;
-  return fetch(`${base}${p}`, { ...init, headers: { ...authH, ...(init?.headers as any) } });
+  return sharedApiFetch(p, init as any);
 }
 
 export default function Gs1987MembersScreen() {

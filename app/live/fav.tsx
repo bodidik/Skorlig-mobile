@@ -10,13 +10,20 @@ import {
 import { useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
-import { getAuthHeaders } from "../../lib/apiFetch";
+import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 
+/**
+ * Paylasilan apiFetch'e delege eder.
+ *
+ * ⚠️ BURADA HAM `fetch` VARDI: zaman asimi ve yeniden deneme politikasi yoktu
+ * (bkz. lib/fetchPolicy). Istek asildiginda ekran sonsuza kadar spinner
+ * gosteriyor, kullanicinin iptal edecek bir seyi olmuyordu — "kings"
+ * sekmesinde tam olarak bu yasandi. Ayni kopya 29 dosyada vardi.
+ * Paylasilan surum auth basliklarini da kendisi ekliyor.
+ */
 async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getApiBase();
-  const authH = await getAuthHeaders();
   const p = path.startsWith("/") ? path : `/${path}`;
-  return fetch(`${base}${p}`, { ...init, headers: { ...authH, ...(init?.headers as any) } });
+  return sharedApiFetch(p, init as any);
 }
 
 export default function FavScreen() {
@@ -33,11 +40,15 @@ export default function FavScreen() {
     }
 
     try {
-      const r = await apiFetch("/api/stats/fav", {
+      // ⚠️ YOL DÜZELTİLDİ: `/api/stats/fav` diye bir uç YOK (POST'ta da 404).
+      // Yani bu ekran hiçbir zaman kaydetmiyordu — kullanıcı "Kaydet"e basıp
+      // hata mesajı alıyor, favori takımı hiç yazılmıyordu.
+      // Gerçek uç: POST /api/users/set-main-team (kimlik `verifyToken`'dan
+      // geldiği için gövdeye userId koymaya gerek yok).
+      const r = await apiFetch("/api/users/set-main-team", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: userId.trim(),
           team: team.trim(),
           flag: flag.trim() || null,
         }),

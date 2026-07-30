@@ -6,7 +6,7 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase, resetApiBase } from "../../lib/apiBase";
-import { getAuthHeaders } from "../../lib/apiFetch";
+import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
 
@@ -40,16 +40,18 @@ type Duel = {
 
 // ─── Fetch ────────────────────────────────────────────────────────────────────
 
-async function apiFetch(path: string, init?: RequestInit, _r = false): Promise<Response> {
-  const base = await getApiBase();
-  const authH = await getAuthHeaders();
+/**
+ * Paylasilan apiFetch'e delege eder.
+ *
+ * ⚠️ Buradaki kopya ham `fetch` kullaniyordu (zaman asimi/yeniden deneme yok)
+ * ama bir seyi DOGRU yapiyordu: ag hatasinda `resetApiBase()` ile adresi
+ * tazeleyip bir kez yeniden deniyordu. O davranis kaybolmasin diye
+ * lib/apiFetch icine tasindi — ve orada yalnizca GET/HEAD icin uygulaniyor
+ * (POST'u tekrarlamak cifte tahmin/bahis demek olurdu).
+ */
+async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   const p = path.startsWith("/") ? path : `/${path}`;
-  try {
-    return await fetch(`${base}${p}`, { ...init, headers: { ...authH, ...(init?.headers as any) } });
-  } catch (e) {
-    if (!_r) { resetApiBase(); return apiFetch(path, init, true); }
-    throw e;
-  }
+  return sharedApiFetch(p, init as any);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

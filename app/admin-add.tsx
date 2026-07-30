@@ -1,5 +1,6 @@
 "use strict";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { apiFetch as sharedApiFetch } from "../lib/apiFetch";
 import {
   View, Text, TextInput, TouchableOpacity,
   ScrollView, ActivityIndicator, Alert, RefreshControl,
@@ -21,13 +22,18 @@ type Fx = {
   source?: string | null;
 };
 
-async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getApiBase();
+/**
+ * Paylasilan apiFetch'e delege eder; admin basliklarini ekleyerek.
+ *
+ * ⚠️ Buradaki kopya ham `fetch` kullaniyordu: zaman asimi ve yeniden deneme
+ * politikasi yoktu, istek asilirsa ekran sonsuza kadar bekliyordu.
+ */
+async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   const p = path.startsWith("/") ? path : `/${path}`;
-  const headers: Record<string, string> = await withAdminHeaders({
+  const headers = await withAdminHeaders({
     ...((init?.headers as Record<string, string>) || {}),
   });
-  return fetch(`${base}${p}`, { ...(init || {}), headers });
+  return sharedApiFetch(p, { ...(init as any), headers });
 }
 
 function fmtKick(fx: Fx) {

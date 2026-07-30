@@ -11,7 +11,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useUserId } from "../../lib/useUserId";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
-import { getAuthHeaders } from "../../lib/apiFetch";
+import { apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 
 // ====================
 // Backend modelleri
@@ -67,11 +67,17 @@ function formatDate(iso?: string | null) {
 }
 
 // Tek kalıp: base'i içeriden alıp çağır
+/**
+ * ⚠️ YEREL apiFetch KALDIRILDI — paylaşılan olan kullanılıyor.
+ *
+ * Buradaki kopya ham `fetch` çağırıyordu: ZAMAN AŞIMI ve yeniden deneme
+ * politikası yoktu (bkz. lib/fetchPolicy). İstek asıldığında ekran sonsuza
+ * kadar spinner gösteriyordu; kullanıcının elinde iptal edecek bir şey de
+ * yoktu. Paylaşılan sürüm auth başlıklarını da kendisi ekliyor.
+ */
 async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getApiBase();
-  const authH = await getAuthHeaders();
   const p = path.startsWith("/") ? path : `/${path}`;
-  return fetch(`${base}${p}`, { ...init, headers: { ...authH, ...(init?.headers as any) } });
+  return sharedApiFetch(p, init as any);
 }
 
 export default function KingsScreen() {
@@ -84,6 +90,17 @@ export default function KingsScreen() {
   const [rows, setRows] = useState<Row[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  /**
+   * Ekranda çizilecek satır sayısı.
+   *
+   * ⚠️ NEDEN VAR: bu ekran sanallaştırılmamış bir ScrollView içinde
+   * `filteredRows.map()` yapıyor. Sezon tablosu 1700 satır döndürüyor
+   * (182 KB) ve hepsi TEK SEFERDE çiziliyordu: JS iş parçacığı saniyelerce
+   * kilitleniyor, sekme çubuğu dahil arayüz donuyordu. Kullanıcı sekmeye
+   * yanlışlıkla dokunduğunda uygulamadan çıkamıyordu.
+   * Sıralamada ilk yüz zaten yeterli; gerisi "daha fazla" ile gelir.
+   */
+  const [gosterilecek, setGosterilecek] = useState(100);
 
   // Refresh
   const [refreshing, setRefreshing] = useState(false);
@@ -131,26 +148,67 @@ export default function KingsScreen() {
     }
   }, []);
 
+  /**
+   * Segment üyeliklerini yükler.
+   *
+   * ⚠️ ESKİ HÂLİ `/api/users` ÇAĞIRIYORDU — BÖYLE BİR UÇ YOK (404).
+   * Hata yakalanıp `profiles` boş bırakılıyor, `filteredRows` de boşken
+   * TÜM LİSTEYİ döndürüyordu. Sonuç: kullanıcı "Takımım" sekmesine basıp
+   * küresel listeyi görüyor ve onları takımdaşı sanıyordu. Sessizce yanlış.
+   *
+   * Gerçek uçlar: takım için `/api/team/members`, 1987 için `/api/users/1987`.
+   * İkisi de İNDEKSLİ sorgu — "tüm kullanıcıları getir" gibi ölçeklenmeyen
+   * bir uç eklemeye gerek yok.
+   */
   const loadUsers = useCallback(async () => {
+    const uid = userId.trim();
     try {
-      const res = await apiFetch(`/api/users`);
-      const j: UsersResponse = await res.json();
-      if (!j?.ok) {
-        setProfiles([]);
-        setProfilesLoaded(true);
-        return;
+      // 1) Kendi profilim: takım segmenti için hangi takım olduğunu buradan alırız.
+      let benimTakim: string | null = null;
+      if (uid) {
+        try {
+          const r = await apiFetch(`/api/users/profile?userId=${encodeURIComponent(uid)}`);
+          const j = await r.json();
+          benimTakim = j?.profile?.mainTeam ? String(j.profile.mainTeam).trim() : null;
+        } catch {}
       }
-      const arr =
-        (Array.isArray(j.items) && j.items) ||
-        (Array.isArray(j.users) && j.users) ||
-        [];
-      setProfiles(arr);
+
+      const toplananlar: UserProfile[] = [];
+
+      // 2) Takım kadrosu
+      if (benimTakim) {
+        try {
+          const r = await apiFetch(`/api/team/members?team=${encodeURIComponent(benimTakim)}`);
+          const j = await r.json();
+          for (const m of (j?.members ?? [])) {
+            const id = String(m?.userId || m?.id || "").trim();
+            if (id) toplananlar.push({ userId: id, mainTeam: benimTakim } as UserProfile);
+          }
+        } catch {}
+      }
+
+      // 3) 1987 segmenti
+      try {
+        const r = await apiFetch(`/api/users/1987`);
+        const j = await r.json();
+        for (const u of (j?.users ?? j?.items ?? [])) {
+          const id = String(u?.userId || "").trim();
+          if (id) toplananlar.push({ userId: id, is1987: true } as UserProfile);
+        }
+      } catch {}
+
+      // Kendi profilim de listede olsun (takım segmenti için gerekli).
+      if (uid && benimTakim) {
+        toplananlar.push({ userId: uid, mainTeam: benimTakim } as UserProfile);
+      }
+
+      setProfiles(toplananlar);
       setProfilesLoaded(true);
     } catch {
       setProfiles([]);
       setProfilesLoaded(true);
     }
-  }, []);
+  }, [userId]);
 
   const loadPredCount = useCallback(async () => {
     const uid = userId.trim();
@@ -243,9 +301,11 @@ export default function KingsScreen() {
   const filteredRows = useMemo(() => {
     if (segment === "global") return rows;
 
-    if (!profilesLoaded || profiles.length === 0) {
-      return rows;
-    }
+    // ⚠️ ESKİDEN BURADA `return rows` VARDI: segment verisi yoksa TÜM liste
+    // gösteriliyordu, yani "Takımım" sekmesi küresel sıralamayı takım
+    // sıralaması gibi sunuyordu. Boş göstermek yanlış göstermekten iyidir.
+    if (!profilesLoaded) return [];
+    if (profiles.length === 0) return [];
 
     if (segment === "team") {
       if (!myMainTeam) return [];
@@ -590,7 +650,7 @@ export default function KingsScreen() {
               </Text>
             ) : (
               <View style={{ marginTop: 4 }}>
-                {filteredRows.map((row) => {
+                {filteredRows.slice(0, gosterilecek).map((row) => {
                   const isMe =
                     row.userId.trim().toLowerCase() === userId.toLowerCase();
 
@@ -660,6 +720,22 @@ export default function KingsScreen() {
                     </View>
                   );
                 })}
+
+                {/* Kalan satırlar isteğe bağlı: hepsini birden çizmek arayüzü
+                    donduruyordu (bkz. `gosterilecek`). */}
+                {filteredRows.length > gosterilecek && (
+                  <TouchableOpacity
+                    onPress={() => setGosterilecek((n) => n + 100)}
+                    style={{
+                      marginTop: 10, alignSelf: "center", paddingHorizontal: 18,
+                      paddingVertical: 9, borderRadius: 999, backgroundColor: "#1e293b",
+                    }}
+                  >
+                    <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12.5 }}>
+                      Daha fazla göster ({filteredRows.length - gosterilecek} kaldı)
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
 
