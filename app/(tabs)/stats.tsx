@@ -78,7 +78,7 @@ type CupMeta = {
 
 type ViewKey = "genel" | "fav" | "me";
 type ScopeKey = "country" | "global";
-type ModeKey = "global" | "cup";
+type ModeKey = "global" | "cup" | "kupon";
 
 // Tek kalıp: base’i içeriden alıp çağır
 /**
@@ -133,6 +133,19 @@ export default function StatsScreen() {
   }
 
   const [mode, setMode] = useState<ModeKey>("global");
+
+  /**
+   * HAFTALIK KUPON kümülatif sıralaması.
+   * ⚠️ Ayrı bir tablo: kupon puanları sezon toplamına da işleniyor ama oyuncu
+   * "kuponlarda nasılım" sorusunu ayrıca sorabilmeli.
+   */
+  type KuponSira = {
+    sira: number; userId: string; toplamPuan: number; kuponSayisi: number;
+    toplamDogru: number; toplamMac: number; isabetYuzde: number;
+    tamKupon: number; toplamOdul: number;
+  };
+  const [kuponSira, setKuponSira] = useState<KuponSira[]>([]);
+  const [kuponYukleniyor, setKuponYukleniyor] = useState(false);
   const [view, setView] = useState<ViewKey>("genel");
 
   const [totalsRows, setTotalsRows] = useState<TotRow[]>([]);
@@ -195,6 +208,26 @@ export default function StatsScreen() {
   const [adminSaving, setAdminSaving] = useState(false);
 
   // runtimeMode güncellenince modal formunu senkron tut
+
+  // Kupon sıralaması: yalnızca o sekmeye geçilince çekilir (gereksiz istek yok).
+  useEffect(() => {
+    if (mode !== "kupon") return;
+    let iptal = false;
+    (async () => {
+      setKuponYukleniyor(true);
+      try {
+        const r = await apiFetch("/api/kupon/siralama?limit=100");
+        const j = await r.json();
+        if (!iptal) setKuponSira(j?.ok && Array.isArray(j.siralama) ? j.siralama : []);
+      } catch {
+        if (!iptal) setKuponSira([]);
+      } finally {
+        if (!iptal) setKuponYukleniyor(false);
+      }
+    })();
+    return () => { iptal = true; };
+  }, [mode]);
+
   useEffect(() => {
     if (!runtimeMode) return;
     setAdminProfile((runtimeMode.profile as string) || "DEV_4_TEAMS");
@@ -589,7 +622,7 @@ export default function StatsScreen() {
 
           {/* MOD (Global sezon / Kupa) */}
           <View style={{ flexDirection: "row", backgroundColor: Colors.dark, borderRadius: 999, padding: 4 }}>
-            {[{ key: "global", label: "Global sezon" }, { key: "cup", label: "Seçilmiş kupa" }].map((tab) => {
+            {[{ key: "global", label: "Global sezon" }, { key: "kupon", label: "Kupon" }, { key: "cup", label: "Kupa" }].map((tab) => {
               const active = mode === (tab.key as ModeKey);
               return (
                 <TouchableOpacity
@@ -848,6 +881,65 @@ export default function StatsScreen() {
                 </Text>
               )}
             </>
+          )}
+
+          {mode === "kupon" && (
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ color: Colors.text, fontSize: 15, fontWeight: "800" }}>
+                Haftalık Kupon — kümülatif
+              </Text>
+              <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2, marginBottom: 10 }}>
+                Bu sezonda oynanan tüm kuponların toplamı. Sıralama PUANA göre —
+                kazanılan LC harcanabilir, puan beceriyi gösterir.
+              </Text>
+
+              {kuponYukleniyor ? (
+                <Text style={{ color: Colors.muted, fontSize: 12 }}>Yükleniyor...</Text>
+              ) : kuponSira.length === 0 ? (
+                /* Boş durum sebebini söylüyor — "veri yok" tek başına bir şey anlatmaz. */
+                <View style={{ padding: 14, borderRadius: 12, backgroundColor: Colors.dark }}>
+                  <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "700" }}>
+                    Henüz sonuçlanmış kupon yok
+                  </Text>
+                  <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 6, lineHeight: 17 }}>
+                    Tablo, bir kuponun tüm maçları bitince dolmaya başlar. Kupon
+                    alıp hafta sonunu bekle.
+                  </Text>
+                </View>
+              ) : (
+                kuponSira.map((r) => {
+                  const benMi = String(r.userId).toLowerCase() === String(userId).toLowerCase();
+                  return (
+                    <View
+                      key={r.userId}
+                      style={{
+                        flexDirection: "row", alignItems: "center", paddingVertical: 10,
+                        paddingHorizontal: 12, borderRadius: 10, marginBottom: 6,
+                        backgroundColor: benMi ? "#14532d33" : Colors.dark,
+                        borderWidth: benMi ? 1 : 0, borderColor: "#16a34a66",
+                      }}
+                    >
+                      <Text style={{ color: Colors.muted, fontSize: 12, width: 28 }}>{r.sira}.</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "700" }}>
+                          {r.userId}{benMi ? " (ben)" : ""}
+                        </Text>
+                        <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 2 }}>
+                          {r.kuponSayisi} kupon · {r.toplamDogru}/{r.toplamMac} doğru (%{r.isabetYuzde})
+                          {r.tamKupon > 0 ? ` · ${r.tamKupon} tam kupon 🎯` : ""}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={{ color: "#a3e635", fontSize: 15, fontWeight: "800" }}>
+                          {r.toplamPuan}
+                        </Text>
+                        <Text style={{ color: Colors.muted, fontSize: 9 }}>puan</Text>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </View>
           )}
 
           {mode === "cup" && (
