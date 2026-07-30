@@ -7,8 +7,11 @@
  *   Ülke kuponu  → kendi ligin, hafta sonu
  *   Avrupa kuponu → kupa maçları, tüm ülkeler aynı tabloda
  *
- * ⚠️ KATILIM İLK MAÇA KADAR. Kalan süre sunucudan geliyor (`kalanSaniye`);
- * cihaz saatine güvenilmiyor — kullanıcının saati yanlışsa ekran yalan söyler.
+ * ⚠️ KATILIM İLK MAÇTAN 1 SAAT ÖNCE KAPANIR. Tam kickoff'ta değil: fikstür
+ * saatleri dış kaynaklardan geliyor ve gecikmeli olabiliyor, tampon olmadan
+ * maç başlamışken katılmak mümkün olurdu (bkz. lib/kupon.cjs KILIT_ONCE_DK).
+ * Kalan süre SUNUCUDAN geliyor (`kalanSaniye`); cihaz saatine güvenilmiyor —
+ * kullanıcının saati yanlışsa ekran yalan söyler.
  */
 
 import React, { useCallback, useEffect, useState } from "react";
@@ -38,6 +41,7 @@ type KuponT = {
   fixtureIds: string[];
   girisBedeli: number;
   kilitISO: string;
+  ilkKickoffISO?: string;
   durum: "open" | "locked" | "settled";
   katildiMi: boolean;
   tahminlerim: Record<string, "H" | "D" | "A"> | null;
@@ -169,7 +173,7 @@ export default function KuponEkrani() {
         <View style={{ marginTop: 24, padding: 16, borderRadius: 12, backgroundColor: Colors.dark }}>
           <Text style={{ color: Colors.text, fontSize: 14, fontWeight: "700" }}>Şu an açık kupon yok</Text>
           <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
-            Kuponlar hafta başında kurulur ve ilk maç başlayınca kapanır. Ülken
+            Kuponlar hafta başında kurulur ve ilk maçtan 1 saat önce kapanır. Ülken
             seçili değilse kendi ligindeki kupon görünmez.
           </Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/me")} style={{ marginTop: 12 }}>
@@ -196,6 +200,12 @@ export default function KuponEkrani() {
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
                 {k.maclar.length} maç · Giriş {k.girisBedeli} LC
                 {k.tur === "avrupa" ? " · tüm ülkeler aynı tabloda" : ""}
+              </Text>
+              {/* Kullanıcı "ilk maça kadar var" sanmasın: kilit 1 saat önce. */}
+              <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 2 }}>
+                {acik
+                  ? "Katılım ilk maçtan 1 saat önce kapanır"
+                  : "Katılım kapandı — maçlar bitince sonucun görünecek"}
               </Text>
             </View>
 
