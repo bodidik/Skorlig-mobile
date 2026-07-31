@@ -40,6 +40,7 @@ const SOZLUK: Record<string, string> = {
   BOT_NOT_ALLOWED: "Bu hesap havuza katılamaz.",
   NOT_OPEN_YET: "Bu maç tahmine henüz açılmadı. Başlamasına 24 saat kala açılır.",
   FIXTURE_NOT_FOUND: "Maç bulunamadı. Listeye dönüp tekrar dene.",
+  NO_FIXTURE: "Maç seçilmedi.",
   STATE_NOT_FOUND: "Maçın durumu henüz gelmedi. Birazdan tekrar dene.",
   SCHEDULE_FAILED: "Maç listesi alınamadı. Aşağı çekerek yenile.",
   LIVE2_SCHEDULE_FAILED: "Maç listesi alınamadı. Aşağı çekerek yenile.",
