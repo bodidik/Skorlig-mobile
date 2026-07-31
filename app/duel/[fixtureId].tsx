@@ -12,7 +12,9 @@ import { auth } from "../../lib/firebase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type DuelStatus = "open" | "active" | "settled" | "cancelled";
+// "voided": macin sonucu hic gelmedi, bahisler iade edildi
+// (sunucuda bayat-temizleyici yaziyor — bkz. api/lib/duel-durum.cjs).
+type DuelStatus = "open" | "active" | "settled" | "cancelled" | "voided";
 type Duel = {
   id: string;
   fixtureId: string;
@@ -234,11 +236,13 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel }:
               color: duel.status === "open" ? "#60a5fa"
                 : duel.status === "active" ? "#a78bfa"
                 : duel.status === "settled" ? (tied ? "#64748b" : iWon ? "#34d399" : "#f87171")
+                : duel.status === "voided" ? "#94a3b8"
                 : "#475569",
             }}>
               {duel.status === "open" ? "AÇIK"
                 : duel.status === "active" ? "SÜRÜYOR"
                 : duel.status === "settled" ? (tied ? "BERABERE" : iWon ? "KAZANDIN" : "KAYBETTİN")
+                : duel.status === "voided" ? "İADE EDİLDİ"
                 : "İPTAL"}
             </Text>
           </View>
