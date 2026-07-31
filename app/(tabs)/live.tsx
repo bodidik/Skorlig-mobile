@@ -1310,7 +1310,7 @@ export default function LiveScreen() {
     setAdmMsg(null);
 
     try {
-      const j = await apiJson(`/api/rt/pred/match-board?fixtureId=${encodeURIComponent(selectedFid)}`, { method: "GET" });
+      const j = await apiJson(`/api/pred/match-board?fixtureId=${encodeURIComponent(selectedFid)}`, { method: "GET" });
       if (!j?.ok) {
         setAdmMsg(normalizeApiError(j));
         return;

@@ -63,7 +63,9 @@ export default function FriendsListScreen() {
       setLoading(true);
 
       const r = await apiFetch(
-        `/api/friends/list?userId=${encodeURIComponent(userId)}`
+        // Sunucu yol parametresi bekliyor (`/list/:userId`), sorgu degil.
+        // Eski hali 404 donuyordu ve `catch` yuttugu icin ekran hep bostu.
+        `/api/friends/list/${encodeURIComponent(userId)}`
       );
       const j = await r.json();
 
