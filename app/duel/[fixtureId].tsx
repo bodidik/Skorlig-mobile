@@ -328,6 +328,8 @@ export default function DuelScreen() {
   const matchKickoff = String(qKickoff || "").trim();
 
   const [openDuels, setOpenDuels]   = useState<Duel[]>([]);
+  // Sunucu karari: tek tarafli maca duello kurulamaz (bkz. lib/mac-denge.cjs).
+  const [duelloyaUygun, setDuelloyaUygun] = useState(true);
   const [myDuels,   setMyDuels]     = useState<Duel[]>([]);
   const [loading,   setLoading]     = useState(true);
   const [refreshing,setRefreshing]  = useState(false);
@@ -362,6 +364,8 @@ export default function DuelScreen() {
       ]);
       const [oj, mj] = await Promise.all([or.json(), mr.json()]);
       if (oj?.ok) setOpenDuels(oj.items || []);
+      // Alan yoksa (eski sunucu) ENGELLEME yok: bu arayuz ipucu, kapi sunucuda.
+      if (oj?.ok) setDuelloyaUygun(oj.duelloyaUygun !== false);
       if (mj?.ok) setMyDuels(mj.items || []);
       loadBalance(userId);
     } catch (e: any) {
@@ -598,6 +602,21 @@ export default function DuelScreen() {
               </View>
             </View>
 
+            {!duelloyaUygun ? (
+              <View style={{
+                borderRadius: 12, borderWidth: 1, borderColor: "#334155",
+                backgroundColor: "#0b1220", padding: 12, gap: 4,
+              }}>
+                <Text style={{ color: "#e2e8f0", fontSize: 13, fontWeight: "800" }}>
+                  Bu maç düelloya kapalı
+                </Text>
+                <Text style={{ color: "#64748b", fontSize: 11, lineHeight: 16 }}>
+                  Sonuç büyük ölçüde belli olduğu için düello açılmıyor. Sürprizi
+                  tek maç tahmininde oynayabilirsin — düşük ihtimalli sonuç daha
+                  çok LC getirir.
+                </Text>
+              </View>
+            ) : (
             <TouchableOpacity
               onPress={createDuel}
               disabled={creating || !canAfford}
@@ -619,6 +638,7 @@ export default function DuelScreen() {
                 </Text>
               )}
             </TouchableOpacity>
+            )}
           </View>
         </View>
 

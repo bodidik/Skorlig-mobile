@@ -29,6 +29,15 @@ const SOZLUK: Record<string, string> = {
   // ── Tahmin / maç ─────────────────────────────────────────────────
   MATCH_STARTED: "Maç başladı, tahmin kapandı.",
   MATCH_ALREADY_STARTED: "Maç başladı, tahmin kapandı.",
+
+  // ── Maç havuzu ───────────────────────────────────────
+  MATCH_LOCKED: "Maç başladı, bahis kapandı.",
+  LOCKED_BEFORE_KICKOFF: "Maç başlamak üzere, bahis kapandı.",
+  POOL_SETTLED: "Bu maçın havuzu dağıtıldı.",
+  SIDE_LOCKED: "Taraf değiştiremezsin — aynı tarafa ekleyebilirsin.",
+  OVER_CAP: "Bahis tavanını aştın. Havuz büyüdükçe tavan da yükselir.",
+  MIN_BET: "Bahis en az bu tutardan başlar.",
+  BOT_NOT_ALLOWED: "Bu hesap havuza katılamaz.",
   NOT_OPEN_YET: "Bu maç tahmine henüz açılmadı. Başlamasına 24 saat kala açılır.",
   FIXTURE_NOT_FOUND: "Maç bulunamadı. Listeye dönüp tekrar dene.",
   STATE_NOT_FOUND: "Maçın durumu henüz gelmedi. Birazdan tekrar dene.",
@@ -45,6 +54,8 @@ const SOZLUK: Record<string, string> = {
   NO_KICKOFF: "Bu maçın başlama saati belli değil, bahse açılamaz.",
   BAD_KICKOFF: "Bu maçın başlama saati okunamadı, bahse açılamaz.",
   DUEL_LOCKED_BEFORE_KICKOFF: "Maç başlamak üzere, düello kapandı.",
+  MATCH_TOO_LOPSIDED:
+    "Bu maç çok tek taraflı, düelloya kapalı. Sürpriz sonucu tek maç tahmininde oynayabilirsin.",
   TOURNAMENT_NOT_FOUND: "Turnuva bulunamadı. Kod doğru mu?",
   TOURNAMENT_FULL: "Turnuva dolu.",
   TOO_MANY_OPEN_DUELS: "Aynı anda bu kadar açık düellon olamaz. Birinin sonuçlanmasını bekle.",
