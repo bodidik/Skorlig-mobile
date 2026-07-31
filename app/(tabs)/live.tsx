@@ -17,6 +17,7 @@ import { getApiBase, syncServerTime, nowFromServer } from "../../lib/apiBase";
 import { getAuthHeaders, apiJson as sharedApiJson } from "../../lib/apiFetch";
 import DailyMenuStrip from "../../components/DailyMenuStrip";
 import QuickPlaySection from "../../components/QuickPlaySection";
+import OyunModlari from "../../components/OyunModlari";
 import TournamentCreate from "../../components/TournamentCreate";
 import TournamentJoin from "../../components/TournamentJoin";
 import Picks1987 from "../../components/Picks1987";
@@ -690,6 +691,10 @@ export default function LiveScreen() {
 
   // Kasa & puan bilgisi
   const [lcBalance, setLcBalance] = useState<number | null>(null);
+  // ⚠️ Oyun modu şeridindeki bedeller SUNUCUDAN. Ekrana sayı gömmek, bedel
+  // değişince metnin yalan söylemesi demek (aynı hata premium ekranındaydı).
+  const [macBedeli, setMacBedeli] = useState<number | null>(null);
+  const [kuponBedeli, setKuponBedeli] = useState<number | null>(null);
   const [userPoints, setUserPoints] = useState<number | null>(null);
 
   // Maç Ekle formu
@@ -879,8 +884,20 @@ export default function LiveScreen() {
         apiFetch(`/api/rt/lc-wallet/summary?userId=${encodeURIComponent(uid)}`).then((r) => r.json()),
         apiFetch(`/api/users/profile?userId=${encodeURIComponent(uid)}`).then((r) => r.json()),
       ]);
-      if (walletRes?.ok) setLcBalance(walletRes.user?.balance ?? 0);
+      if (walletRes?.ok) {
+        setLcBalance(walletRes.user?.balance ?? 0);
+        // Maç bedeli sunucunun tek kaynağından (lib/ekonomi.cjs) geliyor.
+        const b = walletRes.pricing?.matchEntryCost;
+        if (typeof b === "number") setMacBedeli(b);
+      }
       if (profileRes?.ok) setUserPoints(profileRes.profile?.totals ?? profileRes.totals ?? 0);
+    } catch {}
+
+    // Kupon bedeli ayrı uçtan; kupon yoksa şeritte bedel gösterilmez.
+    try {
+      const k = await apiJson("/api/kupon/aktif");
+      const ilk = k?.ok && Array.isArray(k.kuponlar) ? k.kuponlar[0] : null;
+      if (ilk && typeof ilk.girisBedeli === "number") setKuponBedeli(ilk.girisBedeli);
     } catch {}
   }, [userId]);
 
@@ -1357,6 +1374,17 @@ export default function LiveScreen() {
           <View style={{ marginBottom: 12 }}>
             {/* ===== MİSAFİR ŞERTI ===== */}
             <GuestBanner />
+
+            {/* ===== OYUN MODLARI =====
+                Altı mod farklı ekranlara dağılmış; yeni kullanıcı maç
+                listesinden ötesini keşfetmiyordu. Keşfedilmeyen özellik,
+                olmayan özelliktir. bkz. components/OyunModlari.tsx */}
+            <OyunModlari
+              macBedeli={macBedeli}
+              kuponBedeli={kuponBedeli}
+              is1987={is1987Member}
+              onMod={setMode}
+            />
 
             {/* ===== ÜLKEDE MAÇ YOK ŞERİDİ =====
                 Sunucu ülke süzgeci sonuçsuz kalınca dünya listesine geri
