@@ -90,6 +90,46 @@ const SOZLUK: Record<string, string> = {
   // ── Yönetim (kullanıcı normalde görmez) ──────────────────────────
   ADMIN_TOKEN_REQUIRED: "Bu alana erişim yetkin yok.",
   ADMIN_TOKEN_NOT_CONFIGURED: "Yönetim erişimi yapılandırılmamış.",
+  // ── Düello ───────────────────────────────────────────────────────
+  CANNOT_CHALLENGE_YOURSELF: "Kendine düello açamazsın.",
+  INVALID_STAKE: "Bahis tutarı sınırların dışında.",
+  NOT_OPEN: "Bu düello artık açık değil — başkası kabul etmiş olabilir.",
+  CONCURRENT_WRITE: "Aynı anda başka bir işlem oldu. Tekrar dene.",
+
+  // ── Mini turnuva ─────────────────────────────────────────────────
+  CANNOT_INVITE_SELF: "Kendini davet edemezsin.",
+  FIXTURE_COUNT_INVALID: "Seçilen maç sayısı uygun değil.",
+
+  // ── Kupon ────────────────────────────────────────────────────────
+  KUPON_KAPALI: "Kupon kapandı, artık tahmin girilemez.",
+  GECERSIZ_TUR: "Geçersiz kupon türü.",
+
+  // ── Arkadaş / davet ──────────────────────────────────────────────
+  BLOCKED: "Bu kullanıcıyla iletişim engellenmiş.",
+  CANNOT_USE_OWN_CODE: "Kendi davet kodunu kullanamazsın.",
+  FROM_NOT_REGISTERED: "Gönderen hesap kayıtlı değil.",
+  TO_NOT_REGISTERED: "Bu kullanıcı henüz kayıtlı değil.",
+
+  // ── Takma ad ─────────────────────────────────────────────────────
+  NICKNAME_TAKEN: "Bu takma ad alınmış, başka bir tane dene.",
+  NICKNAME_INVALID: "Takma adda kullanılamayan karakter var.",
+  NICKNAME_LENGTH: "Takma ad uzunluğu uygun değil.",
+  NICKNAME_RESERVED: "Bu takma ad kullanılamaz.",
+
+  // ── Cüzdan / günlük hak ──────────────────────────────────────────
+  BALANCE_ABOVE_FLOOR: "Bakiyen yeterli olduğu için bugün günlük hak verilmiyor. Bakiyen düşünce tekrar alabilirsin.",
+  LC_WALLET_DAILY_CONFLICT: "Günlük hak işlenirken çakışma oldu. Tekrar dene.",
+
+  // ── Tahmin ───────────────────────────────────────────────────────
+  MICRO_LOCKED_RED: "Kırmızı kart görüldüğü için bu tahmin kapandı.",
+  MICRO_LOCKED_PENALTY: "Penaltı verildiği için bu tahmin kapandı.",
+  SCORE_MUST_BE_NUMBERS: "Skor alanlarına sayı gir.",
+  FORBIDDEN_OTHER_USER: "Yalnızca kendi kaydına erişebilirsin.",
+  INVALID_INPUT: "Girilen bilgi geçersiz.",
+
+  // ── Ülke / altyapı ───────────────────────────────────────────────
+  COUNTRY_NOT_SUPPORTED: "Bu ülke henüz desteklenmiyor.",
+  NO_DB: "Veritabanına şu an ulaşılamıyor. Birazdan tekrar dene.",
 };
 
 /** Sunucu doğrulama kodları: "…_REQUIRED", "…_MISSING" → tek ortak cümle. */
