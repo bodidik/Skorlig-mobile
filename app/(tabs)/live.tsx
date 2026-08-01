@@ -15,6 +15,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import Colors from "../../constants/colors";
 import { getApiBase, syncServerTime, nowFromServer } from "../../lib/apiBase";
 import { getAuthHeaders, apiJson as sharedApiJson } from "../../lib/apiFetch";
+import { withAdminHeaders } from "../../lib/adminToken";
 import DailyMenuStrip from "../../components/DailyMenuStrip";
 import QuickPlaySection from "../../components/QuickPlaySection";
 import OyunModlari from "../../components/OyunModlari";
@@ -1233,9 +1234,24 @@ export default function LiveScreen() {
         note: "admin-mobile",
       };
 
+      /**
+       * ⚠️ YÖNETİCİ BAŞLIĞI ŞART. Bu uç sunucuda `requireAdmin` ile korunuyor
+       * (routes/rt.live-gs.cjs) ama buradaki çağrı düz `apiJson` kullanıyordu:
+       * `lib/apiFetch.ts` yalnızca `x-auth-token` / `x-user-id` ekliyor,
+       * `x-admin-token` EKLEMİYOR. Yani bu panelden yapılan her kaydetme
+       * 401 ADMIN_TOKEN_REQUIRED ile düşüyordu.
+       *
+       * Sunucudaki muhafızın gerekçe notu "yönetim ekranı zaten x-admin-token
+       * gönderiyor (withAdminHeaders)" diyor — bu `app/admin-live.tsx` için
+       * DOĞRU (onun kendi sarmalayıcısı var), canlı sekmesindeki bu panel için
+       * DEĞİLDİ.
+       *
+       * Başlık yalnızca BU çağrıya ekleniyor: `apiJson`'a genel olarak koymak,
+       * ekrandaki sıradan isteklere de yönetici jetonu iliştirirdi.
+       */
       const j1 = await apiJson(`/api/rt/admin-live-gs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await withAdminHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(payload),
       });
 
