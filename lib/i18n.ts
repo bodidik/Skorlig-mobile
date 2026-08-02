@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Platform, NativeModules } from "react-native";
 
 const strings = {
@@ -744,9 +745,31 @@ function detectLang(): Lang {
 
 let _lang: Lang | null = null;
 
+/**
+ * ⚠️ DİL DEĞİŞİMİ EKRANI YENİLEMİYORDU. `_lang` bir MODÜL değişkeni; React
+ * onu izlemez. Kullanıcı dil seçiyor, "Dil tercihin kaydedildi" uyarısını
+ * alıyor ve ekranda HİÇBİR ŞEY değişmiyordu — yalnızca ekran yeniden
+ * kurulduğunda (uygulama açılışında) etkili oluyordu.
+ * Abonelik listesi bunu çözüyor; ekranlar `useLang()` ile bağlanıyor.
+ */
+const _dinleyiciler = new Set<() => void>();
+
 export function getLang(): Lang {
   if (!_lang) _lang = detectLang();
   return _lang;
+}
+
+/** Dil değişince haber ver. Dönen fonksiyon aboneliği bırakır. */
+export function dilAboneOl(f: () => void): () => void {
+  _dinleyiciler.add(f);
+  return () => { _dinleyiciler.delete(f); };
+}
+
+/** Ekranı güncel dile bağlar — dil değişince yeniden çizilir. */
+export function useLang(): Lang {
+  const [lang, setL] = useState<Lang>(getLang());
+  useEffect(() => dilAboneOl(() => setL(getLang())), []);
+  return lang;
 }
 
 export function t(key: StringKey): string {
@@ -754,7 +777,18 @@ export function t(key: StringKey): string {
   return (strings[lang] as any)[key] ?? (strings.en as any)[key] ?? key;
 }
 
-/** Force a specific language (e.g. from user profile) */
+/**
+ * Dili zorla (profil tercihinden) — boş değer CİHAZ DİLİNE döner.
+ *
+ * ⚠️ "TERCİHİ KALDIR" BUTONU ÇALIŞMIYORDU. Eski koşul `if (lang && ...)`
+ * olduğu için `setLang("")` sessizce HİÇBİR ŞEY yapmıyordu: sunucu tercihi
+ * siliyor, ekran rozeti kalkıyor, uyarı "kaydedildi" diyor — ama uygulama
+ * o oturum boyunca ESKİ dilde kalıyordu. Boş değer artık cihaz diline
+ * dönmek demek, yani butonun vaat ettiği şey.
+ */
 export function setLang(lang: string) {
-  if (lang && lang in strings) _lang = lang as Lang;
+  const yeni: Lang = lang && lang in strings ? (lang as Lang) : detectLang();
+  if (yeni === _lang) return;
+  _lang = yeni;
+  for (const f of _dinleyiciler) { try { f(); } catch {} }
 }

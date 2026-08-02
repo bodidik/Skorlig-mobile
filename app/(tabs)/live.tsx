@@ -26,7 +26,7 @@ import GuestBanner from "../../components/GuestBanner";
 import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
-import { t } from "../../lib/i18n";
+import { t, useLang } from "../../lib/i18n";
 
 type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
 
@@ -616,6 +616,10 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
 };
 
 export default function LiveScreen() {
+  /* ⚠️ ABONELİK OLMADAN DÜZELTME ETKİSİZ. `t()` modül değişkeni okuyor;
+   * ekran ona bağlanmazsa dil değişimi yeniden çizim tetiklemez ve kullanıcı
+   * "kaydedildi" uyarısını alıp aynı dili görmeye devam eder. */
+  useLang();
   const router = useRouter();
   const { userId: qUserId, admin: qAdmin, tab: qTab } = useLocalSearchParams<{ userId?: string; admin?: string; tab?: string }>();
   const { isAnonymous, linkWithGoogle } = useAuth();
