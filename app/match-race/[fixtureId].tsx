@@ -70,7 +70,8 @@ type UserProfile = {
   predCount: number;
   globalRank: number | null;
   totalPlayers: number;
-  lc: number;
+  /** Yalnızca KENDİ profilinde gelir — bkz. LC bakiye satırı. */
+  lc?: number;
   joinedAt: string | null;
 };
 
@@ -559,7 +560,15 @@ function ProfileContent({ profile, blocked, onClose, onToggleBlock }: {
 
       <View style={{ gap: 8 }}>
         <DetailRow icon="📊" label="Maç başı ort." value={profile.matches > 0 ? `${(profile.totalPoints / profile.matches).toFixed(1)}p` : "—"} />
-        <DetailRow icon="💰" label="LC bakiye" value={`${profile.lc} LC`} />
+        {/* ⚠️ BAKİYE ARTIK YALNIZCA KENDİ PROFİLİNDE GELİYOR. Uç herkesin
+            bakiyesini döndürüyordu; bir tahmin oyununda rakibin ne kadar
+            parası olduğunu bilmek düello ve havuzda doğrudan avantaj.
+            Alan hiç gönderilmiyor (0 değil) — 0 basmak "parası yok" gibi
+            okunur ve yine bilgi sızdırır. Koşulsuz basmak ise ekrana
+            "undefined LC" yazardı; aynı hata premium tablosunda yaşandı. */}
+        {profile.lc != null && (
+          <DetailRow icon="💰" label="LC bakiye" value={`${profile.lc} LC`} />
+        )}
         <DetailRow icon="📅" label="Üyelik süresi" value={timeAgo(profile.joinedAt)} />
         {profile.totalPenalty > 0 && (
           <DetailRow icon="⚠️" label="Toplam ceza" value={`-${profile.totalPenalty}p`} />
