@@ -176,7 +176,10 @@ export function useRuntimeConfig(): RuntimeConfigState {
 
   const defaultScoring: ScoringConfig = useMemo(
     () => ({
-      startBalance: 500,
+      /* ⚠️ Sunucudaki tek kaynak lib/ekonomi.cjs (ACILIS_BAKIYESI = 30).
+       * Burada 500 yaziyordu; sunucu yaniti gelmezse bu varsayilan
+       * kullaniciya 16 KAT yanlis rakam gosterirdi. */
+      startBalance: 30,
       useProbabilityEngine: false,
       K_outcome: 3,
       epsilon: 0.05,
