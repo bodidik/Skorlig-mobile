@@ -171,9 +171,16 @@ function Seat({ name, uid, points, isWinner, settled, tied, empty, onSit, sittin
 
 // ─── Arena card ───────────────────────────────────────────────────────────────
 
-function ArenaCard({ duel, userId, myName, onAccept, onCancel }:
+function ArenaCard({ duel, userId, myName, onAccept, onCancel, houseCutPct }:
   { duel: Duel; userId: string; myName: string|null;
-    onAccept: (d: Duel) => void; onCancel: (d: Duel) => void }) {
+    onAccept: (d: Duel) => void; onCancel: (d: Duel) => void;
+    /** Kasa payı SUNUCUDAN gelir. Yedek hesapta sabit oran kullanmak,
+     *  oran değiştiğinde kullanıcıya yanlış kazanç göstermek demekti. */
+    houseCutPct: number }) {
+
+  /** Sunucu `winAmount` göndermediyse (eski kayıt) AYNI kuralla hesapla. */
+  const kazanc = (pot: number) => Math.round(pot * (1 - houseCutPct) * 10) / 10;
+  const kasaYuzde = Math.round(houseCutPct * 100);
 
   const [sitting, setSitting] = useState(false);
 
@@ -219,9 +226,9 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel }:
         </Text>
         <Text style={{ color: "#334155", fontSize: 13 }}>→</Text>
         <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 16 }}>
-          {duel.winAmount ?? Math.round(duel.pot * 0.95 * 10) / 10} LC
+          {duel.winAmount ?? kazanc(duel.pot)} LC
         </Text>
-        <Text style={{ color: "#334155", fontSize: 10 }}>(%5 kasa)</Text>
+        <Text style={{ color: "#334155", fontSize: 10 }}>(%{kasaYuzde} kasa)</Text>
         <View style={{ position: "absolute", right: 12 }}>
           <View style={{
             borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3,
@@ -294,7 +301,7 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel }:
             {tied
               ? "🤝 Berabere — LC'ler iade edildi"
               : iWon
-              ? `🏆 Kazandın! +${duel.winAmount ?? Math.round(duel.pot * 0.95 * 10) / 10} LC`
+              ? `🏆 Kazandın! +${duel.winAmount ?? kazanc(duel.pot)} LC`
               : `❌ Kaybettin — ${duel.stake} LC`}
           </Text>
         </View>
@@ -334,6 +341,16 @@ export default function DuelScreen() {
   const [openDuels, setOpenDuels]   = useState<Duel[]>([]);
   // Sunucu karari: tek tarafli maca duello kurulamaz (bkz. lib/mac-denge.cjs).
   const [duelloyaUygun, setDuelloyaUygun] = useState(true);
+  /**
+   * ⚠️ KASA PAYI SUNUCUDAN GELİR. Bu ekran kazancı kendi hesaplıyordu
+   * (`stake * 2 * 0.95`, üç yerde) ve "%5 kasa payı" metnini sabit
+   * yazıyordu. Sunucudaki HOUSE_CUT_PCT değişse ekran kullanıcıya YANLIŞ
+   * kazanç vaat ederdi — üstelik bu vaat bahsi KOYMADAN ÖNCE gösteriliyor.
+   * Aynı sınıf bu üründe bir kez pahalıya patladı (api/lib/ekonomi.cjs
+   * macOdulu notu: ekran 3009 LC vaat etti, cüzdana ≤15 geçti).
+   * Varsayılan, alanı göndermeyen ESKİ sunucularda eski davranışı korur.
+   */
+  const [houseCutPct, setHouseCutPct] = useState(0.05);
   const [myDuels,   setMyDuels]     = useState<Duel[]>([]);
   const [loading,   setLoading]     = useState(true);
   const [refreshing,setRefreshing]  = useState(false);
@@ -370,6 +387,8 @@ export default function DuelScreen() {
       if (oj?.ok) setOpenDuels(oj.items || []);
       // Alan yoksa (eski sunucu) ENGELLEME yok: bu arayuz ipucu, kapi sunucuda.
       if (oj?.ok) setDuelloyaUygun(oj.duelloyaUygun !== false);
+      // Alan yoksa (eski sunucu) varsayilan korunur — ayni desen.
+      if (oj?.ok && typeof oj.houseCutPct === "number") setHouseCutPct(oj.houseCutPct);
       if (mj?.ok) setMyDuels(mj.items || []);
       loadBalance(userId);
     } catch (e: any) {
@@ -432,7 +451,9 @@ export default function DuelScreen() {
       showToast(j?.error || "Kabul edilemedi", false);
       return;
     }
-    const prize = duel.winAmount ?? Math.round(duel.pot * 0.95 * 10) / 10;
+    /* Sunucu winAmount göndermediyse aynı kuralla hesapla — oran SUNUCUDAN
+     * (bkz. houseCutPct notu). Bu, ilk taramamda kaçırdığım DÖRDÜNCÜ yerdi. */
+    const prize = duel.winAmount ?? Math.round(duel.pot * (1 - houseCutPct) * 10) / 10;
     showToast(`Düello başladı! 🏆 Kazanan ${prize} LC alır`);
     loadAll();
   }
@@ -574,9 +595,9 @@ export default function DuelScreen() {
               <View style={{ flex: 1, backgroundColor: "#0f172a", padding: 12, alignItems: "center" }}>
                 <Text style={{ color: "#475569", fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>KAZANIRSAN</Text>
                 <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 22, marginTop: 2 }}>
-                  {Math.round(selectedStake * 2 * 0.95 * 10) / 10} LC
+                  {Math.round(selectedStake * 2 * (1 - houseCutPct) * 10) / 10} LC
                 </Text>
-                <Text style={{ color: "#334155", fontSize: 9, marginTop: 1 }}>%5 kasa payı düşüldü</Text>
+                <Text style={{ color: "#334155", fontSize: 9, marginTop: 1 }}>%{Math.round(houseCutPct * 100)} kasa payı düşüldü</Text>
               </View>
             </View>
 
@@ -659,7 +680,7 @@ export default function DuelScreen() {
             </Text>
             {openDuels.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
-                onAccept={acceptDuel} onCancel={cancelDuel} />
+                onAccept={acceptDuel} onCancel={cancelDuel} houseCutPct={houseCutPct} />
             ))}
           </View>
         ) : (
@@ -684,7 +705,7 @@ export default function DuelScreen() {
             </Text>
             {myActive.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
-                onAccept={acceptDuel} onCancel={cancelDuel} />
+                onAccept={acceptDuel} onCancel={cancelDuel} houseCutPct={houseCutPct} />
             ))}
           </View>
         )}
@@ -697,7 +718,7 @@ export default function DuelScreen() {
             </Text>
             {mySettled.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
-                onAccept={acceptDuel} onCancel={cancelDuel} />
+                onAccept={acceptDuel} onCancel={cancelDuel} houseCutPct={houseCutPct} />
             ))}
           </View>
         )}
