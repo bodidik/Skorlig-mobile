@@ -239,7 +239,12 @@ export default function Picks1987() {
       }
       await fetchPicks();
       setExpanded(null);
-    } catch {}
+    } catch (e: any) {
+      /* ⚠️ SESSIZ CATCH IDI: API hatasi bildiriliyordu ama AG hatasi degil.
+       * Cevrimdisiyken kullanici secimini gonderiyor, hicbir sey olmuyor ve
+       * hata da gormuyor — secimi kaydedildi saniyor. */
+      Alert.alert("Bağlantı hatası", String(e?.message || e));
+    }
     setSubmitting(null);
   };
 

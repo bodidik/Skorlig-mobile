@@ -15,6 +15,8 @@ import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { shareResult } from "../../lib/share";
+/* Hata kodunu kullaniciya anlasilir Turkce metne cevirir — bkz. engelleme akisi. */
+import { hataMesaji } from "../../lib/hataMesaji";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -173,14 +175,42 @@ export default function MatchRaceScreen() {
           text: label,
           style: blocked ? "default" : "destructive",
           onPress: async () => {
+            /**
+             * ⚠️ ENGELLEME BAŞARISIZKEN ARAYÜZ "ENGELLENDİ" DİYORDU.
+             *
+             * `apiFetch` YALNIZCA ağ hatasında fırlatır; 500/401/403 gibi
+             * yanıtlarda fırlatmaz (standart fetch davranışı, bkz.
+             * lib/apiFetch.ts). Eski kod yanıtı hiç okumuyor, doğrudan
+             * `setBlocked(!blocked)` çağırıyordu:
+             *
+             *     await apiFetch(...)   // 500 -> fırlatmaz
+             *     setBlocked(!blocked)  // ekran "engellendi" der
+             *
+             * Sunucu engellemedi ama kullanıcı engellediğini sanıyor. Bu bir
+             * GÜVENLİK özelliği — taciz eden birini engellediğini düşünen
+             * kişi korunduğunu da düşünür.
+             *
+             * `catch (_) {}` da tamamen sessizdi: çevrimdışıyken dokunuyorsun,
+             * hiçbir şey olmuyor, hata da yok.
+             */
             try {
-              await apiFetch(`/api/friends/${action}`, {
+              const res = await apiFetch(`/api/friends/${action}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ targetUserId }),
               });
+              const j = await res.json().catch(() => null);
+              if (!res.ok || j?.ok === false) {
+                Alert.alert(
+                  blocked ? "Engel kaldırılamadı" : "Engellenemedi",
+                  hataMesaji(j?.error)
+                );
+                return;
+              }
               setBlocked(!blocked);
-            } catch (_) {}
+            } catch (e: any) {
+              Alert.alert("Bağlantı hatası", String(e?.message || e));
+            }
           },
         },
       ]
