@@ -289,7 +289,18 @@ export default function StatsScreen() {
   }
 
   // Global sezon – leaderboard: /api/leaderboard
-  async function loadTotals(nextScope: ScopeKey = scope, sadeceInsan = humansOnly) {
+  /**
+   * ⚠️ SINIR PARAMETRE OLARAK GEÇİLİYOR, DURUMDAN OKUNMUYOR.
+   *
+   * `setIstenenSinir(...)` eşzamansız; hemen ardından `loadTotals()` çağırmak
+   * ESKİ sınırı okurdu ve "Daha fazla göster" sessizce aynı kısa listeyi
+   * getirirdi. Bu tuzağa yazarken düştüm, ölçüm değil okuma yakaladı.
+   */
+  async function loadTotals(
+    nextScope: ScopeKey = scope,
+    sadeceInsan = humansOnly,
+    sinir: number = istenenSinir
+  ) {
     try {
       const parcalar: string[] = [];
       if (nextScope === "country") {
@@ -301,6 +312,7 @@ export default function StatsScreen() {
         parcalar.push(`season=${encodeURIComponent(bakilanSezon)}`);
         if (userId) parcalar.push(`userId=${encodeURIComponent(userId)}`);
       }
+      parcalar.push(`limit=${sinir}`);
       const q = parcalar.length ? `?${parcalar.join("&")}` : "";
       const r = await apiFetch(`/api/leaderboard${q}`);
       const j = await r.json();
@@ -460,6 +472,19 @@ export default function StatsScreen() {
    * kullanıcı bu yüzden ekrandan çıkamadı. Aynı desen burada da vardı.
    */
   const [gosterilecek, setGosterilecek] = useState(100);
+  /**
+   * ⚠️ SUNUCUDAN NE KADAR SATIR İSTENDİĞİ.
+   *
+   * Uç eskiden TÜM tabloyu gönderiyordu: ölçüldü (2026-08-02, canlı) 1575
+   * satır, 256 KB, 660 ms — ekran bunun ilk 100'ünü çiziyordu, yani 16 katı
+   * veri. Çizim tarafındaki donma zaten düzeltilmişti (`gosterilecek`), ağ
+   * tarafı kalmıştı.
+   *
+   * Sunucu artık `limit` kabul ediyor. Bir sayfa payı fazlasını istiyoruz ki
+   * "Daha fazla göster"in ilk basışı yeniden istek gerektirmesin; kullanıcı
+   * daha da açarsa sınır büyütülüp yeniden çekiliyor.
+   */
+  const [istenenSinir, setIstenenSinir] = useState(300);
 
   const genelRows = useMemo(() => totalsRows, [totalsRows]);
   const favRows = useMemo(() => teamRanks, [teamRanks]);
@@ -1016,7 +1041,17 @@ export default function StatsScreen() {
                     arayüzü donduruyordu (bkz. `gosterilecek`). */}
                 {view === "genel" && genelRows.length > gosterilecek && (
                   <TouchableOpacity
-                    onPress={() => setGosterilecek((n) => n + 100)}
+                    onPress={() => {
+                      const yeni = gosterilecek + 100;
+                      setGosterilecek(yeni);
+                      /* Elimizdekinin sonuna yaklaştıysak sunucudan daha
+                       * fazlasını iste — aksi halde liste sessizce kısa kalır. */
+                      if (yeni + 100 > istenenSinir) {
+                        const yeniSinir = istenenSinir + 500;
+                        setIstenenSinir(yeniSinir);
+                        loadTotals(scope, humansOnly, yeniSinir);
+                      }
+                    }}
                     style={{
                       marginTop: 10, alignSelf: "center", paddingHorizontal: 18,
                       paddingVertical: 9, borderRadius: 999, backgroundColor: Colors.dark,
