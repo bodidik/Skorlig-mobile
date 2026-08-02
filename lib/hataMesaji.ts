@@ -73,6 +73,12 @@ const SOZLUK: Record<string, string> = {
   TOO_MANY_OPEN_MINI:
     "Aynı anda bu kadar bitmemiş mini turnuvan olamaz. Birinin maçları oynanıp bitmesini bekle.",
 
+  /* ⚠️ Aynı maçlarla ikinci turnuva ödülü ÇOĞALTIYORDU: tek tahmin seti iki
+   * kez 20 LC alıyordu. Kullanıcıya ne yapacağını söylüyoruz — "bir şeyler
+   * ters gitti" demek, engelin nedenini gizler. */
+  AYNI_MAC_SETI_ACIK:
+    "Bu maçlarla zaten açık bir turnuvan var. Bitmesini bekle ya da farklı maçlar seç.",
+
   // ── Kimlik / yetki ───────────────────────────────────────────────
   UNAUTHORIZED: "Bu işlem için giriş yapman gerekiyor.",
   AUTH_REQUIRED: "Bu işlem için giriş yapman gerekiyor.",
