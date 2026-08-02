@@ -26,8 +26,15 @@ async function apiFetch(path: string, init?: RequestInit) {
   return sharedApiFetch(p, init as any);
 }
 
+/**
+ * ⚠️ ALAN ADI SUNUCUYLA BİRLİKTE DEĞİŞTİ: `monthlyLc` → `monthlyFloor`.
+ * Sunucu koşulsuz kasayı taban tamamlamaya çevirmiş, tip burada eski adda
+ * kalmıştı — TypeScript uyarmadı çünkü yanıt `any` üzerinden geliyordu ve
+ * ekran "undefined LC" bastı. Yanıt tipi elle yazıldığında derleyici bir
+ * güvence DEĞİLDİR; alan adını sunucudan doğrula.
+ */
 type Perks = {
-  monthlyLc: number;
+  monthlyFloor: number;
   dailyLc: number;
   regenCap: number;
   regenHours: number;
@@ -43,6 +50,8 @@ type StatusResp = {
   premiumUntil?: string | null;
   via?: string | null;
   perks?: Perks;
+  /** Ücretsiz kademe — ekran bu sayıları elle yazıyordu, artık sunucudan. */
+  freePerks?: Perks;
   plans?: Plan[];
   error?: string;
 };
@@ -108,12 +117,35 @@ export default function PremiumScreen() {
   const perks = data?.perks;
   const active = !!data?.active;
 
-  const perkRows = perks
+  const freePerks = data?.freePerks;
+  /**
+   * ⚠️ BU TABLO GERÇEK PARA KARŞILIĞI SATIN ALINAN ŞİROLARI ANLATIYOR;
+   * yanlış sayı = yanlış vaat. Üç hata ölçüldü (2026-08-02):
+   *
+   *  1) `perks.monthlyLc` sunucuda ARTIK YOK — `monthlyFloor` oldu. Ekran
+   *     ilk satırda birebir "undefined LC" yazıyordu.
+   *  2) Ücretsiz günlük "5 LC" elle yazılmıştı; ödeme yolundaki taban 3.
+   *  3) "Aylık kasa (her ay yenilenir)" mekaniği anlatmıyordu: bu bir
+   *     TAMAMLAMA. Bakiyen tavanın üstündeyse verilen 0'dır. "Her ay 60 LC
+   *     alırsın" diye sunmak, bakiyesi dolu premium kullanıcıya karşılığı
+   *     olmayan bir söz verirdi.
+   *
+   * ⚠️ ARTIK HİÇBİR SAYI BURADA YAZILI DEĞİL. Hepsi sunucudan; sunucu da
+   * onları ödemeyi yapan modüllerin kendi sabitlerinden okuyor
+   * (lib/ekonomi.cjs, lib/lc-regen.cjs). Buraya sabit yazmak, bugün
+   * düzeltilen sapmayı geri getirir.
+   */
+  const perkRows = perks && freePerks
     ? [
-        { icon: "💰", label: "Aylık kasa (her ay yenilenir)", free: "—", prem: `${perks.monthlyLc} LC` },
-        { icon: "🎁", label: "Günlük LC hakkı", free: "5 LC", prem: `${perks.dailyLc} LC` },
-        { icon: "⏳", label: "Token birikimi", free: "15 tavan / 4 saatte +1", prem: `${perks.regenCap} tavan / ${perks.regenHours} saatte +1` },
-        { icon: "🛒", label: "Mağaza bonusu", free: "—", prem: `%${Math.round(perks.storeBonusPct * 100)} ekstra LC` },
+        { icon: "🛡️", label: "Aylık LC güvencesi", note: "Ay başında bakiyen altına düşmüşse buraya tamamlanır",
+          free: "—", prem: `${perks.monthlyFloor} LC'ye tamamlanır` },
+        { icon: "🎁", label: "Günlük LC güvencesi", note: "Bakiyen tabanın altındaysa farklı yatırılır",
+          free: `${freePerks.dailyLc} LC'ye`, prem: `${perks.dailyLc} LC'ye` },
+        { icon: "⏳", label: "Token birikimi", note: null,
+          free: `${freePerks.regenCap} tavan / ${freePerks.regenHours} saatte +1`,
+          prem: `${perks.regenCap} tavan / ${perks.regenHours} saatte +1` },
+        { icon: "🛒", label: "Mağaza bonusu", note: null,
+          free: "—", prem: `%${Math.round(perks.storeBonusPct * 100)} ekstra LC` },
       ]
     : [];
 
@@ -197,9 +229,17 @@ export default function PremiumScreen() {
                   borderTopColor: Colors.border,
                 }}
               >
-                <Text style={{ flex: 1, fontSize: 12, color: Colors.slate900 }}>
-                  {row.icon} {row.label}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, color: Colors.slate900 }}>
+                    {row.icon} {row.label}
+                  </Text>
+                  {/* ⚠️ TAMAMLAMA olan ayrıcalıklarda mekanik YAZILMAK ZORUNDA:
+                      bakiyen tabanın üstündeyse verilen 0. Bu satır olmadan
+                      tablo "her ay şu kadar LC alırsın" diye okunuyor. */}
+                  {row.note ? (
+                    <Text style={{ fontSize: 10, color: Colors.muted, marginTop: 2 }}>{row.note}</Text>
+                  ) : null}
+                </View>
                 <Text style={{ width: 90, fontSize: 11, color: Colors.muted, textAlign: "center" }}>{row.free}</Text>
                 <Text style={{ width: 100, fontSize: 11, color: "#059669", fontWeight: "800", textAlign: "center" }}>
                   {row.prem}
