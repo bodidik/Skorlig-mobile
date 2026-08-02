@@ -180,7 +180,17 @@ export default function StatsScreen() {
   const [humanCount, setHumanCount] = useState(0);
 
   const [teamRanks, setTeamRanks] = useState<TeamRankRow[]>([]);
-  const [teamName, setTeamName] = useState<string>("Galatasaray");
+  /**
+   * ⚠️ ESKİDEN "Galatasaray" SABİTİYLE BAŞLIYORDU. Sunucu `/api/stats/me`
+   * içinde takımı doldurmadığı sürece (uzun süre `favTeam: null` sabitiydi)
+   * HERKESE Galatasaray gösteriliyordu — Fenerbahçeli kullanıcı kendi
+   * ekranında "Ana takım: Galatasaray" görüyordu.
+   *
+   * Artık boş başlıyor: takım `meStats.favTeam`'den geliyor. Takımı olmayan
+   * kullanıcıda boş kalır ve `loadTeamRanks` erken döner — yanlış takımın
+   * sıralamasını çekmektense hiç çekmemek doğru.
+   */
+  const [teamName, setTeamName] = useState<string>("");
   const [updatedAtTeam, setUpdatedAtTeam] = useState<string | null>(null);
 
   const [meStats, setMeStats] = useState<MeStats | null>(null);

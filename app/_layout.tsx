@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { isFirstRun } from "../lib/firstRun";
 import { configureNotificationHandler, registerForPush } from "../lib/push";
 import { flushPendingCountry } from "../lib/pendingCountry";
+import { flushPendingTeam } from "../lib/pendingTeam";
 import ErrorBoundary from "../components/ErrorBoundary";
 import CountryBackfillPrompt from "../components/CountryBackfillPrompt";
 import {
@@ -93,10 +94,16 @@ function AuthGuard() {
   // Onboarding'de seçilen ülke oturum yokken gönderilememiş olabilir —
   // kimlik oturur oturmaz gönder. Başarısızsa kayıt durur, sonraki açılışta
   // tekrar denenir.
+  //
+  // ⚠️ TAKIM DA AYNI YOLDAN. Onboarding'e takım adımı eklendi ve o da
+  // auth'tan önce seçiliyor; buraya eklenmezse seçim yerelde kalır ve
+  // sunucuya HİÇ gitmez — ülke tarafında tam bu sebeple 837 kullanıcı
+  // ülkesiz kalmıştı. bkz. lib/pendingChoice.ts
   useEffect(() => {
     if (!user || countryDone.current) return;
     countryDone.current = true;
     flushPendingCountry();
+    flushPendingTeam();
   }, [user]);
 
   // Paylaşılan bağlantıdaki davet kodunu yakala (uygulama kapalıyken açıldı)

@@ -9,8 +9,12 @@ import { markFirstRunDone, isFirstRun } from "../lib/firstRun";
 import { getDeviceCountry } from "../lib/locale";
 import { apiFetch } from "../lib/apiFetch";
 import { savePendingCountry, flushPendingCountry } from "../lib/pendingCountry";
+import { savePendingTeam, flushPendingTeam } from "../lib/pendingTeam";
 import { filterAndRankCountries } from "../lib/countrySort";
 import { FALLBACK_COUNTRIES, type CountryOpt } from "../lib/countriesFallback";
+
+/** `/api/stats/teams` yanıt şeması. */
+type TeamOpt = { team: string; flag: string };
 
 const GOLD = "#f59e0b";
 const BG   = "#020617";
@@ -136,6 +140,57 @@ export default function WelcomeScreen() {
     return () => { alive = false; };
   }, []);
 
+  /**
+   * TAKIM SEÇİMİ — ülkenin altında, İSTEĞE BAĞLI.
+   *
+   * ⚠️ ÜLKE GİBİ ZORUNLU DEĞİL. Ülkesiz kullanıcı hiçbir ülke sıralamasına
+   * giremiyor, o yüzden orada engel var. Takım yalnızca "aynı takımı
+   * tutanlar" sıralamasını açıyor; zorunlu kılmak onboarding'i uzatır ve
+   * takım tutmayan kullanıcıyı yalan söylemeye iter.
+   *
+   * ⚠️ LİSTE SUNUCUDAN, SERBEST METİN DEĞİL. Kullanıcı yazarsa "Galatasaray
+   * SK" / "galatasaray" gibi varyantlar doğar; sunucu bunları
+   * kanonikleştiriyor (api/lib/takim-katalog.cjs) ama listeden seçtirmek
+   * sorunu kaynağında bitiriyor.
+   */
+  const [team, setTeam] = useState<string | null>(null);
+  const [teamPickerOpen, setTeamPickerOpen] = useState(false);
+  const [allTeams, setAllTeams] = useState<TeamOpt[]>([]);
+  const [teamSearch, setTeamSearch] = useState("");
+
+  useEffect(() => {
+    if (!country) { setAllTeams([]); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/api/stats/teams?country=${encodeURIComponent(country)}`,
+          { skipAuth: true, cacheMs: 5 * 60_000 }
+        );
+        const data = await res.json();
+        const list: TeamOpt[] = (data?.teams ?? [])
+          .map((t: any) => ({ team: t?.team, flag: t?.flag ?? "" }))
+          .filter((t: TeamOpt) => !!t.team);
+        if (alive) setAllTeams(list);
+      } catch (e) {
+        // Engellemiyor: takım isteğe bağlı, liste boşsa adım atlanır.
+        console.warn("[onboarding] takım listesi alınamadı:", e);
+      }
+    })();
+    return () => { alive = false; };
+  }, [country]);
+
+  /* Ülke değişince eski takım seçimi ARTIK GEÇERSİZ — Türkiye'den İspanya'ya
+   * geçen kullanıcının seçili "Galatasaray"ı listede olmadığı hâlde ekranda
+   * kalırdı. */
+  useEffect(() => { setTeam(null); }, [country]);
+
+  const filteredTeams = (() => {
+    const q = teamSearch.trim().toLocaleLowerCase("tr");
+    if (!q) return allTeams;
+    return allTeams.filter((t) => t.team.toLocaleLowerCase("tr").includes(q));
+  })();
+
   // Sıralama + arama önceliği — bkz. lib/countrySort.
   // Boş arama → Türkiye başta, sonrası tr-alfabetik.
   // Arama → Türkiye önce (varsa), sonra "eng" gibi baştan eşleşenler,
@@ -170,8 +225,13 @@ export default function WelcomeScreen() {
     try {
       // Önce yerele yaz — oturum henüz hazır değilse bile seçim kaybolmasın.
       await savePendingCountry(country);
+      // Takım isteğe bağlı: yalnızca seçildiyse kaydedilir.
+      if (team) await savePendingTeam(team);
       // Oturum varsa hemen gönder; yoksa _layout açılışta flush eder.
-      if (user) await flushPendingCountry();
+      if (user) {
+        await flushPendingCountry();
+        if (team) await flushPendingTeam();
+      }
     } catch {}
     finally {
       await markFirstRunDone();
@@ -248,6 +308,37 @@ export default function WelcomeScreen() {
                     <>
                       <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 13 }}>Ülkeni seç</Text>
                       <Text style={{ color: "#64748b", fontSize: 11 }}>Sıralamalar ve maç listen buna göre kurulur</Text>
+                    </>
+                  )}
+                </View>
+                <Text style={{ color: "#475569", fontSize: 18 }}>›</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Takım seçimi (son slayt) — isteğe bağlı, ülke seçiliyse görünür */}
+            {item === SLIDES[SLIDES.length - 1] && !!country && (
+              <TouchableOpacity
+                onPress={() => setTeamPickerOpen(true)}
+                disabled={allTeams.length === 0}
+                style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: team ? GOLD + "33" : "#1e293b", paddingHorizontal: 14, paddingVertical: 12, opacity: allTeams.length === 0 ? 0.5 : 1 }}
+              >
+                <Text style={{ fontSize: 18 }}>⚽</Text>
+                <View style={{ flex: 1 }}>
+                  {team ? (
+                    <>
+                      <Text style={{ color: GOLD, fontWeight: "700", fontSize: 13 }}>Takımın: {team}</Text>
+                      <Text style={{ color: "#64748b", fontSize: 11 }}>Dokunup değiştirebilirsin</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={{ color: "#cbd5e1", fontWeight: "700", fontSize: 13 }}>
+                        Tuttuğun takım <Text style={{ color: "#475569", fontWeight: "400" }}>(isteğe bağlı)</Text>
+                      </Text>
+                      <Text style={{ color: "#64748b", fontSize: 11 }}>
+                        {allTeams.length === 0
+                          ? "Bu ülke için takım listesi yok"
+                          : "Aynı takımı tutanlar arasındaki sıralamanı açar"}
+                      </Text>
                     </>
                   )}
                 </View>
@@ -368,6 +459,73 @@ export default function WelcomeScreen() {
                 }
               />
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Takım seçici */}
+      <Modal
+        visible={teamPickerOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setTeamPickerOpen(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "#000000cc", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: BG, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "80%", paddingTop: 16 }}>
+            <View style={{ paddingHorizontal: 20, gap: 12, paddingBottom: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={{ flex: 1, color: "#fff", fontSize: 18, fontWeight: "900" }}>Tuttuğun takım</Text>
+                <TouchableOpacity onPress={() => setTeamPickerOpen(false)}>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Kapat</Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                value={teamSearch}
+                onChangeText={setTeamSearch}
+                placeholder="Takım ara..."
+                placeholderTextColor="#475569"
+                style={{ backgroundColor: CARD, borderRadius: 10, borderWidth: 1, borderColor: "#1e293b", paddingHorizontal: 14, paddingVertical: 10, color: "#fff", fontSize: 15 }}
+              />
+            </View>
+
+            <FlatList
+              data={filteredTeams}
+              keyExtractor={(t) => t.team}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+              /* Seçimi geri alabilmek gerekiyor: takım isteğe bağlı ve yanlışlıkla
+                 seçen kullanıcı başka türlü boşa döndüremezdi. */
+              ListHeaderComponent={
+                team ? (
+                  <TouchableOpacity
+                    onPress={() => { setTeam(null); setTeamSearch(""); setTeamPickerOpen(false); }}
+                    style={{ paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: "#0f172a" }}
+                  >
+                    <Text style={{ color: "#64748b", fontSize: 14 }}>Seçimi kaldır</Text>
+                  </TouchableOpacity>
+                ) : null
+              }
+              renderItem={({ item: t }) => {
+                const selected = t.team === team;
+                return (
+                  <TouchableOpacity
+                    onPress={() => { setTeam(t.team); setTeamSearch(""); setTeamPickerOpen(false); }}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: "#0f172a" }}
+                  >
+                    {!!t.flag && <Text style={{ fontSize: 20 }}>{t.flag}</Text>}
+                    <Text style={{ flex: 1, color: selected ? GOLD : "#cbd5e1", fontSize: 15, fontWeight: selected ? "700" : "400" }}>
+                      {t.team}
+                    </Text>
+                    {selected && <Text style={{ color: GOLD, fontSize: 16 }}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <Text style={{ color: "#475569", fontSize: 13, textAlign: "center", paddingVertical: 24 }}>
+                  Eşleşen takım yok
+                </Text>
+              }
+            />
           </View>
         </View>
       </Modal>

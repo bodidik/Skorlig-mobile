@@ -1,5 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { apiFetch } from "./apiFetch";
+import { bekleyenSecimOlustur } from "./pendingChoice";
 
 /**
  * Ülke seçimi onboarding'de yapılır ama oturum (Firebase user) o an henüz
@@ -8,62 +7,25 @@ import { apiFetch } from "./apiFetch";
  *
  * Çözüm: seçim önce yerelde saklanır, oturum açılır açılmaz sunucuya gönderilir.
  * Gönderim başarılı olana kadar kayıt durur; her açılışta tekrar denenir.
+ *
+ * ⚠️ Gövde `lib/pendingChoice.ts`'e taşındı — takım seçimi aynı deseni
+ * kullanıyor ve iki kopya tutmak, düzeltmenin birinde unutulması demekti.
+ * Dışa açık işlev adları ve davranış DEĞİŞMEDİ.
  */
+const secim = bekleyenSecimOlustur({
+  key: "skorlig.pendingCountry",
+  endpoint: "/api/users/set-country",
+  field: "country",
+  // Sunucu ülkeyi tanımadıysa tekrar denemenin anlamı yok.
+  dropOnError: ["COUNTRY_NOT_SUPPORTED"],
+});
 
-const KEY = "skorlig.pendingCountry";
-
-export async function savePendingCountry(country: string): Promise<void> {
-  try {
-    await AsyncStorage.setItem(KEY, country);
-  } catch {}
-}
-
-export async function getPendingCountry(): Promise<string | null> {
-  try {
-    return await AsyncStorage.getItem(KEY);
-  } catch {
-    return null;
-  }
-}
-
-export async function clearPendingCountry(): Promise<void> {
-  try {
-    await AsyncStorage.removeItem(KEY);
-  } catch {}
-}
+export const savePendingCountry = secim.save;
+export const getPendingCountry = secim.get;
+export const clearPendingCountry = secim.clear;
 
 /**
  * Bekleyen ülkeyi sunucuya gönderir. Oturum hazır olduğunda çağrılır.
- * Yalnızca sunucu kabul ederse yerel kayıt silinir; aksi halde bir sonraki
- * açılışta tekrar denenir.
- *
  * @returns kaydedilen ülke, gönderilecek bir şey yoksa veya başarısızsa null
  */
-export async function flushPendingCountry(): Promise<string | null> {
-  const country = await getPendingCountry();
-  if (!country) return null;
-
-  try {
-    const res = await apiFetch("/api/users/set-country", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country }),
-    });
-
-    const data = await res.json().catch(() => null);
-    if (res.ok && data?.ok) {
-      await clearPendingCountry();
-      return country;
-    }
-
-    // Sunucu ülkeyi tanımadıysa tekrar denemenin anlamı yok — kaydı düşür ki
-    // kullanıcı profilden yeniden seçebilsin.
-    if (data?.error === "COUNTRY_NOT_SUPPORTED") {
-      await clearPendingCountry();
-    }
-    return null;
-  } catch {
-    // Ağ hatası: kayıt dursun, sonraki açılışta yeniden denenir.
-    return null;
-  }
-}
+export const flushPendingCountry = secim.flush;
