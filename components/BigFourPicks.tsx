@@ -9,6 +9,9 @@ import Constants from "expo-constants";
 // çıkmıyordu; import edildiği an paketleme aşamasında çökerdi.
 // Projenin geri kalanıyla aynı kaynağa bağlandı.
 import { auth } from "../lib/firebase";
+/* Jetonu otomatik ekler — sunucu kendi tahminini yalnızca doğrulanmış
+ * kimliğe veriyor (bkz. api/routes/weekly-picks.cjs). */
+import { apiFetch } from "../lib/apiFetch";
 
 const API = Constants.expoConfig?.extra?.apiBase ?? "https://skorlig87.onrender.com";
 
@@ -64,8 +67,14 @@ export default function BigFourPicks() {
 
   const fetchPicks = useCallback(async () => {
     try {
-      const url = `${API}/api/weekly-picks${userId ? `?userId=${userId}` : ""}`;
-      const res = await fetch(url);
+      /* ⚠️ `apiFetch` — ham `fetch` DEĞİL. Sunucu kendi tahminini yalnızca
+       * DOĞRULANMIŞ kimliğe veriyor (bkz. api/routes/weekly-picks.cjs:
+       * başkasının açık maçtaki tahmini sızıyordu). Ham `fetch` jeton
+       * göndermediği için kullanıcı KENDİ tahminini de göremezdi. */
+      /* Sorgu AYRI kuruluyor — iç içe şablon uç-eşleşme tarayıcısını
+       * yanıltıyordu (bkz. api/tests/istemci-uc-eslesme.test.cjs). */
+      const qs = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+      const res = await apiFetch(`/api/weekly-picks${qs}`);
       const j = await res.json();
       if (j.ok) setPicks(j.picks ?? []);
       else setError(j.error ?? "Hata");

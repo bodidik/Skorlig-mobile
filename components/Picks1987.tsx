@@ -6,6 +6,9 @@ import {
 import Constants from "expo-constants";
 import hataMesaji from "../lib/hataMesaji";
 import { auth } from "../lib/firebase";
+/* Jetonu otomatik ekler — sunucu kendi tahminini yalnızca doğrulanmış
+ * kimliğe veriyor (bkz. api/routes/weekly-picks.cjs). */
+import { apiFetch } from "../lib/apiFetch";
 
 const API = Constants.expoConfig?.extra?.apiBase ?? "https://skorlig87.onrender.com";
 
@@ -164,7 +167,15 @@ export default function Picks1987() {
 
   const fetchPicks = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/weekly-picks${uid ? `?userId=${uid}` : ""}`);
+      /* ⚠️ `apiFetch` — ham `fetch` DEĞİL. Sunucu artık kendi tahminini
+       * yalnızca DOĞRULANMIŞ kimliğe veriyor (başkasının açık maçtaki
+       * tahmini sızıyordu; bkz. api/routes/weekly-picks.cjs). Ham `fetch`
+       * jeton göndermediği için kullanıcı KENDİ tahminini de göremezdi. */
+      /* Sorgu AYRI kuruluyor: iç içe şablon (`${uid ? `?...` : ""}`)
+       * hem okunaksız hem de uç-eşleşme tarayıcısını yanıltıyordu
+       * (bkz. api/tests/istemci-uc-eslesme.test.cjs). */
+      const qs = uid ? `?userId=${encodeURIComponent(uid)}` : "";
+      const res = await apiFetch(`/api/weekly-picks${qs}`);
       const j   = await res.json();
       if (j.ok) {
         setPicks(j.picks ?? []);
