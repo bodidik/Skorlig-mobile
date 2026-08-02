@@ -164,11 +164,30 @@ export default function PoolScreen() {
       {/* ── HAVUZ: yalnızca gerçek para ───────────────────────────────── */}
       <View style={{ backgroundColor: Colors.card, borderColor: Colors.cardBorder, borderWidth: 1, borderRadius: 12, padding: 14, gap: 6 }}>
         <Text style={{ color: Colors.muted, fontSize: 12 }}>HAVUZ</Text>
+        {/**
+          * ⚠️ VERİ GELMEDEN "0 LC" VE "KESİNTİ %0" YAZIYORDU.
+          *
+          * `pool` null başlıyor, yalnızca başarılı yüklemede yazılıyor ve iki
+          * yükleme yolunun ikisi de sessiz `catch {}`. Yükleme başarısızsa
+          * (ya da henüz bitmediyse) ekran şunu diyordu:
+          *     "0 LC · 0 oyuncu · kesinti %0 (yakılır)"
+          *
+          * İkisi de yanlış bilgi:
+          *   - havuz DOLU olabilir, boş gösteriliyordu
+          *   - kesinti GERÇEKTE var, kullanıcıya %0 deniyordu — yani para
+          *     şartı hakkında yanlış beyan. Düello ekranında kesinti oranı
+          *     tam bu sebeple sunucudan alınıyor.
+          *
+          * Bilinmeyen ile sıfır aynı şey değil; aynı sınıf bugün premium
+          * tablosunda, mini profilde ve tahmin ekranındaki bakiyede de çıktı.
+          */}
         <Text style={{ color: Colors.accent, fontSize: 26, fontWeight: "800" }}>
-          {pool?.pool ?? 0} LC
+          {pool ? `${pool.pool ?? 0} LC` : "— LC"}
         </Text>
         <Text style={{ color: Colors.muted, fontSize: 13 }}>
-          {pool?.players ?? 0} oyuncu · kesinti %{Math.round((pool?.cutPct ?? 0) * 100)} (yakılır)
+          {pool
+            ? `${pool.players ?? 0} oyuncu · kesinti %${Math.round((pool.cutPct ?? 0) * 100)} (yakılır)`
+            : "Havuz bilgisi yüklenemedi"}
         </Text>
         {kapali && (
           <Text style={{ color: Colors.finished, fontSize: 13, fontWeight: "600" }}>
