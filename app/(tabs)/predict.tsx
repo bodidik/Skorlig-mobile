@@ -627,9 +627,25 @@ useEffect(() => {
 
 
   const matchCost = wallet?.pricing?.matchEntryCost ?? 0;
+  /**
+   * ⚠️ BİLİNMEYEN BAKİYE İLE SIFIR AYNI ŞEY DEĞİL.
+   *
+   * `loadWalletSummary` hata durumunda (ağ, sunucu, jeton) `wallet`ı null
+   * yapıyor. Eskiden bakiye `?? 0` ile sıfıra çekiliyordu ve bu değer hem
+   * ekrana hem "yetersiz bakiye" uyarısına gidiyordu: 500 LC'si olan
+   * kullanıcıya "Cüzdan bakiyen (0 LC) yetersiz" denebilirdi.
+   *
+   * Bugün kapı fiilen ateşlemiyordu çünkü `matchCost` de aynı null'dan
+   * besleniyor ve 0 kalıyor — ama bu bir TESADÜF, güvence değil. Bedel bir
+   * gün sunucudan varsayılanla gelirse iddia yanlış olarak ortaya çıkardı.
+   *
+   * Artık bilinmezlik açıkça taşınıyor: bakiye bilinmiyorsa "yetersiz"
+   * İDDİA EDİLMİYOR.
+   */
+  const bakiyeBilinmiyor = !wallet?.user;
   const currentBalance = wallet?.user?.balance ?? 0;
   const mustPayForMatch = matchCost > 0 && hasPredByMe === false;
-  const lcInsufficient = mustPayForMatch && currentBalance < matchCost;
+  const lcInsufficient = mustPayForMatch && !bakiyeBilinmiyor && currentBalance < matchCost;
 
   /* ── Puan önizlemesi ───────────────────────────────────────────────────────
    * Maç sonucu çarpanı, maç zorluğu ve ülke ağırlığı SUNUCUDAN gelir
@@ -743,7 +759,9 @@ useEffect(() => {
   }
 
   // LC kontrolü (ilk tahmin ise ve bakiye yetersizse kilitle)
-  if (matchCost > 0 && hasPredByMe === false && currentBalance < matchCost) {
+  /* ⚠️ Bakiye bilinmiyorken "yetersiz" demiyoruz — yanlış suçlama olurdu.
+   * Sunucu zaten yetersiz bakiyeyi kendi reddediyor (LC_NOT_ENOUGH). */
+  if (matchCost > 0 && hasPredByMe === false && !bakiyeBilinmiyor && currentBalance < matchCost) {
     Alert.alert(
       "SkorLig",
       `Bu maç için giriş bedeli ${matchCost} LC. Cüzdan bakiyen (${currentBalance} LC) yetersiz görünüyor.`
@@ -969,7 +987,14 @@ useEffect(() => {
             style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#0f172a", borderWidth: 1, borderColor: Colors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}
           >
             <Text style={{ fontSize: 13, fontWeight: "800", color: Colors.accent }}>
-              {walletLoading ? "…" : `${wallet?.user?.balance ?? 0} LC`}
+              {/* ⚠️ BİLİNMEYEN BAKİYE "0 LC" DİYE BASILIYORDU.
+                    `loadWalletSummary` hata durumunda `wallet`ı null yapıyor
+                    (ağ hatası, sunucu hatası, jeton sorunu) ve yükleme bitince
+                    burası `?? 0` yüzünden "0 LC" yazıyordu: 500 LC'si olan
+                    kullanıcı parasının bittiğini sanıyordu. Bilinmeyen ile
+                    sıfır AYNI ŞEY DEĞİL — aynı hata premium tablosunda
+                    "undefined LC" olarak da yaşandı. */}
+              {walletLoading ? "…" : wallet?.user ? `${wallet.user.balance ?? 0} LC` : "— LC"}
             </Text>
             {wallet?.daily?.canClaim && (
               <View style={{ backgroundColor: "#f59e0b33", borderRadius: 999, paddingHorizontal: 5, paddingVertical: 1 }}>
