@@ -230,6 +230,17 @@ function statusLabel(fx: Fx) {
   if (st === "FT") return t("finished");
   if (st === "NS") return t("notStarted");
   if (st === "PEN") return t("penalties");
+  /**
+   * ⚠️ Sunucu, kaynağın canlı beslemesinden düşen ve sonucu hiç gelmeyen
+   * maçlara bu durumu yazıyor (bkz. services/livescore-sync.cjs
+   * takiliLiveUzlastir). Etiketi olmasaydı kullanıcı ham
+   * "OVERDUE_NO_RESULT" metnini görürdü — `statusLabel` bilinmeyen durumu
+   * olduğu gibi döndürüyor.
+   *
+   * Bu maçlar ÖNCE sonsuza dek "CANLI" görünüyordu; ölçüldü: 160 kayıt,
+   * en yaşlısı 15 gündür canlı sanılıyordu.
+   */
+  if (st === "OVERDUE_NO_RESULT" || st === "OVERDUE_NO_STATE") return t("noResult");
   return st || "-";
 }
 
