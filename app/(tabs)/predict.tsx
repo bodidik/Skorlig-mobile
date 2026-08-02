@@ -511,11 +511,21 @@ export default function PredictScreen() {
       return { locked: true as const, reason: "MATCH_STARTED" as const };
     }
 
-    // Kickoff’a 10 dk kala kilit
+    /* Kickoff’a N dk kala kilit — N SUNUCUDAN gelir.
+     *
+     * ⚠️ Burada sabit 10 yazılıydı. Sunucudaki DÖRT kopya 2026-08-03'te
+     * `lib/ekonomi.cjs TAHMIN_KILIT_DK` altında birleştirildi; bu BEŞİNCİ
+     * kopyaydı. Bugün değer aynı (10) ama sabit değişirse ekran maçı açık
+     * gösterip gönderim reddedilirdi — bu ürün o hatayı bir kez yaşadı:
+     * liste 5 dk diyordu, sunucu 10 uyguluyordu.
+     *
+     * Alan yoksa (eski sunucu) 10 varsayılır; davranış değişmez. */
    if (kickoffISO) {
+     const sunucuKilit = Number(st?.lockBeforeMin);
+     const lockMin = Number.isFinite(sunucuKilit) && sunucuKilit > 0 ? sunucuKilit : 10;
      const kickoffMs = new Date(kickoffISO).getTime();
      if (Number.isFinite(kickoffMs)) {
-       const lockAtMs = kickoffMs - 10 * 60 * 1000;
+       const lockAtMs = kickoffMs - lockMin * 60 * 1000;
        if (nowFromServer() >= lockAtMs) {
          return {
            locked: true,
