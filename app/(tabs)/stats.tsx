@@ -112,10 +112,10 @@ export default function StatsScreen() {
 
   function mapProfileLabel(profile?: string | null) {
     const p = String(profile || "").toUpperCase();
-    if (p === "DEV_4_TEAMS") return "4 takımlı geliştirme modu";
-    if (p === "TR_30_TEAMS") return "Türkiye ligi testi (≈30 takım)";
-    if (p === "GLOBAL_100_TEAMS") return "Kısıtlı global test modu (≈100 takım)";
-    if (p === "GLOBAL_456_TEAMS") return "Tam global yüksek yük modu";
+    if (p === "DEV_4_TEAMS") return t("profDev4");
+    if (p === "TR_30_TEAMS") return t("profTr30Full");
+    if (p === "GLOBAL_100_TEAMS") return t("profG100Full");
+    if (p === "GLOBAL_456_TEAMS") return t("profG456Full");
     return p ? `Custom: ${p}` : null;
   }
 
@@ -521,15 +521,15 @@ export default function StatsScreen() {
     mapProfileLabel(effectiveRuntime?.profile) || (features?.mode === "GS_ONLY" ? "GS-only mod" : null);
 
   const presetProfiles = [
-    { key: "DEV_4_TEAMS", label: "4 takımlı DEV", maxTeams: 4, maxLeagues: 1, notes: "4 takımlı geliştirme modu" },
-    { key: "TR_30_TEAMS", label: "TR 30 takım", maxTeams: 30, maxLeagues: 1, notes: "Türkiye ligi testi (≈30 takım)" },
-    { key: "GLOBAL_100_TEAMS", label: "Global 100 takım", maxTeams: 100, maxLeagues: 5, notes: "Kısıtlı global test modu (≈100 takım)" },
-    { key: "GLOBAL_456_TEAMS", label: "Global full", maxTeams: 456, maxLeagues: 20, notes: "Tam global yüksek yük modu" },
+    { key: "DEV_4_TEAMS", label: t("profDev4Short"), maxTeams: 4, maxLeagues: 1, notes: t("profDev4") },
+    { key: "TR_30_TEAMS", label: t("profTr30Short"), maxTeams: 30, maxLeagues: 1, notes: t("profTr30Full") },
+    { key: "GLOBAL_100_TEAMS", label: t("profG100"), maxTeams: 100, maxLeagues: 5, notes: t("profG100Full") },
+    { key: "GLOBAL_456_TEAMS", label: t("profG456Short"), maxTeams: 456, maxLeagues: 20, notes: t("profG456Full") },
   ];
 
   async function saveRuntimeProfile() {
     if (!adminProfile) {
-      Alert.alert("SkorLig", "Önce bir çalışma profili seç.");
+      Alert.alert("SkorLig", t("pickProfileFirst"));
       return;
     }
     try {
@@ -565,7 +565,7 @@ export default function StatsScreen() {
       await refreshRuntimeShadow();
       await loadAll();
 
-      Alert.alert("SkorLig", "Çalışma modu güncellendi. /api/config çıktısına yansıyacak.");
+      Alert.alert("SkorLig", t("runtimeUpdated2"));
       setAdminModalOpen(false);
     } catch (e: any) {
       Alert.alert(t("error"), String(e?.message || e));
@@ -639,7 +639,7 @@ export default function StatsScreen() {
                       gap: 6,
                     }}
                   >
-                    <Text style={{ color: "#a5b4fc", fontSize: 11, fontWeight: "600" }}>Çalışma modu:</Text>
+                    <Text style={{ color: "#a5b4fc", fontSize: 11, fontWeight: "600" }}>{t("runtimeModeLbl")}</Text>
                     <Text style={{ color: "#e5e7eb", fontSize: 11, fontWeight: "600" }} numberOfLines={1}>
                       {runtimeLabel}
                     </Text>
@@ -648,10 +648,10 @@ export default function StatsScreen() {
               )}
 
               {!runtimeLabel && cfgLoading && (
-                <Text style={{ color: Colors.muted, fontSize: 11 }}>Çalışma modu yükleniyor...</Text>
+                <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("runtimeLoading2")}</Text>
               )}
               {cfgError && !runtimeLabel && !cfgLoading && (
-                <Text style={{ color: "#f97316", fontSize: 11 }}>Mod okunamadı: {cfgError}</Text>
+                <Text style={{ color: "#f97316", fontSize: 11 }}>{t("modeReadFailed", { e: cfgError })}</Text>
               )}
             </View>
 
@@ -1173,9 +1173,9 @@ export default function StatsScreen() {
       >
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <View style={{ width: "100%", maxWidth: 420, borderRadius: 16, padding: 16, backgroundColor: "#020617", borderWidth: 1, borderColor: Colors.border }}>
-            <Text style={{ color: "#e5e7eb", fontWeight: "700", fontSize: 14, marginBottom: 8 }}>Çalışma modu (admin)</Text>
+            <Text style={{ color: "#e5e7eb", fontWeight: "700", fontSize: 14, marginBottom: 8 }}>{t("runtimeAdminTtl")}</Text>
             <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 8 }}>
-              Bu panel, sadece bilinçli kullanım için. Badge’e 5 saniye uzun basarak açılır. Değişiklikler backend’de runtime-mode.json dosyasına yazılır.
+              {t("runtimeAdminHelp")}
             </Text>
 
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
@@ -1206,12 +1206,12 @@ export default function StatsScreen() {
               })}
             </View>
 
-            <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 4 }}>Profil (custom yazmak istersen):</Text>
+            <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 4 }}>{t("profileCode")}</Text>
             <TextInput
               value={adminProfile}
               onChangeText={setAdminProfile}
               autoCapitalize="characters"
-              placeholder="DEV_4_TEAMS / TR_30_TEAMS / ..."
+              placeholder={t("profilePh")}
               placeholderTextColor={Colors.muted}
               style={{
                 borderWidth: 1,
@@ -1231,7 +1231,7 @@ export default function StatsScreen() {
                 <TextInput
                   value={adminMaxTeams}
                   onChangeText={setAdminMaxTeams}
-                  placeholder="örn: 4 / 30 / 100"
+                  placeholder={t("maxTeamsPh2")}
                   placeholderTextColor={Colors.muted}
                   keyboardType="numeric"
                   style={{
@@ -1250,7 +1250,7 @@ export default function StatsScreen() {
                 <TextInput
                   value={adminMaxLeagues}
                   onChangeText={setAdminMaxLeagues}
-                  placeholder="örn: 1 / 5 / 20"
+                  placeholder={t("maxLeaguesPh2")}
                   placeholderTextColor={Colors.muted}
                   keyboardType="numeric"
                   style={{
@@ -1266,11 +1266,11 @@ export default function StatsScreen() {
               </View>
             </View>
 
-            <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 2 }}>Not (opsiyonel):</Text>
+            <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 2 }}>{t("noteOptional")}</Text>
             <TextInput
               value={adminNotes}
               onChangeText={setAdminNotes}
-              placeholder="Örn: 'TR test: 30 takım'..."
+              placeholder={t("notesPh3")}
               placeholderTextColor={Colors.muted}
               multiline
               style={{
@@ -1293,7 +1293,7 @@ export default function StatsScreen() {
                 onPress={() => setAdminModalOpen(false)}
                 style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: Colors.border }}
               >
-                <Text style={{ color: Colors.muted, fontSize: 12, fontWeight: "600" }}>Kapat</Text>
+                <Text style={{ color: Colors.muted, fontSize: 12, fontWeight: "600" }}>{t("close")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1307,7 +1307,7 @@ export default function StatsScreen() {
                   opacity: adminSaving ? 0.7 : 1,
                 }}
               >
-                <Text style={{ color: adminSaving ? "#fff" : Colors.onAccent, fontSize: 12, fontWeight: "700" }}>{adminSaving ? "Kaydediliyor..." : "Kaydet"}</Text>
+                <Text style={{ color: adminSaving ? "#fff" : Colors.onAccent, fontSize: 12, fontWeight: "700" }}>{adminSaving ? t("savingLbl") : t("save")}</Text>
               </TouchableOpacity>
             </View>
           </View>

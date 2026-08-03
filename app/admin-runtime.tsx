@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import Colors from "../constants/colors";
+import { t, useLang } from "../lib/i18n";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
 import BackBar from "../components/BackBar";
@@ -39,6 +40,7 @@ type RuntimeMode = {
 };
 
 export default function AdminRuntimeScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
 
   const [mode, setMode] = useState<RuntimeMode | null>(null);
@@ -124,11 +126,11 @@ export default function AdminRuntimeScreen() {
       const m: RuntimeMode = j.mode || j.data || {};
       setMode(m);
       applyModeToForm(m);
-      Alert.alert("SkorLig", "Runtime modu güncellendi ✅");
+      Alert.alert("SkorLig", t("runtimeUpdated"));
     } catch (e: any) {
       const msg = String(e?.message || e);
       setError(msg);
-      Alert.alert("Hata", msg);
+      Alert.alert(t("error"), msg);
     } finally {
       setSaving(false);
     }
@@ -164,7 +166,7 @@ export default function AdminRuntimeScreen() {
     }
 
     if (Object.keys(patch).length === 0) {
-      Alert.alert("Uyarı", "Kaydedilecek bir değişiklik bulunamadı.");
+      Alert.alert(t("warnTitle"), t("noChangeToSave"));
       return;
     }
 
@@ -193,7 +195,7 @@ export default function AdminRuntimeScreen() {
         <View style={{ paddingVertical: 24, alignItems: "center" }}>
           <ActivityIndicator />
           <Text style={{ color: Colors.muted, marginTop: 8, fontSize: 12 }}>
-            Runtime modu yükleniyor...
+            {t("runtimeLoading")}
           </Text>
         </View>
       )}
@@ -226,18 +228,18 @@ export default function AdminRuntimeScreen() {
           }}
         >
           <Text style={{ color: "#e5e7eb", fontWeight: "700", marginBottom: 2 }}>
-            Aktif runtime modu
+            {t("activeRuntime")}
           </Text>
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>Profil: {currentProfile}</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("profileRow", { p: currentProfile })}</Text>
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Maks. takım: {currentMaxTeams ?? "—"}
+            {t("maxTeamsRow", { n: currentMaxTeams ?? "—" })}
           </Text>
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Maks. lig: {currentMaxLeagues ?? "—"}
+            {t("maxLeaguesRow", { n: currentMaxLeagues ?? "—" })}
           </Text>
-          {!!mode.notes && <Text style={{ color: Colors.muted, fontSize: 12 }}>Not: {mode.notes}</Text>}
-          {!!mode.updatedAt && <Text style={{ color: Colors.muted, fontSize: 11 }}>Güncelleme: {mode.updatedAt}</Text>}
-          {!!mode.updatedBy && <Text style={{ color: Colors.muted, fontSize: 11 }}>Güncelleyen: {mode.updatedBy}</Text>}
+          {!!mode.notes && <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("noteRow", { n: mode.notes })}</Text>}
+          {!!mode.updatedAt && <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("updatedRow", { d: mode.updatedAt })}</Text>}
+          {!!mode.updatedBy && <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("updatedByRow", { u: mode.updatedBy })}</Text>}
         </View>
       )}
 
@@ -254,17 +256,17 @@ export default function AdminRuntimeScreen() {
         }}
       >
         <Text style={{ color: "#e5e7eb", fontWeight: "700", marginBottom: 4 }}>
-          Hızlı profil geçişi
+          {t("quickProfile")}
         </Text>
         <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 4 }}>
-          Sistem ağırlaştığında tek tıkla daha küçük profile geçebil, rahat olduğunda tekrar büyütebil.
+          {t("quickProfileHelp")}
         </Text>
 
         {([
-          { key: "DEV_4_TEAMS", label: "4 takımlı geliştirme", desc: "Sadece 4 takım, düşük yük" },
-          { key: "TR_30_TEAMS", label: "TR 30 takım modu", desc: "Örnek Türkiye ligi yükü" },
-          { key: "GLOBAL_100_TEAMS", label: "Global 100 takım", desc: "Kısıtlı global test" },
-          { key: "GLOBAL_456_TEAMS", label: "Global 456 takım", desc: "Tam yük (dikkatli kullan)" },
+          { key: "DEV_4_TEAMS", label: t("prof4Teams"), desc: t("prof4TeamsDesc") },
+          { key: "TR_30_TEAMS", label: t("profTr30"), desc: t("profTr30Desc") },
+          { key: "GLOBAL_100_TEAMS", label: t("profG100"), desc: t("profG100Desc") },
+          { key: "GLOBAL_456_TEAMS", label: t("profG456"), desc: t("profG456Desc") },
         ] as const).map((p) => (
           <TouchableOpacity
             key={p.key}
@@ -316,17 +318,17 @@ export default function AdminRuntimeScreen() {
         }}
       >
         <Text style={{ color: "#e5e7eb", fontWeight: "700", marginBottom: 4 }}>
-          Manuel ayarlar
+          {t("manualSettings")}
         </Text>
         <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 4 }}>
-          Boş bıraktığın alanlar değişmeden kalır.
+          {t("emptyKeepsOld")}
         </Text>
 
-        <Text style={{ color: Colors.muted, fontSize: 11 }}>Profil kodu</Text>
+        <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("profileCode")}</Text>
         <TextInput
           value={profileInput}
           onChangeText={setProfileInput}
-          placeholder="Örn: DEV_4_TEAMS"
+          placeholder={t("profilePh")}
           placeholderTextColor={Colors.muted}
           style={{
             paddingHorizontal: 10,
@@ -341,12 +343,12 @@ export default function AdminRuntimeScreen() {
         />
 
         <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 8 }}>
-          Maksimum takım sayısı
+          {t("maxTeamCount")}
         </Text>
         <TextInput
           value={maxTeamsInput}
           onChangeText={setMaxTeamsInput}
-          placeholder="Örn: 4, 30, 100, 456"
+          placeholder={t("maxTeamPh")}
           placeholderTextColor={Colors.muted}
           keyboardType="numeric"
           style={{
@@ -361,12 +363,12 @@ export default function AdminRuntimeScreen() {
         />
 
         <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 8 }}>
-          Maksimum lig sayısı
+          {t("maxLeagueCount")}
         </Text>
         <TextInput
           value={maxLeaguesInput}
           onChangeText={setMaxLeaguesInput}
-          placeholder="Örn: 1, 5, 20"
+          placeholder={t("maxLeaguePh")}
           placeholderTextColor={Colors.muted}
           keyboardType="numeric"
           style={{
@@ -384,7 +386,7 @@ export default function AdminRuntimeScreen() {
         <TextInput
           value={notesInput}
           onChangeText={setNotesInput}
-          placeholder="Örn: Yoğunluk sebebiyle 4 takıma düşürüldü"
+          placeholder={t("notesPh2")}
           placeholderTextColor={Colors.muted}
           style={{
             paddingHorizontal: 10,
@@ -399,12 +401,12 @@ export default function AdminRuntimeScreen() {
         />
 
         <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 8 }}>
-          Güncelleyen (log için)
+          {t("updatedByLbl")}
         </Text>
         <TextInput
           value={updatedByInput}
           onChangeText={setUpdatedByInput}
-          placeholder="Örn: mobile-admin"
+          placeholder={t("updatedByPh")}
           placeholderTextColor={Colors.muted}
           style={{
             paddingHorizontal: 10,
@@ -434,7 +436,7 @@ export default function AdminRuntimeScreen() {
             <ActivityIndicator size="small" style={{ marginRight: 8 }} color="#fff" />
           )}
           <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>
-            Manuel ayarları kaydet
+            {t("saveManual")}
           </Text>
         </TouchableOpacity>
       </View>

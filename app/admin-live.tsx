@@ -5,6 +5,7 @@ import {
   ScrollView, ActivityIndicator, Alert, FlatList, RefreshControl,
 } from "react-native";
 import Colors, { on } from "../constants/colors";
+import { t, useLang } from "../lib/i18n";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
 
@@ -64,6 +65,7 @@ const STATUS_ORDER: Record<string, number> = {
 
 // ─── Ana bileşen ─────────────────────────────────────────
 export default function AdminLiveScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const [fixtures, setFixtures] = useState<Fx[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -101,7 +103,7 @@ export default function AdminLiveScreen() {
       });
       setFixtures(list);
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     }
   }, []);
 
@@ -181,7 +183,7 @@ export default function AdminLiveScreen() {
         body: JSON.stringify(body),
       }).then(x => x.json());
 
-      if (!r?.ok) { Alert.alert("Hata", r?.error || "POST_FAILED"); return; }
+      if (!r?.ok) { Alert.alert(t("error"), r?.error || "POST_FAILED"); return; }
 
       // Sunucudan dönen state'i UI'a yansıt
       const st = r.state;
@@ -197,7 +199,7 @@ export default function AdminLiveScreen() {
       // Listeyi de yenile (skor badge güncellenir)
       await loadFixtures();
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setSaving(false);
     }
@@ -245,10 +247,10 @@ export default function AdminLiveScreen() {
     const a = toNum(awayGoals) ?? 0;
 
     Alert.alert(
-      "Maçı Bitir",
-      `${selected.home} ${h}–${a} ${selected.away}\n\nSonuç kaydedilip tüm tahminler settle edilecek. Emin misin?`,
+      t("finishMatchTitle"),
+      t("finishMatchAsk", { h: selected.home, sh: h, sa: a, a: selected.away }),
       [
-        { text: "İptal", style: "cancel" },
+        { text: t("cancel"), style: "cancel" },
         {
           text: "Evet, Bitir",
           style: "destructive",
@@ -283,7 +285,7 @@ export default function AdminLiveScreen() {
               });
               const setJson = await setRes.json();
               if (!setJson?.ok) {
-                Alert.alert("Hata", setJson?.error || "RESULTS_SET_FAILED");
+                Alert.alert(t("error"), setJson?.error || "RESULTS_SET_FAILED");
                 return;
               }
               // 3) Tahminleri settle et
@@ -294,7 +296,7 @@ export default function AdminLiveScreen() {
               });
               const sJson = await sRes.json();
               if (!sJson?.ok) {
-                Alert.alert("Hata", sJson?.error || "SETTLE_FAILED");
+                Alert.alert(t("error"), sJson?.error || "SETTLE_FAILED");
                 return;
               }
               const settled = sJson?.leaderboard?.length ?? "?";
@@ -302,16 +304,16 @@ export default function AdminLiveScreen() {
                 ?.slice()
                 .sort((a: any, b: any) => (b.points ?? 0) - (a.points ?? 0))[0];
               const topLine = topScore
-                ? `\n\n🥇 ${topScore.userId}: ${Math.round(topScore.points * 10) / 10} puan`
+                ? t("topScorerLine", { u: topScore.userId, p: Math.round(topScore.points * 10) / 10 })
                 : "";
               Alert.alert(
-                "Maç Bitti ✓",
+                t("matchFinished"),
                 `${selected.home} ${h}–${a} ${selected.away}\n\n${settled} tahmin settle edildi.${topLine}`
               );
               setStatus("FT");
               await loadFixtures();
             } catch (e: any) {
-              Alert.alert("Hata", String(e?.message || e));
+              Alert.alert(t("error"), String(e?.message || e));
             } finally {
               setSaving(false);
             }
@@ -447,9 +449,9 @@ export default function AdminLiveScreen() {
       {/* Hızlı durum butonları */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
         {[
-          { label: "▶ LIVE", s: "LIVE", bg: "#22c55e" },
+          { label: t("liveBtn"), s: "LIVE", bg: "#22c55e" },
           { label: "⏸ HT", s: "HT", bg: "#f59e0b" },
-          { label: "✓ FT", s: "FT", bg: "#ef4444" },
+          { label: t("ftBtn"), s: "FT", bg: "#ef4444" },
           { label: "2H", s: "2H", bg: "#3b82f6" },
           { label: "NS", s: "NS", bg: "#334155" },
           { label: "AET", s: "AET", bg: "#a855f7" },
@@ -502,9 +504,9 @@ export default function AdminLiveScreen() {
       {/* Togglelar */}
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
         {[
-          { label: "🟥 Ev Kırmızı", val: redHome, set: setRedHome },
-          { label: "🟥 Dep Kırmızı", val: redAway, set: setRedAway },
-          { label: "⚽ Penaltı", val: penaltyAny, set: setPenaltyAny },
+          { label: t("redHomeLbl"), val: redHome, set: setRedHome },
+          { label: t("redAwayLbl"), val: redAway, set: setRedAway },
+          { label: t("penaltyLbl2"), val: penaltyAny, set: setPenaltyAny },
         ].map(({ label, val, set }) => (
           <TouchableOpacity
             key={label}
@@ -522,7 +524,7 @@ export default function AdminLiveScreen() {
 
       {/* İlk gol */}
       <View style={{ flexDirection: "row", gap: 8, alignItems: "center", marginBottom: 12 }}>
-        <Text style={{ color: "#64748b", fontSize: 12, width: 50 }}>İlk Gol</Text>
+        <Text style={{ color: "#64748b", fontSize: 12, width: 50 }}>{t("firstGoalLbl2")}</Text>
         {["H", "A", ""].map((v) => (
           <TouchableOpacity key={v || "none"} onPress={() => setFirstGoal(v)}
             style={{ flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: firstGoal === v ? "#3b82f6" : "#1e2d3d", borderWidth: 1, borderColor: firstGoal === v ? "#3b82f6" : "#334155" }}>
@@ -535,7 +537,7 @@ export default function AdminLiveScreen() {
       <TextInput
         value={note}
         onChangeText={setNote}
-        placeholder="Not (timeline): 45' sarı kart, gol iptal..."
+        placeholder={t("timelinePh")}
         placeholderTextColor="#475569"
         multiline
         style={{
@@ -554,7 +556,7 @@ export default function AdminLiveScreen() {
         }}
       >
         <Text style={{ textAlign: "center", color: on(saving ? "#334155" : Colors.accent), fontWeight: "900", fontSize: 15 }}>
-          {saving ? "Kaydediliyor..." : "💾 Güncelle"}
+          {saving ? t("savingLbl") : t("updateBtn")}
         </Text>
       </TouchableOpacity>
 
@@ -569,7 +571,7 @@ export default function AdminLiveScreen() {
         }}
       >
         <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900", fontSize: 15 }}>
-          🏁 FT Bitir + Tahminleri Settle Et
+          {t("ftSettleBtn")}
         </Text>
       </TouchableOpacity>
     </View>
@@ -577,11 +579,11 @@ export default function AdminLiveScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#020617" }}>
-      <BackBar title="🎮 Canlı Admin" />
+      <BackBar title={t("liveAdminTitle")} />
       {/* Başlık */}
       <View style={{ padding: 16, paddingBottom: 8 }}>
         <Text style={{ fontSize: 11, color: "#475569" }}>
-          Maça dokun → kontrol paneli açılır
+          {t("tapMatchHelp")}
         </Text>
       </View>
 
@@ -594,7 +596,7 @@ export default function AdminLiveScreen() {
         ListEmptyComponent={
           loading
             ? <View style={{ paddingVertical: 40, alignItems: "center" }}><ActivityIndicator color="#475569" /></View>
-            : <Text style={{ color: "#475569", textAlign: "center", paddingVertical: 40 }}>Maç bulunamadı</Text>
+            : <Text style={{ color: "#475569", textAlign: "center", paddingVertical: 40 }}>{t("matchNotFound")}</Text>
         }
         renderItem={renderFx}
       />

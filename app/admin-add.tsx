@@ -6,6 +6,7 @@ import {
   ScrollView, ActivityIndicator, Alert, RefreshControl,
 } from "react-native";
 import Colors from "../constants/colors";
+import { t, useLang } from "../lib/i18n";
 import { withAdminHeaders, hasAdminToken } from "../lib/adminToken";
 import BackBar from "../components/BackBar";
 
@@ -54,6 +55,7 @@ function buildKickoffISO(dateStr: string, timeStr: string): string | null {
 }
 
 export default function AdminAddScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const [tokenReady, setTokenReady] = useState(false);
   useEffect(() => { hasAdminToken().then(setTokenReady); }, []);
 
@@ -78,9 +80,9 @@ export default function AdminAddScreen() {
         `/api/admin/search-match?q=${encodeURIComponent(searchQ.trim())}`
       ).then(x => x.json());
       if (r?.ok) setSearchResults(r.events || []);
-      else Alert.alert("Hata", r?.error || "ARAMA_HATASI");
+      else Alert.alert(t("error"), r?.error || "ARAMA_HATASI");
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setSearching(false); setSearchDone(true);
     }
@@ -125,7 +127,7 @@ export default function AdminAddScreen() {
       for (const f of list) if (f.note) seed[String(f.fixtureId)] = String(f.note);
       setNotes(seed);
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     }
   }, []);
 
@@ -143,9 +145,9 @@ export default function AdminAddScreen() {
   );
 
   const addMatch = useCallback(async () => {
-    if (!tokenReady) { Alert.alert("Admin", "Token ayarlı değil. Profil > Admin bölümünden token gir."); return; }
+    if (!tokenReady) { Alert.alert("Admin", t("tokenNotSet")); return; }
     const kickoffISO = buildKickoffISO(dateStr, timeStr);
-    if (!kickoffISO) { Alert.alert("Eksik bilgi", "Tarih (YYYY-AA-GG) ve saat (SS:DD) geçerli olmalı."); return; }
+    if (!kickoffISO) { Alert.alert(t("missingInfo"), t("dateTimeInvalid")); return; }
     try {
       setAdding(true);
       const r = await apiFetch("/api/admin/fixtures/add", {
@@ -160,14 +162,14 @@ export default function AdminAddScreen() {
       }).then(x => x.json());
 
       if (!r?.ok) {
-        Alert.alert("Hata", r?.error === "FIXTURE_EXISTS" ? "Bu maç zaten ekli." : (r?.error || "EKLENEMEDI"));
+        Alert.alert(t("error"), r?.error === "FIXTURE_EXISTS" ? t("fixtureExists") : (r?.error || "EKLENEMEDI"));
         return;
       }
-      Alert.alert("Eklendi ✓", `${home.trim()} — ${away.trim()}\n${fmtKick(r.fixture)}`);
+      Alert.alert(t("addedCheck"), `${home.trim()} — ${away.trim()}\n${fmtKick(r.fixture)}`);
       setHome(""); setAway(""); setDateStr(""); setTimeStr("20:00"); setLeague(""); setNewNote("");
       await loadFixtures();
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setAdding(false);
     }
@@ -183,21 +185,21 @@ export default function AdminAddScreen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fixtureId: fid, note, home: fx.home, away: fx.away }),
       }).then(x => x.json());
-      if (!r?.ok) { Alert.alert("Hata", r?.error || "NOT_KAYDEDILEMEDI"); return; }
-      Alert.alert(note ? "Not kaydedildi ✓" : "Not silindi", note ? "Kullanıcılar bu notu görecek." : "");
+      if (!r?.ok) { Alert.alert(t("error"), r?.error || "NOT_KAYDEDILEMEDI"); return; }
+      Alert.alert(note ? t("noteSaved") : t("noteDeleted"), note ? t("noteVisible") : "");
       await loadFixtures();
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setSavingId(null);
     }
   }, [notes, loadFixtures]);
 
   const deleteMatch = useCallback((fx: Fx) => {
-    Alert.alert("Maçı sil", `${fx.home} — ${fx.away}\n\nBu maç listeden kaldırılsın mı?`, [
-      { text: "Vazgeç", style: "cancel" },
+    Alert.alert(t("deleteMatchTitle"), t("deleteMatchAsk", { h: fx.home, a: fx.away }), [
+      { text: t("dismiss"), style: "cancel" },
       {
-        text: "Sil", style: "destructive",
+        text: t("delete2"), style: "destructive",
         onPress: async () => {
           try {
             const r = await apiFetch("/api/admin/fixtures/delete", {
@@ -205,9 +207,9 @@ export default function AdminAddScreen() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ fixtureId: fx.fixtureId }),
             }).then(x => x.json());
-            if (!r?.ok) { Alert.alert("Hata", r?.error || "SILINEMEDI"); return; }
+            if (!r?.ok) { Alert.alert(t("error"), r?.error || "SILINEMEDI"); return; }
             await loadFixtures();
-          } catch (e: any) { Alert.alert("Hata", String(e?.message || e)); }
+          } catch (e: any) { Alert.alert(t("error"), String(e?.message || e)); }
         },
       },
     ]);
@@ -224,7 +226,7 @@ export default function AdminAddScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#020617" }}>
-      <BackBar title="➕ Maç Ekle + Not" />
+      <BackBar title={t("addMatchTitle")} />
       <ScrollView
         contentContainerStyle={{ padding: 14, paddingBottom: 60 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#475569" />}
@@ -232,19 +234,19 @@ export default function AdminAddScreen() {
         {!tokenReady && (
           <View style={{ backgroundColor: "#3a1212", borderColor: "#7f1d1d", borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 12 }}>
             <Text style={{ color: "#fca5a5", fontSize: 12 }}>
-              Admin token ayarlı değil — Profil {">"} Admin bölümünden token gir, sonra buraya dön.
+              {t("tokenBanner")}
             </Text>
           </View>
         )}
 
         {/* ── MAÇ ARA (TheSportsDB) ── */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: "#3b82f655", padding: 14, gap: 10, marginBottom: 14 }}>
-          <Text style={{ color: "#60a5fa", fontWeight: "900", fontSize: 16 }}>🔍 Maç Ara</Text>
-          <Text style={{ color: "#64748b", fontSize: 11 }}>Takım adı yaz, yaklaşan maçları bul, tek tıkla ekle.</Text>
+          <Text style={{ color: "#60a5fa", fontWeight: "900", fontSize: 16 }}>{t("searchMatch")}</Text>
+          <Text style={{ color: "#64748b", fontSize: 11 }}>{t("searchMatchHelp")}</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <TextInput
               value={searchQ} onChangeText={setSearchQ}
-              placeholder="Takım adı (ör: Karabağ, Galatasaray...)"
+              placeholder={t("teamNamePh")}
               placeholderTextColor="#475569"
               style={{ ...inputStyle, flex: 1 }}
               onSubmitEditing={searchMatch}
@@ -255,12 +257,12 @@ export default function AdminAddScreen() {
               disabled={searching || searchQ.trim().length < 2}
               style={{ paddingHorizontal: 16, justifyContent: "center", borderRadius: 8, backgroundColor: searching || searchQ.trim().length < 2 ? "#1e293b" : "#3b82f6" }}
             >
-              <Text style={{ color: "#fff", fontWeight: "800" }}>{searching ? "..." : "Ara"}</Text>
+              <Text style={{ color: "#fff", fontWeight: "800" }}>{searching ? "..." : t("searchBtn")}</Text>
             </TouchableOpacity>
           </View>
           {searching && <ActivityIndicator color="#3b82f6" />}
           {searchDone && searchResults.length === 0 && !searching && (
-            <Text style={{ color: "#64748b", textAlign: "center", fontSize: 12 }}>Maç bulunamadı.</Text>
+            <Text style={{ color: "#64748b", textAlign: "center", fontSize: 12 }}>{t("matchNotFound")}</Text>
           )}
           {searchResults.map(ev => (
             <TouchableOpacity
@@ -274,53 +276,53 @@ export default function AdminAddScreen() {
               <Text style={{ color: "#94a3b8", fontSize: 11, marginTop: 2 }}>
                 {ev.dateEvent} {ev.time} · {ev.league}
               </Text>
-              <Text style={{ color: "#22c55e", fontSize: 10, marginTop: 4, fontWeight: "700" }}>Tıkla → forma doldur</Text>
+              <Text style={{ color: "#22c55e", fontSize: 10, marginTop: 4, fontWeight: "700" }}>{t("tapToFill")}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* ── YENİ MAÇ FORMU ── */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: "#1e293b", padding: 14, gap: 10 }}>
-          <Text style={{ color: "#e2e8f0", fontWeight: "900", fontSize: 16 }}>Yeni Maç</Text>
+          <Text style={{ color: "#e2e8f0", fontWeight: "900", fontSize: 16 }}>{t("newMatch")}</Text>
 
           <View style={{ flexDirection: "row", gap: 10 }}>
             <View style={{ flex: 1 }}>
-              <Label>Ev Sahibi</Label>
+              <Label>{t("homeTeamLbl")}</Label>
               <TextInput value={home} onChangeText={setHome} placeholder="Galatasaray" placeholderTextColor="#475569" style={inputStyle} />
             </View>
             <View style={{ flex: 1 }}>
-              <Label>Deplasman</Label>
+              <Label>{t("awayTeamLbl")}</Label>
               <TextInput value={away} onChangeText={setAway} placeholder="Fenerbahçe" placeholderTextColor="#475569" style={inputStyle} />
             </View>
           </View>
 
           <View style={{ flexDirection: "row", gap: 10 }}>
             <View style={{ flex: 2 }}>
-              <Label>Tarih (YYYY-AA-GG)</Label>
+              <Label>{t("dateLbl")}</Label>
               <TextInput value={dateStr} onChangeText={setDateStr} placeholder="2026-01-20" placeholderTextColor="#475569" keyboardType="numbers-and-punctuation" style={inputStyle} />
             </View>
             <View style={{ flex: 1 }}>
-              <Label>Saat</Label>
+              <Label>{t("timeLbl")}</Label>
               <TextInput value={timeStr} onChangeText={setTimeStr} placeholder="20:00" placeholderTextColor="#475569" keyboardType="numbers-and-punctuation" style={inputStyle} />
             </View>
           </View>
 
           <View style={{ flexDirection: "row", gap: 10 }}>
             <View style={{ flex: 2 }}>
-              <Label>Lig (opsiyonel)</Label>
+              <Label>{t("leagueOptional")}</Label>
               <TextInput value={league} onChangeText={setLeague} placeholder="Süper Lig" placeholderTextColor="#475569" style={inputStyle} />
             </View>
             <View style={{ flex: 1 }}>
-              <Label>Ülke</Label>
+              <Label>{t("countryLbl")}</Label>
               <TextInput value={country} onChangeText={setCountry} placeholder="Turkey" placeholderTextColor="#475569" style={inputStyle} />
             </View>
           </View>
 
           <View>
-            <Label>Not (opsiyonel · kullanıcılar görür)</Label>
+            <Label>{t("noteOptional")}</Label>
             <TextInput
               value={newNote} onChangeText={setNewNote} multiline
-              placeholder="Örn: Bu maç tarafsız sahada oynanacak."
+              placeholder={t("notePh")}
               placeholderTextColor="#475569"
               style={{ ...inputStyle, minHeight: 46 }}
             />
@@ -332,23 +334,23 @@ export default function AdminAddScreen() {
             style={{ paddingVertical: 13, borderRadius: 12, backgroundColor: !canAdd || adding ? "#334155" : "#16a34a" }}
           >
             <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900", fontSize: 15 }}>
-              {adding ? "Ekleniyor..." : "✓ Maçı Ekle"}
+              {adding ? t("adding") : t("addMatchBtn")}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* ── MEVCUT MAÇLAR: NOT EKLE/DÜZENLE ── */}
         <Text style={{ color: "#e2e8f0", fontWeight: "900", fontSize: 16, marginTop: 22, marginBottom: 10 }}>
-          Maç Notları
+          {t("matchNotes")}
         </Text>
         <Text style={{ color: "#64748b", fontSize: 12, marginBottom: 12 }}>
-          Nota yazdığın metni tüm kullanıcılar maç kartında görür. Boş bırakıp kaydedince not silinir.
+          {t("matchNotesHelp")}
         </Text>
 
         {loading ? (
           <View style={{ paddingVertical: 30, alignItems: "center" }}><ActivityIndicator color="#475569" /></View>
         ) : fixtures.length === 0 ? (
-          <Text style={{ color: "#475569", textAlign: "center", paddingVertical: 24 }}>Kayıtlı maç yok.</Text>
+          <Text style={{ color: "#475569", textAlign: "center", paddingVertical: 24 }}>{t("noSavedMatch")}</Text>
         ) : (
           fixtures.map((fx) => {
             const fid = String(fx.fixtureId);
@@ -374,7 +376,7 @@ export default function AdminAddScreen() {
                   value={val}
                   onChangeText={(t) => setNotes((m) => ({ ...m, [fid]: t }))}
                   multiline
-                  placeholder="Bu maç için not yaz (kullanıcılar görür)…"
+                  placeholder={t("matchNotePh")}
                   placeholderTextColor="#475569"
                   style={{ ...inputStyle, minHeight: 42 }}
                 />

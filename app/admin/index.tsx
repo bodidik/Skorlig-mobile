@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from "react-native";
 import Colors, { on } from "../../constants/colors";
+import { t, useLang } from "../../lib/i18n";
 import { getApiBase, syncServerTime } from "../../lib/apiBase";
 import { withAdminHeaders, hasAdminToken } from "../../lib/adminToken";
 import BackBar from "../../components/BackBar";
@@ -63,6 +64,7 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
 
 // --------------- bileşen ---------------
 export default function AdminResultsScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const [tokenReady, setTokenReady] = useState(false);
   useEffect(() => { hasAdminToken().then(setTokenReady); }, []);
 
@@ -178,7 +180,7 @@ export default function AdminResultsScreen() {
   const save = useCallback(async () => {
     if (!selected || !canSave) return;
     if (!tokenReady) {
-      Alert.alert("Admin", "Token ayarlı değil. Profil > Admin bölümünden token gir.");
+      Alert.alert("Admin", t("tokenNotSet"));
       return;
     }
 
@@ -225,9 +227,9 @@ export default function AdminResultsScreen() {
       const settledCount = sJson?.settled ?? sJson?.settledCount ?? "?";
 
       Alert.alert(
-        "Kaydedildi ✓",
+        t("savedCheck"),
         `${selected.home ?? fxId} ${h}–${a} ${selected.away ?? ""}\n\n` +
-        `${settledCount} tahmin settle edildi.`
+        t("settledCountMsg", { n: settledCount })
       );
       setSelected(null);
       await loadAll();
@@ -241,24 +243,24 @@ export default function AdminResultsScreen() {
   // ilerisi için: AI çekimi (şimdilik stub)
   const fetchWithAI = () => {
     Alert.alert(
-      "Yapay Zeka ile Çek",
-      "Bu özellik yakında! Skor API'si bağlandığında tek tuşla tüm maçların sonuçları çekilebilecek.",
-      [{ text: "Tamam" }]
+      t("aiPullTitle"),
+      t("aiPullMsg"),
+      [{ text: t("ok") }]
     );
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.bg }}>
-      <BackBar title="Admin • Sonuç Gir" />
+      <BackBar title={t("adminEnterResult")} />
       {/* Başlık */}
       <View style={{ padding: 16, paddingBottom: 8, gap: 8 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <View>
             <Text style={{ fontSize: 20, fontWeight: "900", color: Colors.slate900 }}>
-              Admin • Sonuç Gir
+              {t("adminEnterResult")}
             </Text>
             <Text style={{ fontSize: 11, color: Colors.muted, marginTop: 2 }}>
-              Token: {tokenReady ? "✓ OK" : "✗ YOK"}{pendingCount > 0 ? ` • ${pendingCount} bekleyen` : ""}
+              {t("tokenRow", { s: tokenReady ? t("tokenOk") : t("tokenNone") })}{pendingCount > 0 ? t("pendingSuffix", { n: pendingCount }) : ""}
             </Text>
           </View>
           {/* AI butonu - ileride aktif olacak */}
@@ -272,20 +274,20 @@ export default function AdminResultsScreen() {
             }}
           >
             <Text style={{ fontSize: 13 }}>🤖</Text>
-            <Text style={{ fontSize: 11, fontWeight: "700", color: "#7c3aed" }}>AI ile Çek</Text>
+            <Text style={{ fontSize: 11, fontWeight: "700", color: "#7c3aed" }}>{t("aiPullBtn")}</Text>
           </TouchableOpacity>
         </View>
 
         {!!err && (
-          <Text style={{ color: Colors.live, fontSize: 11 }}>Hata: {err}</Text>
+          <Text style={{ color: Colors.live, fontSize: 11 }}>{t("errRow", { e: err })}</Text>
         )}
 
         {/* Tab seçici */}
         <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
           {([
-            { key: "pending", label: `Bekleyen${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
-            { key: "all", label: "Tümü" },
-            { key: "done", label: "Girildi" },
+            { key: "pending", label: t("tabPending") + (pendingCount > 0 ? ` (${pendingCount})` : "") },
+            { key: "all", label: t("allTabLbl") },
+            { key: "done", label: t("tabEntered") },
           ] as const).map(({ key, label }) => {
             const active = tab === key;
             return (
@@ -358,7 +360,7 @@ export default function AdminResultsScreen() {
 
           {/* İlk yarı skoru */}
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-            <Text style={{ color: Colors.muted, fontSize: 12, fontWeight: "700", width: 56 }}>İY Skor</Text>
+            <Text style={{ color: Colors.muted, fontSize: 12, fontWeight: "700", width: 56 }}>{t("htScoreLbl")}</Text>
             <TextInput
               value={htHomeVal}
               onChangeText={setHtHomeVal}
@@ -386,8 +388,8 @@ export default function AdminResultsScreen() {
 
           {/* İlk gol */}
           <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
-            <Text style={{ color: Colors.muted, fontSize: 12, fontWeight: "700", width: 56 }}>İlk Gol</Text>
-            {([["H", "Ev"], ["A", "Dep"], [null, "—"]] as const).map(([v, label]) => (
+            <Text style={{ color: Colors.muted, fontSize: 12, fontWeight: "700", width: 56 }}>{t("firstGoalLbl2")}</Text>
+            {([["H", t("home")], ["A", t("awayAbbr")], [null, "—"]] as const).map(([v, label]) => (
               <TouchableOpacity
                 key={String(v)}
                 onPress={() => setFirstGoal(v as "H" | "A" | null)}
@@ -418,7 +420,7 @@ export default function AdminResultsScreen() {
               }}
             >
               <Text style={{ textAlign: "center", fontSize: 11, fontWeight: "700", color: redHome ? "#ef4444" : Colors.muted }}>
-                🟥 Ev{redHome ? " ✓" : ""}
+                {t("redHomeBtn", { c: redHome ? " ✓" : "" })}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -430,7 +432,7 @@ export default function AdminResultsScreen() {
               }}
             >
               <Text style={{ textAlign: "center", fontSize: 11, fontWeight: "700", color: redAway ? "#ef4444" : Colors.muted }}>
-                🟥 Dep{redAway ? " ✓" : ""}
+                {t("redAwayBtn", { c: redAway ? " ✓" : "" })}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -456,7 +458,7 @@ export default function AdminResultsScreen() {
             }}
           >
             <Text style={{ textAlign: "center", color: on(!canSave || saving ? Colors.border : Colors.primary), fontWeight: "900", fontSize: 15 }}>
-              {saving ? "Kaydediliyor..." : "✓ Kaydet ve Settle Et"}
+              {saving ? t("savingLbl") : t("saveAndSettle")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -472,11 +474,11 @@ export default function AdminResultsScreen() {
           loading ? (
             <View style={{ paddingVertical: 40, alignItems: "center" }}>
               <ActivityIndicator />
-              <Text style={{ color: Colors.muted, marginTop: 8 }}>Yükleniyor...</Text>
+              <Text style={{ color: Colors.muted, marginTop: 8 }}>{t("loading")}</Text>
             </View>
           ) : (
             <Text style={{ color: Colors.muted, textAlign: "center", paddingVertical: 40 }}>
-              {tab === "pending" ? "Bekleyen maç yok 🎉" : "Kayıt yok."}
+              {tab === "pending" ? t("noPendingMatch") : t("noRecords")}
             </Text>
           )
         }
@@ -493,7 +495,7 @@ export default function AdminResultsScreen() {
 
           const stLabel = result
             ? `✓ ${result.home}–${result.away}`
-            : isFT ? "FT – sonuç bekleniyor"
+            : isFT ? t("ftAwaitingResult")
             : st;
 
           return (

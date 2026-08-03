@@ -184,9 +184,9 @@ export default function Me() {
 
   const saveAdminToken = useCallback(async () => {
     await setAdminToken(adminTokenInput);
-    const t = await getAdminToken();
-    setTokenReady(t.length > 0);
-    Alert.alert("Admin token", t ? "Kaydedildi." : "Silindi.");
+    const tok = await getAdminToken(); // eski adi t idi, i18n t() golgeleniyordu
+    setTokenReady(tok.length > 0);
+    Alert.alert("Admin token", tok ? t("savedTitle") : t("noteDeleted"));
   }, [adminTokenInput]);
 
   // ⚠️ BU BLOK YUKARI TAŞINDI — aşağıdaydı ve gerçek bir çökme üretiyordu.
@@ -231,7 +231,7 @@ export default function Me() {
       });
       const j = await r.json();
       if (j?.ok) {
-        setBanMsg(j.already ? "Zaten engelliydi." : `✅ ${uid} engellendi.`);
+        setBanMsg(j.already ? t("alreadyBanned") : t("bannedOk", { u: uid }));
         setBanInput("");
         setBanReason("");
         loadBannedList();
@@ -1043,7 +1043,7 @@ export default function Me() {
             </View>
 
             <Text style={{ fontSize: 11, color: Colors.muted }}>
-              Token: {tokenReady ? "OK" : "YOK (POST işlemleri çalışmaz)"}
+              {t("tokenRow2", { s: tokenReady ? "OK" : t("tokenNoPost") })}
             </Text>
 
             <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
@@ -1089,7 +1089,7 @@ export default function Me() {
                   backgroundColor: Colors.primary,
                 }}
               >
-                <Text style={{ textAlign: "center", color: Colors.onAccent, fontWeight: "900" }}>Sonuç Yönetimi</Text>
+                <Text style={{ textAlign: "center", color: Colors.onAccent, fontWeight: "900" }}>{t("resultMgmt")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1115,7 +1115,7 @@ export default function Me() {
                   backgroundColor: Colors.headerBlue,
                 }}
               >
-                <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "900" }}>Canlı Skor Admin</Text>
+                <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "900" }}>{t("liveScoreAdmin")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1127,7 +1127,7 @@ export default function Me() {
                   backgroundColor: Colors.headerBlue,
                 }}
               >
-                <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "900" }}>Çalışma Modu (tam ekran)</Text>
+                <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "900" }}>{t("runtimeFullScreen")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -1139,11 +1139,11 @@ export default function Me() {
                 backgroundColor: "#16a34a",
               }}
             >
-              <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>➕ Yeni Maç Ekle + Not</Text>
+              <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>{t("newMatchNote")}</Text>
             </TouchableOpacity>
 
             <Text style={{ fontSize: 11, color: Colors.muted }}>
-              Kullanıcı ekranda "Sonuç girilmesi bekleniyor" görür; admin burada pending listeden sonucu girer.
+              {t("adminPendingHelp")}
             </Text>
 
             {/* ── Kullanıcı Engelle ── */}
@@ -1152,7 +1152,7 @@ export default function Me() {
               style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center",
                 paddingVertical: 8, borderTopWidth: 1, borderTopColor: "#e5e7eb", marginTop: 4 }}
             >
-              <Text style={{ fontWeight: "800", fontSize: 13, color: "#dc2626" }}>🚫 Kullanıcı Engelle</Text>
+              <Text style={{ fontWeight: "800", fontSize: 13, color: "#dc2626" }}>{t("banUserTitle")}</Text>
               <Text style={{ fontSize: 12, color: Colors.muted }}>{showBanPanel ? "▲" : "▼"}</Text>
             </TouchableOpacity>
 
@@ -1161,7 +1161,7 @@ export default function Me() {
                 <TextInput
                   value={banInput}
                   onChangeText={setBanInput}
-                  placeholder="Kullanıcı ID (Firebase UID)"
+                  placeholder={t("userIdPh")}
                   placeholderTextColor={Colors.muted}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -1171,7 +1171,7 @@ export default function Me() {
                 <TextInput
                   value={banReason}
                   onChangeText={setBanReason}
-                  placeholder="Sebep (opsiyonel)"
+                  placeholder={t("reasonPh")}
                   placeholderTextColor={Colors.muted}
                   style={{ borderWidth: 1, borderColor: "#1e293b", borderRadius: 8,
                     paddingHorizontal: 10, paddingVertical: 8, color: "#e2e8f0", fontSize: 12 }}
@@ -1185,7 +1185,7 @@ export default function Me() {
                 >
                   <Text style={{ fontWeight: "900", fontSize: 13,
                     color: banInput.trim() ? "#fff" : Colors.muted }}>
-                    {banBusy ? "..." : "Engelle"}
+                    {banBusy ? "..." : t("banBtn")}
                   </Text>
                 </TouchableOpacity>
 
@@ -1198,11 +1198,11 @@ export default function Me() {
                 {/* Engellenen liste */}
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
                   <Text style={{ fontSize: 11, fontWeight: "700", color: Colors.muted }}>
-                    ENGELLENENLer ({bannedList.length})
+                    {t("bannedListTitle", { n: bannedList.length })}
                   </Text>
                   <TouchableOpacity onPress={loadBannedList}>
                     <Text style={{ fontSize: 11, color: Colors.primary }}>
-                      {bannedLoading ? "..." : "Yenile"}
+                      {bannedLoading ? "..." : t("refresh")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1220,13 +1220,13 @@ export default function Me() {
                     </View>
                     <TouchableOpacity onPress={() => unbanUser(b.userId)}
                       style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#7f1d1d" }}>
-                      <Text style={{ fontSize: 11, fontWeight: "800", color: "#7f1d1d" }}>Kaldır</Text>
+                      <Text style={{ fontSize: 11, fontWeight: "800", color: "#7f1d1d" }}>{t("removeBtn")}</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
 
                 {!bannedLoading && bannedList.length === 0 && (
-                  <Text style={{ fontSize: 11, color: Colors.muted }}>Engellenen kullanıcı yok.</Text>
+                  <Text style={{ fontSize: 11, color: Colors.muted }}>{t("noBannedUser")}</Text>
                 )}
               </View>
             )}

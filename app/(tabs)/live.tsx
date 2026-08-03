@@ -369,8 +369,8 @@ function normalizeApiError(j: any): string {
   const code = String(j?.error || j?.code || "").trim();
   if (!code) return String(j?.detail || t("opFailed"));
 
-  if (code === "STATE_NOT_FOUND") return "STATE_NOT_FOUND: Maç state dosyası yok. (Server restart sonrası düzeliyor olabilir.)";
-  if (code === "NOT_FINISHED") return "NOT_FINISHED: Maç FT değil. Önce FT gir.";
+  if (code === "STATE_NOT_FOUND") return t("stateNotFound");
+  if (code === "NOT_FINISHED") return t("notFinishedErr");
   if (code === "FIXTURE_REQUIRED" || code === "FIXTURE_ID_REQUIRED") return "FIXTURE_ID_REQUIRED: fixtureId zorunlu.";
 
   const detail = j?.detail ? ` • ${String(j.detail)}` : "";
@@ -454,7 +454,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
                 >
                   <Text style={{ fontSize: 10, fontWeight: "800", color: "#3730A3" }}>
                     ADMIN
-                    {selected ? " • SEÇİLİ" : ""}
+                    {selected ? t("selectedSuffix") : ""}
                   </Text>
                 </View>
               )}
@@ -606,7 +606,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
               }}
             >
               <Text style={{ color: selected ? "#fff" : "#3730a3", fontWeight: "800", fontSize: 12 }}>
-                {selected ? "✓ Seçili" : "📝 Sonuç Gir"}
+                {selected ? t("selectedCheck") : t("enterResultBtn")}
               </Text>
             </TouchableOpacity>
           )}
@@ -1284,7 +1284,7 @@ export default function LiveScreen() {
 
       const j2 = await apiJson(`/api/rt/settle2?fixtureId=${encodeURIComponent(selectedFid)}`, { method: "POST" });
       if (!j2?.ok) {
-        setAdmMsg(`FT kaydedildi, settle2 başarısız: ${normalizeApiError(j2)}`);
+        setAdmMsg(t("ftSettleFailed", { e: normalizeApiError(j2) }));
         await onRefresh();
         return;
       }
@@ -1304,7 +1304,7 @@ export default function LiveScreen() {
     // "YYYY-MM-DDTHH:mm" → ISO +03:00
     const kickoffISO = new Date(addKickoff).toISOString();
     if (isNaN(new Date(addKickoff).getTime())) {
-      setAddMsg("Geçersiz tarih/saat formatı");
+      setAddMsg(t("dateFormatBad"));
       return;
     }
     setAddBusy(true);
@@ -1316,13 +1316,13 @@ export default function LiveScreen() {
         body: JSON.stringify({
           home: addHome.trim(),
           away: addAway.trim(),
-          league: addLeague.trim() || "Diğer",
+          league: addLeague.trim() || t("otherLeague"),
           country: "World",
           kickoffISO,
         }),
       });
       if (j?.ok) {
-        setAddMsg(`✅ ${j.action === "updated" ? "Güncellendi" : "Eklendi"} → ${j.fixtureId}`);
+        setAddMsg(t("addedArrow", { a: j.action === "updated" ? t("updatedWord") : t("addedWord"), f: j.fixtureId }));
         setAddHome("");
         setAddAway("");
         setAddLeague("");
@@ -1350,7 +1350,7 @@ export default function LiveScreen() {
 
       const cnt = Array.isArray(j.leaderboard) ? j.leaderboard.length : 0;
       const sc = j.finalScore ? `${j.finalScore.home} - ${j.finalScore.away}` : "-";
-      setAdmMsg(`match-board OK • skor: ${sc} • satır: ${cnt}`);
+      setAdmMsg(t("boardOkRow", { s: sc, n: cnt }));
     } finally {
       setAdmBusy(false);
     }
@@ -1483,8 +1483,8 @@ export default function LiveScreen() {
 
             {adminMode && runtimeMode?.profile === "PILOT_MANUAL" && (
               <View style={{ marginTop: 8, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#1a0f00", borderRadius: 10, borderWidth: 1, borderColor: "#92400e66", paddingHorizontal: 12, paddingVertical: 8 }}>
-                <Text style={{ fontSize: 13, fontWeight: "800", color: "#fbbf24" }}>✈️ PILOT MODU</Text>
-                <Text style={{ flex: 1, fontSize: 11, color: "#92400e" }}>Provider yok • maçlar elle girilir • max {runtimeMode.maxFixtures ?? 10}</Text>
+                <Text style={{ fontSize: 13, fontWeight: "800", color: "#fbbf24" }}>{t("pilotMode")}</Text>
+                <Text style={{ flex: 1, fontSize: 11, color: "#92400e" }}>{t("pilotModeDesc", { n: runtimeMode.maxFixtures ?? 10 })}</Text>
               </View>
             )}
 
@@ -1557,7 +1557,7 @@ export default function LiveScreen() {
             {adminMode && (
               <>
                 <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 10 }}>
-                  {headerLine2 || "Fikstür bilgisi"}
+                  {headerLine2 || t("fixtureInfo")}
                 </Text>
                 <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
                   {userId} • API: {baseInfo ?? "—"}
@@ -2027,7 +2027,7 @@ export default function LiveScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 12, fontWeight: "700", color: admRedHome ? "#991B1B" : Colors.slate900 }}>
-                      Kırmızı H: {admRedHome ? "VAR" : "YOK"}
+                      {t("redHomeRow", { v: admRedHome ? t("varLbl2") : t("yokLbl2") })}
                     </Text>
                   </TouchableOpacity>
 
@@ -2043,7 +2043,7 @@ export default function LiveScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 12, fontWeight: "700", color: admRedAway ? "#991B1B" : Colors.slate900 }}>
-                      Kırmızı A: {admRedAway ? "VAR" : "YOK"}
+                      {t("redAwayRow", { v: admRedAway ? t("varLbl2") : t("yokLbl2") })}
                     </Text>
                   </TouchableOpacity>
 
@@ -2062,7 +2062,7 @@ export default function LiveScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 12, fontWeight: "700", color: admPenaltyAny ? "#92400E" : Colors.slate900 }}>
-                      Penaltı: {admPenaltyAny ? "VAR" : "YOK"}
+                      {t("penaltyRow", { v: admPenaltyAny ? t("varLbl2") : t("yokLbl2") })}
                     </Text>
                   </TouchableOpacity>
 
@@ -2123,7 +2123,7 @@ export default function LiveScreen() {
                     }}
                   >
                     <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
-                      {admBusy ? "..." : "💾 Kaydet"}
+                      {admBusy ? "..." : t("saveBtn2")}
                     </Text>
                   </TouchableOpacity>
 
@@ -2131,11 +2131,11 @@ export default function LiveScreen() {
                     disabled={admBusy}
                     onPress={() =>
                       Alert.alert(
-                        "FT + settle2",
-                        "Önce FT kaydedilecek, sonra settle2 çalıştırılacak.",
+                        t("ftSettleTitle"),
+                        t("ftSettleAsk"),
                         [
                           { text: t("dismiss"), style: "cancel" },
-                          { text: "Devam", style: "default", onPress: () => adminSaveState({ alsoSettle2: true }) },
+                          { text: t("continueWord"), style: "default", onPress: () => adminSaveState({ alsoSettle2: true }) },
                         ]
                       )
                     }
@@ -2149,7 +2149,7 @@ export default function LiveScreen() {
                     }}
                   >
                     <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
-                      {admBusy ? "..." : "🏁 FT + Settle"}
+                      {admBusy ? "..." : t("ftSettleShort")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -2168,7 +2168,7 @@ export default function LiveScreen() {
                     }}
                   >
                     <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
-                      {admBusy ? "..." : "📊 Sıralama"}
+                      {admBusy ? "..." : t("rankingBtn")}
                     </Text>
                   </TouchableOpacity>
 
@@ -2208,9 +2208,9 @@ export default function LiveScreen() {
                   style={{ flexDirection: "row", alignItems: "center", padding: 12, backgroundColor: showAddFx ? "#EEF2FF" : "#F8FAFC", gap: 8 }}
                 >
                   <Text style={{ flex: 1, fontWeight: "700", fontSize: 13, color: showAddFx ? "#3730A3" : Colors.slate900 }}>
-                    ➕ Yeni Maç Ekle
+                    {t("newMatchAdd")}
                   </Text>
-                  <Text style={{ color: Colors.muted, fontSize: 11 }}>{showAddFx ? "▲ Gizle" : "▼ Aç"}</Text>
+                  <Text style={{ color: Colors.muted, fontSize: 11 }}>{showAddFx ? t("hideBtn") : t("openBtn")}</Text>
                 </TouchableOpacity>
 
                 {showAddFx && (
@@ -2267,7 +2267,7 @@ export default function LiveScreen() {
                       style={{ paddingVertical: 12, borderRadius: 10, backgroundColor: "#6366F1", opacity: addBusy ? 0.6 : 1, alignItems: "center" }}
                     >
                       <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
-                        {addBusy ? "Ekleniyor..." : "✅ Fixtures'a Ekle"}
+                        {addBusy ? t("adding") : t("addToFixtures")}
                       </Text>
                     </TouchableOpacity>
                   </View>

@@ -690,7 +690,7 @@ export default function MyStatusScreen() {
                     fontWeight: "600",
                   }}
                 >
-                  Tümü
+                  {t("allTabLbl")}
                 </Text>
               </TouchableOpacity>
 
@@ -713,7 +713,7 @@ export default function MyStatusScreen() {
                       fontWeight: "600",
                     }}
                   >
-                    1987 alanım
+                    {t("my1987Area")}
                   </Text>
                 </TouchableOpacity>
               )}
