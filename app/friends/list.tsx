@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { hataMesaji } from "../../lib/hataMesaji";
+import { t, useLang } from "../../lib/i18n";
 import {
   View,
   Text,
@@ -47,6 +48,7 @@ type PendingOutRow = {
 };
 
 export default function FriendsListScreen() {
+  useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
   const { userId: qUserId } = useLocalSearchParams<{ userId?: string }>();
   const userId = String(qUserId || "demo1").trim();
@@ -80,7 +82,7 @@ export default function FriendsListScreen() {
       setFriends([]);
       setPendingIn([]);
       setPendingOut([]);
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setLoading(false);
     }
@@ -112,13 +114,13 @@ export default function FriendsListScreen() {
       });
       const j = await res.json();
       if (j?.ok) {
-        Alert.alert("SkorLig", `${from} isteği kabul edildi.`);
+        Alert.alert("SkorLig", t("reqAccepted", { u: from }));
         loadList();
       } else {
-        Alert.alert("Hata", hataMesaji(j?.error));
+        Alert.alert(t("error"), hataMesaji(j?.error));
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     }
   }
 
@@ -137,13 +139,13 @@ export default function FriendsListScreen() {
       });
       const j = await res.json();
       if (j?.ok) {
-        Alert.alert("SkorLig", `${from} isteği reddedildi.`);
+        Alert.alert("SkorLig", t("reqRejected", { u: from }));
         loadList();
       } else {
-        Alert.alert("Hata", hataMesaji(j?.error));
+        Alert.alert(t("error"), hataMesaji(j?.error));
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     }
   }
 
@@ -171,10 +173,10 @@ export default function FriendsListScreen() {
           color: Colors.slate900,
         }}
       >
-        Arkadaşlarım
+        {t("myFriends")}
       </Text>
       <Text style={{ color: Colors.muted, fontSize: 12 }}>
-        Kullanıcı: {userId}
+        {t("userLbl", { u: userId })}
       </Text>
 
       {/* Board'a git kısayolu */}
@@ -200,7 +202,7 @@ export default function FriendsListScreen() {
             fontSize: 13,
           }}
         >
-          Arkadaş Ligini Gör
+          {t("seeFriendLeague")}
         </Text>
       </TouchableOpacity>
 
@@ -208,7 +210,7 @@ export default function FriendsListScreen() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <ActivityIndicator size="small" />
           <Text style={{ color: Colors.muted, marginTop: 8 }}>
-            Yükleniyor...
+            {t("loading")}
           </Text>
         </View>
       )}
@@ -223,12 +225,12 @@ export default function FriendsListScreen() {
             marginBottom: 6,
           }}
         >
-          Gelen İstekler
+          {t("incomingReqs")}
         </Text>
 
         {pendingIn.length === 0 ? (
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Bekleyen arkadaşlık isteğin yok.
+            {t("noPendingReqs")}
           </Text>
         ) : (
           pendingIn.map((r, ix) => {

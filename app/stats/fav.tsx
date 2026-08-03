@@ -10,6 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { useUserId } from "../../lib/useUserId";
 import { hataMesaji } from "../../lib/hataMesaji";
+import { t, useLang } from "../../lib/i18n";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
@@ -29,6 +30,7 @@ async function apiFetch(path: string, init?: RequestInit) {
 }
 
 export default function FavTeamScreen() {
+  useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
 
   // Kimlik oturumdan gelir; elle yazdırmak hem hatalı hem güvensizdi.
@@ -42,15 +44,15 @@ export default function FavTeamScreen() {
 
   const save = useCallback(async () => {
     const uid = String(userId || "").trim();
-    const t = String(team || "").trim();
+    const tName = String(team || "").trim(); // eski adi t idi, i18n t() golgeleniyordu
     const f = String(flag || "").trim();
 
     if (!uid) {
-      Alert.alert("SkorLig", "Giriş yapman gerekiyor.");
+      Alert.alert("SkorLig", t("loginRequired"));
       return;
     }
-    if (!t) {
-      Alert.alert("SkorLig", "Takım adı boş olamaz.");
+    if (!tName) {
+      Alert.alert("SkorLig", t("teamNameEmpty"));
       return;
     }
 
@@ -62,17 +64,17 @@ export default function FavTeamScreen() {
       const res = await apiFetch(`/api/users/set-main-team`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ team: t, flag: f || null }),
+        body: JSON.stringify({ team: tName, flag: f || null }),
       });
       const j = await res.json();
       if (j?.ok) {
-        Alert.alert("SkorLig", "Favori takım kaydedildi.");
+        Alert.alert("SkorLig", t("favTeamSaved"));
         router.back();
       } else {
-        Alert.alert("Hata", hataMesaji(j?.error));
+        Alert.alert(t("error"), hataMesaji(j?.error));
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     }
   }, [userId, team, flag, router]);
 
@@ -81,7 +83,7 @@ export default function FavTeamScreen() {
       style={{ flex: 1, backgroundColor: Colors.bg }}
       contentContainerStyle={{ padding: 16, gap: 12 }}
     >
-      <Text style={{ fontSize: 18, fontWeight: "800", color: "#e2e8f0" }}>Favori Takım Seç</Text>
+      <Text style={{ fontSize: 18, fontWeight: "800", color: "#e2e8f0" }}>{t("pickFavTeam")}</Text>
 
       <View
         style={{
@@ -97,7 +99,7 @@ export default function FavTeamScreen() {
             Kimlik artık istekle birlikte token'dan gidiyor
             (POST /api/users/set-main-team + verifyToken). */}
         <Text style={{ color: Colors.muted, fontSize: 12 }}>
-          Hesabına kayıtlı takım güncellenecek.
+          {t("accountTeamUpd")}
         </Text>
       </View>
 
@@ -110,7 +112,7 @@ export default function FavTeamScreen() {
           borderColor: Colors.border,
         }}
       >
-        <Text style={{ color: Colors.muted, marginBottom: 6 }}>Takım</Text>
+        <Text style={{ color: Colors.muted, marginBottom: 6 }}>{t("teamLbl")}</Text>
         <TextInput
           value={team}
           onChangeText={setTeam}

@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { t, useLang } from "../../lib/i18n";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -35,6 +36,7 @@ type TeamRow = {
 };
 
 export default function TeamTotalsScreen() {
+  useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
   const params = useLocalSearchParams();
 
@@ -42,8 +44,8 @@ export default function TeamTotalsScreen() {
   const userId = String((params as any)?.userId ?? "").trim();
 
   const title = useMemo(() => {
-    if (team) return `Takım Sıralaması • ${team}`;
-    return "Takım Sıralaması";
+    if (team) return t("teamRankingT", { t: team });
+    return t("teamRanking");
   }, [team]);
 
   const [items, setItems] = useState<TeamRow[]>([]);
@@ -58,8 +60,8 @@ export default function TeamTotalsScreen() {
   }, []);
 
   const load = useCallback(async () => {
-    const t = String(team || "").trim();
-    if (!t) {
+    const tName = String(team || "").trim(); // eski adi t idi, i18n t() golgeleniyordu
+    if (!tName) {
       setItems([]);
       setUpdatedAt(null);
       setLoading(false);
@@ -71,7 +73,7 @@ export default function TeamTotalsScreen() {
 
       // Not: backend path'in farklıysa sadece bu satırı değiştir.
       const url = `/api/rt/team-totals?team=${encodeURIComponent(
-        t
+        tName
       )}&userId=${encodeURIComponent(userId)}`;
 
       const j: any = await fetchJson(url);
@@ -98,7 +100,7 @@ export default function TeamTotalsScreen() {
     } catch (e: any) {
       setItems([]);
       setUpdatedAt(null);
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setLoading(false);
     }
@@ -149,7 +151,7 @@ export default function TeamTotalsScreen() {
             {title}
           </Text>
           <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
-            Güncelleme: {updatedAt || "-"}
+            {t("updatedRow", { d: updatedAt || "-" })}
           </Text>
         </View>
       </View>
@@ -159,7 +161,7 @@ export default function TeamTotalsScreen() {
         <View style={{ paddingVertical: 12 }}>
           <ActivityIndicator />
           <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 8 }}>
-            Yükleniyor...
+            {t("loading")}
           </Text>
         </View>
       )}
@@ -176,7 +178,7 @@ export default function TeamTotalsScreen() {
       >
         {items.length === 0 ? (
           <Text style={{ padding: 12, color: Colors.muted }}>
-            Kayıt bulunamadı.
+            {t("noRecordsFound")}
           </Text>
         ) : (
           items.map((x, idx) => (

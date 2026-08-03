@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { t, useLang } from "../../lib/i18n";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -48,6 +49,7 @@ type MeResponse = {
 };
 
 export default function StatsMeScreen() {
+  useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
   const { userId: qUser } = useLocalSearchParams<{ userId?: string }>();
 
@@ -81,7 +83,7 @@ export default function StatsMeScreen() {
       setTeam("");
       setTotal(0);
       setItems([]);
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setLoading(false);
     }
@@ -111,7 +113,7 @@ export default function StatsMeScreen() {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
     >
       <View style={{ padding: 16, gap: 12 }}>
-        <Text style={{ fontSize: 18, fontWeight: "800", color: "#e2e8f0" }}>Benim İstatistiklerim</Text>
+        <Text style={{ fontSize: 18, fontWeight: "800", color: "#e2e8f0" }}>{t("myStats")}</Text>
         <Text style={{ color: Colors.muted }}>
           {flag || ""} {userId}
           {team ? ` • ${team}` : ""}
@@ -131,16 +133,16 @@ export default function StatsMeScreen() {
           {loading ? (
             <View style={{ marginTop: 10, alignItems: "center" }}>
               <ActivityIndicator />
-              <Text style={{ marginTop: 8, color: Colors.muted }}>Yükleniyor...</Text>
+              <Text style={{ marginTop: 8, color: Colors.muted }}>{t("loading")}</Text>
             </View>
           ) : (
             <Text style={{ fontSize: 28, fontWeight: "900", marginTop: 4, color: "#e2e8f0" }}>{total}</Text>
           )}
 
           <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-            <Btn title="Açık Maçlar" to="/live" />
-            <Btn title="Favori Takımım" to="/live/fav" />
-            <Btn title="Liderlik (bayraklı)" to="/stats/board2" />
+            <Btn title={t("openMatchesBtn")} to="/live" />
+            <Btn title={t("myFavTeamBtn")} to="/live/fav" />
+            <Btn title={t("flagBoardBtn")} to="/stats/board2" />
           </View>
         </View>
 
@@ -152,10 +154,10 @@ export default function StatsMeScreen() {
             borderColor: Colors.border,
           }}
         >
-          <Text style={{ padding: 12, fontWeight: "700", color: "#e2e8f0" }}>Son Oynadıklarım</Text>
+          <Text style={{ padding: 12, fontWeight: "700", color: "#e2e8f0" }}>{t("recentPlayed")}</Text>
 
           {items.length === 0 ? (
-            <Text style={{ padding: 12, color: Colors.muted }}>Kayıt yok.</Text>
+            <Text style={{ padding: 12, color: Colors.muted }}>{t("noRecords")}</Text>
           ) : (
             items.map((it, idx) => (
               <View
@@ -177,7 +179,7 @@ export default function StatsMeScreen() {
                 </Text>
                 {it.live ? (
                   <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                    Canlı: {it.live.status} • {it.live.minute}' • {it.live.score.home}-
+                    {t("liveRow", { s: it.live.status })} • {it.live.minute}' • {it.live.score.home}-
                     {it.live.score.away}
                   </Text>
                 ) : null}

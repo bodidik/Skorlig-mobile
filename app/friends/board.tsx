@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { hataMesaji } from "../../lib/hataMesaji";
+import { t, useLang } from "../../lib/i18n";
 import {
   View,
   Text,
@@ -43,6 +44,7 @@ async function apiFetch(path: string, init?: RequestInit) {
 }
 
 export default function FriendsBoardScreen() {
+  useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
   const { userId: qUser } = useLocalSearchParams<{ userId?: string }>();
   const userId = useMemo(() => String(qUser || "demo1").trim(), [qUser]);
@@ -117,13 +119,13 @@ export default function FriendsBoardScreen() {
         if (j?.ok) {
           Alert.alert(
             "SkorLig",
-            `${toId} için arkadaşlık isteği işlendi. (Karşı taraf kabul edince listeye düşecek.)`
+            t("friendReqDone", { u: toId })
           );
         } else {
-          Alert.alert("Hata", hataMesaji(j?.error));
+          Alert.alert(t("error"), hataMesaji(j?.error));
         }
       } catch (e: any) {
-        Alert.alert("Hata", String(e?.message || e));
+        Alert.alert(t("error"), String(e?.message || e));
       }
     },
     [userId]
@@ -154,17 +156,17 @@ export default function FriendsBoardScreen() {
       </TouchableOpacity>
 
       <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>
-        Arkadaş Ligim
+        {t("friendLeague")}
       </Text>
 
       <Text style={{ color: Colors.muted, fontSize: 12 }}>
-        Kullanıcı: {userId || "-"}
+        {t("userLbl", { u: userId || "-" })}
       </Text>
 
       {loading && !refreshing && (
         <View style={{ marginTop: 8, flexDirection: "row", alignItems: "center" }}>
           <ActivityIndicator size="small" />
-          <Text style={{ color: Colors.muted, marginLeft: 8 }}>Yükleniyor...</Text>
+          <Text style={{ color: Colors.muted, marginLeft: 8 }}>{t("loading")}</Text>
         </View>
       )}
 
@@ -194,11 +196,11 @@ export default function FriendsBoardScreen() {
                 onPress={() => {
                   if (!isMe && uid) {
                     Alert.alert(
-                      "Arkadaş ekle",
-                      `${name} adlı kullanıcıya arkadaşlık isteği gönderilsin mi?`,
+                      t("addFriendTitle"),
+                      t("addFriendAsk", { n: name }),
                       [
-                        { text: "Vazgeç", style: "cancel" },
-                        { text: "Gönder", onPress: () => sendFriendRequest(uid) },
+                        { text: t("dismiss"), style: "cancel" },
+                        { text: t("send"), onPress: () => sendFriendRequest(uid) },
                       ]
                     );
                   }
@@ -236,7 +238,7 @@ export default function FriendsBoardScreen() {
                     <Text
                       style={{ color: Colors.accent, fontSize: 11, fontWeight: "600" }}
                     >
-                      + Arkadaş ekle
+                      {t("addFriendBtn")}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -247,8 +249,7 @@ export default function FriendsBoardScreen() {
       </View>
 
       <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 8 }}>
-        Listede kendin ve arkadaşların görünür. Bir satıra dokunarak veya “+ Arkadaş
-        ekle” tuşuyla arkadaşlık isteği gönderebilirsin.
+        {t("friendBoardHelp")}
       </Text>
     </ScrollView>
   );

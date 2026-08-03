@@ -11,6 +11,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { t, useLang } from "../../lib/i18n";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -68,6 +69,7 @@ type RecentMatch = {
 };
 
 export default function CompetitionKingsScreen() {
+  useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
   const params = useLocalSearchParams<{
     userId?: string;
@@ -105,7 +107,7 @@ export default function CompetitionKingsScreen() {
       setCupRows([]);
       setCupMeta(null);
       setCupUpdatedAt(null);
-      setCupError("competitionId tanımlı değil.");
+      setCupError(t("cupIdMissing"));
       setCupMe(null);
       setCupCount(null);
       return;
@@ -240,7 +242,7 @@ export default function CompetitionKingsScreen() {
     cupMeta?.name ||
     cupMeta?.competitionId ||
     competitionId ||
-    "Seçilmiş kupa";
+    t("selectedCupFallback");
 
   const myRow = useMemo(
     () =>
@@ -302,7 +304,7 @@ export default function CompetitionKingsScreen() {
               style={{ fontSize: 18, fontWeight: "800", color: Colors.slate900 }}
               numberOfLines={1}
             >
-              Kupa Kralları
+              {t("cupKings")}
             </Text>
             <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }} numberOfLines={1}>
               {cupTitle}
@@ -315,7 +317,7 @@ export default function CompetitionKingsScreen() {
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <ActivityIndicator size="small" />
             <Text style={{ marginLeft: 8, color: Colors.muted, fontSize: 12 }}>
-              Kupa verileri yükleniyor...
+              {t("cupDataLoading")}
             </Text>
           </View>
         )}
@@ -331,30 +333,30 @@ export default function CompetitionKingsScreen() {
             gap: 4,
           }}
         >
-          <Text style={{ color: "#e5e7eb", fontWeight: "700" }}>Benim kupa özetim</Text>
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>Kullanıcı: {userId}</Text>
+          <Text style={{ color: "#e5e7eb", fontWeight: "700" }}>{t("myCupSummary2")}</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("userLbl", { u: userId })}</Text>
 
           <Text style={{ fontSize: 26, fontWeight: "800", color: "#7dd3fc", marginTop: 4 }}>
-            {summaryPoints} puan
+            {t("nPts", { n: summaryPoints })}
           </Text>
 
           {typeof summaryMatches === "number" && (
-            <Text style={{ color: Colors.muted, fontSize: 12 }}>Maç: {summaryMatches}</Text>
+            <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("matchN", { n: summaryMatches })}</Text>
           )}
 
           {typeof myRank === "number" && totalPlayers > 0 && (
             <Text style={{ color: Colors.muted, fontSize: 12 }}>
-              Kupa sıram: {myRank} / {totalPlayers}
+              {t("myCupRank", { r: myRank, n: totalPlayers })}
             </Text>
           )}
 
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>Toplam ceza: {myTotalPenalty}</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("totalPenalty", { n: myTotalPenalty })}</Text>
 
           {/* Form */}
           {formArray.length > 0 && (
             <View style={{ marginTop: 8 }}>
               <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 2 }}>
-                Kupa formu (son {formArray.length} maç):
+                {t("cupForm", { n: formArray.length })}
               </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
                 {formArray.map((p, ix) => (
@@ -382,7 +384,7 @@ export default function CompetitionKingsScreen() {
         {/* Meta / güncelleme */}
         <View style={{ gap: 2 }}>
           <Text style={{ color: Colors.muted, fontSize: 12 }}>Kupa ID: {competitionId || "-"}</Text>
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>Güncelleme: {cupUpdatedAt || "-"}</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("updatedRow", { d: cupUpdatedAt || "-" })}</Text>
           {typeof totalPlayers === "number" && totalPlayers > 0 && (
             <Text style={{ color: Colors.muted, fontSize: 12 }}>Toplam oyuncu: {totalPlayers}</Text>
           )}
@@ -414,7 +416,7 @@ export default function CompetitionKingsScreen() {
                     {isMe ? " (ben)" : ""}
                   </Text>
                   <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
-                    Maç: {r.matches} · Ceza: {r.totalPenalty}
+                    {t("matchPenaltyRow", { m: r.matches, c: r.totalPenalty })}
                   </Text>
                 </View>
                 <Text style={{ color: "#7dd3fc", fontWeight: "700", fontSize: 14 }}>
@@ -426,7 +428,7 @@ export default function CompetitionKingsScreen() {
 
           {cupRows.length === 0 && !cupError && (
             <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 4 }}>
-              Bu kupa için henüz kayıtlı puan bulunmuyor.
+              {t("noCupPoints")}
             </Text>
           )}
         </View>
