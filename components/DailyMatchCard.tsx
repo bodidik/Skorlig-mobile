@@ -4,6 +4,7 @@ import {
   Animated, StyleSheet, Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { t, useLang } from "../lib/i18n";
 import { getApiBase } from "../lib/apiBase";
 import hataMesaji from "../lib/hataMesaji";
 import { getAuthHeaders } from "../lib/apiFetch";
@@ -30,6 +31,7 @@ const OUTCOMES = [
 ] as const;
 
 export default function DailyMatchCard({ country, userId }: Props) {
+  useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
   const [fixture, setFixture] = useState<Fixture | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,7 +113,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
     <View style={s.card}>
       {/* Üst bilgi */}
       <View style={s.meta}>
-        <Text style={s.league}>{fixture.league ?? "Maç"}</Text>
+        <Text style={s.league}>{fixture.league ?? t("matchFallback")}</Text>
         {kickoff && <Text style={s.kickoff}>⏱ {kickoff}</Text>}
       </View>
 
@@ -154,7 +156,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
         </View>
       ) : (
         <View style={s.doneRow}>
-          <Text style={s.doneText}>✅ Tahmin kaydedildi</Text>
+          <Text style={s.doneText}>{t("predSaved")}</Text>
           <Animated.Text style={[s.lcBadge, { opacity: lcOpacity, transform: [{ translateY: lcY }] }]}>
             +LC
           </Animated.Text>
@@ -166,7 +168,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
         onPress={() => router.push({ pathname: "/(tabs)/live", params: { focusId: fixture.fixtureId } })}
         style={s.detailLink}
       >
-        <Text style={s.detailText}>Detaylı tahmin →</Text>
+        <Text style={s.detailText}>{t("detailedPred2")}</Text>
       </TouchableOpacity>
     </View>
   );

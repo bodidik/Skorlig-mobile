@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text } from "react-native";
+import { t, useLang } from "../lib/i18n";
 
 /**
  * Maç listesi grup başlığı.
@@ -31,21 +32,22 @@ function baslikIcin(group: string, country?: string | null) {
   switch (group) {
     case "country":
       // Ülke adı varsa onu yaz: "Türkiye" başlığı "Ülkeniz"den daha net.
-      return { icon: "⭐", text: country?.trim() || "Ülkeniz", color: GOLD };
+      return { icon: "⭐", text: country?.trim() || t("yourCountryGrp"), color: GOLD };
     case "global":
-      return { icon: "🏆", text: "Avrupa & Dünya Kupaları", color: "#818cf8" };
+      return { icon: "🏆", text: t("cupsGrp"), color: "#818cf8" };
     case "big":
-      return { icon: "🔥", text: "Büyük Ligler", color: "#f87171" };
+      return { icon: "🔥", text: t("bigLeagues"), color: "#f87171" };
     case "other":
-      return { icon: "🌍", text: "Diğer Ligler", color: "#38bdf8" };
+      return { icon: "🌍", text: t("otherLeagues"), color: "#38bdf8" };
     case "friendly":
-      return { icon: "🤝", text: "Hazırlık Maçları", color: "#94a3b8" };
+      return { icon: "🤝", text: t("friendlies"), color: "#94a3b8" };
     default:
-      return { icon: "⚽", text: "Maçlar", color: "#94a3b8" };
+      return { icon: "⚽", text: t("matches"), color: "#94a3b8" };
   }
 }
 
 export default function GroupHeader({ group, country }: Props) {
+  useLang(); // dil değişince yeniden çizilsin
   const { icon, text, color } = baslikIcin(String(group || ""), country);
 
   return (

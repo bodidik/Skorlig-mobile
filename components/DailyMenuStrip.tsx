@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Animated, Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { t, useLang } from "../lib/i18n";
 import { getApiBase } from "../lib/apiBase";
 import hataMesaji from "../lib/hataMesaji";
 import { getAuthHeaders } from "../lib/apiFetch";
@@ -73,7 +74,7 @@ function MatchCard({ fx, onDone }: { fx: Fixture; onDone: () => void }) {
     <View style={s.card}>
       {/* Lig + saat */}
       <View style={s.cardTop}>
-        <Text style={s.league} numberOfLines={1}>{fx.league ?? "Maç"}</Text>
+        <Text style={s.league} numberOfLines={1}>{fx.league ?? t("matchFallback")}</Text>
         {kickoff && <Text style={s.kickoff}>{kickoff}</Text>}
       </View>
 
@@ -117,13 +118,14 @@ function MatchCard({ fx, onDone }: { fx: Fixture; onDone: () => void }) {
       <TouchableOpacity
         onPress={() => router.push({ pathname: "/(tabs)/live", params: { focusId: fx.fixtureId } })}
       >
-        <Text style={s.detail}>detaylı tahmin →</Text>
+        <Text style={s.detail}>{t("detailedPred")}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 export default function DailyMenuStrip({ country }: Props) {
+  useLang(); // dil değişince yeniden çizilsin
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [loading, setLoading] = useState(true);
   const [done, setDone] = useState<Set<string>>(new Set());
@@ -155,7 +157,7 @@ export default function DailyMenuStrip({ country }: Props) {
 
   return (
     <View style={s.strip}>
-      <Text style={s.header}>⚡ Günün Maçları</Text>
+      <Text style={s.header}>{t("dayMatchesTitle")}</Text>
       {visible.map(fx => (
         <MatchCard
           key={fx.fixtureId}

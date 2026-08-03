@@ -4,6 +4,7 @@ import QuickPickCard, { PickFixture } from "./QuickPickCard";
 import StreakBar from "./StreakBar";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 
 type Props = {
   country?: string | null;
@@ -19,6 +20,7 @@ type StreakData = {
 };
 
 export default function QuickPlaySection({ country, userId }: Props) {
+  useLang(); // dil değişince yeniden çizilsin
   const [singles, setSingles] = useState<PickFixture[]>([]);
   const [quad, setQuad] = useState<PickFixture[]>([]);
   const [quadBonus, setQuadBonus] = useState(0);
@@ -63,7 +65,7 @@ export default function QuickPlaySection({ country, userId }: Props) {
     return (
       <View style={s.loadingBox}>
         <ActivityIndicator color="#a3e635" />
-        <Text style={s.loadingText}>Günün maçları yükleniyor...</Text>
+        <Text style={s.loadingText}>{t("dayLoading")}</Text>
       </View>
     );
   }
@@ -74,7 +76,7 @@ export default function QuickPlaySection({ country, userId }: Props) {
   if (!hasSingles && !hasQuad) {
     return (
       <View style={s.emptyBox}>
-        <Text style={s.emptyText}>Bugün maç yok — yarın tekrar gel!</Text>
+        <Text style={s.emptyText}>{t("noMatchToday2")}</Text>
       </View>
     );
   }
@@ -93,8 +95,8 @@ export default function QuickPlaySection({ country, userId }: Props) {
 
       {hasSingles && (
         <View style={s.section}>
-          <Text style={s.sectionTitle}>⚡ Hızlı Tahmin</Text>
-          <Text style={s.sectionSub}>Tek tıkla tahmin et, oranına göre LC kazan</Text>
+          <Text style={s.sectionTitle}>{t("quickPredict")}</Text>
+          <Text style={s.sectionSub}>{t("quickSub")}</Text>
           {singles.map(f => (
             <QuickPickCard key={f.fixtureId} fixture={f} onPredicted={handlePredicted} />
           ))}
@@ -104,14 +106,14 @@ export default function QuickPlaySection({ country, userId }: Props) {
       {hasQuad && (
         <View style={s.section}>
           <View style={s.quadHeader}>
-            <Text style={s.sectionTitle}>🎯 4'lü Paket</Text>
+            <Text style={s.sectionTitle}>{t("pack4")}</Text>
             {quadBonus > 0 && (
               <View style={s.bonusBadge}>
                 <Text style={s.bonusText}>4/4 → +{quadBonus} LC</Text>
               </View>
             )}
           </View>
-          <Text style={s.sectionSub}>Hepsini bil, mega bonus kazan</Text>
+          <Text style={s.sectionSub}>{t("pack4Sub")}</Text>
           {quad.map(f => (
             <QuickPickCard key={f.fixtureId} fixture={f} onPredicted={handlePredicted} compact />
           ))}

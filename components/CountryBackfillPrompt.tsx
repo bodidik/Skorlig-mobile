@@ -5,6 +5,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
 import { apiFetch } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 import { getPendingCountry } from "../lib/pendingCountry";
 import { isFirstRun } from "../lib/firstRun";
 
@@ -29,6 +30,7 @@ const SNOOZE_MS  = 24 * 60 * 60 * 1000; // 1 gün
 type CountryOpt = { country: string; flag: string };
 
 export default function CountryBackfillPrompt() {
+  useLang(); // dil değişince yeniden çizilsin
   const { user, loading } = useAuth();
 
   const [visible, setVisible]   = useState(false);
@@ -138,16 +140,15 @@ export default function CountryBackfillPrompt() {
         <View style={{ backgroundColor: BG, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "80%", paddingTop: 18 }}>
           <View style={{ paddingHorizontal: 20, gap: 10, paddingBottom: 12 }}>
             <Text style={{ color: "#fff", fontSize: 19, fontWeight: "900" }}>
-              Ülkeni seç 📍
+              {t("pickCountryTitle")}
             </Text>
             <Text style={{ color: "#94a3b8", fontSize: 13, lineHeight: 19 }}>
-              Ülkeni seçmeden ülke sıralamasında yer alamazsın. Maç listen de
-              yereline göre kişiselleşir.
+              {t("backfillMsg")}
             </Text>
             <TextInput
               value={search}
               onChangeText={setSearch}
-              placeholder="Ülke ara..."
+              placeholder={t("searchCountryPh")}
               placeholderTextColor="#475569"
               style={{ backgroundColor: CARD, borderRadius: 10, borderWidth: 1, borderColor: "#1e293b", paddingHorizontal: 14, paddingVertical: 10, color: "#fff", fontSize: 15 }}
             />
@@ -161,7 +162,7 @@ export default function CountryBackfillPrompt() {
           ) : countries.length === 0 ? (
             <View style={{ padding: 32, alignItems: "center", gap: 10 }}>
               <ActivityIndicator color={GOLD} />
-              <Text style={{ color: "#64748b", fontSize: 13 }}>Ülkeler yükleniyor…</Text>
+              <Text style={{ color: "#64748b", fontSize: 13 }}>{t("countriesLoading")}</Text>
             </View>
           ) : (
             <FlatList
@@ -181,7 +182,7 @@ export default function CountryBackfillPrompt() {
               )}
               ListEmptyComponent={
                 <Text style={{ color: "#475569", fontSize: 13, textAlign: "center", paddingVertical: 24 }}>
-                  Eşleşen ülke yok
+                  {t("noCountryMatch")}
                 </Text>
               }
             />

@@ -1,4 +1,5 @@
 import { Stack, useRouter, useSegments } from "expo-router";
+import { t, useLang } from "../lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import * as Notifications from "expo-notifications";
@@ -127,10 +128,8 @@ function AuthGuard() {
     applyPendingRef().then((r) => {
       if (r?.ok) {
         Alert.alert(
-          "Davet kabul edildi 🎉",
-          r.reward
-            ? `Arkadaşınla bağlandınız, ikinize de +${r.reward} LC eklendi.`
-            : "Arkadaşınla bağlandınız."
+          t("inviteAccepted"),
+          r.reward ? t("linkedReward", { n: r.reward }) : t("linkedPlain")
         );
       }
     });
@@ -160,6 +159,7 @@ function AuthGuard() {
 }
 
 export default function RootLayout() {
+  useLang(); // dil değişince yeniden çizilsin
   return (
     // ⚠️ EN DIŞTA: uygulamada hiç hata sınırı yoktu. Render sırasındaki tek bir
     // hata tüm ağacı söküyor, yayında uygulama beyaz ekrana/kapanmaya gidiyordu.

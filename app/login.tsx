@@ -9,9 +9,11 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../contexts/AuthContext";
+import { t, useLang } from "../lib/i18n";
 import Colors from "../constants/colors";
 
 export default function LoginScreen() {
+  useLang(); // dil değişince yeniden çizilsin
   const { user, loading, signInWithGoogle } = useAuth();
   const router = useRouter();
 
@@ -40,11 +42,11 @@ export default function LoginScreen() {
       <View style={s.bottom}>
         <TouchableOpacity style={s.googleBtn} onPress={signInWithGoogle} activeOpacity={0.85}>
           <Text style={s.googleIcon}>G</Text>
-          <Text style={s.googleText}>Google ile Giriş Yap</Text>
+          <Text style={s.googleText}>{t("googleSignInBtn")}</Text>
         </TouchableOpacity>
 
         <Text style={s.legal}>
-          Giriş yaparak Kullanım Koşulları ve Gizlilik Politikası'nı kabul etmiş olursunuz.
+          {t("termsNote")}
         </Text>
       </View>
     </View>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { t, useLang } from "../lib/i18n";
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -15,6 +16,7 @@ import { useAuth } from "../contexts/AuthContext";
  * baştan giriş yapılıyor.
  */
 export default function GuestBanner() {
+  useLang(); // dil değişince yeniden çizilsin
   const { user, isAnonymous, signInWithGoogle } = useAuth();
   const [busy, setBusy] = useState(false);
   const [err, setErr]   = useState(false);
@@ -37,11 +39,11 @@ export default function GuestBanner() {
     <TouchableOpacity style={s.bar} onPress={handleLink} disabled={busy} activeOpacity={0.8}>
       <Text style={s.icon}>👤</Text>
       <Text style={s.text}>
-        {err ? "Hata oluştu, tekrar dene" : "Misafir olarak geziyorsun · Tahmin için giriş yap"}
+        {err ? t("errRetry") : t("guestBrowsing")}
       </Text>
       {busy
         ? <ActivityIndicator size="small" color="#f59e0b" />
-        : <Text style={s.cta}>Google ile Giriş →</Text>
+        : <Text style={s.cta}>{t("signInGoogle")}</Text>
       }
     </TouchableOpacity>
   );

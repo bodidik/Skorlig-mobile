@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { t, useLang } from "../lib/i18n";
 import {
   View, Text, TouchableOpacity, ActivityIndicator,
   Animated, StyleSheet, Alert,
@@ -34,6 +35,7 @@ const OUTCOMES = [
 ];
 
 export default function QuickPickCard({ fixture, onPredicted, compact }: Props) {
+  useLang(); // dil değişince yeniden çizilsin
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -87,7 +89,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
   return (
     <View style={[s.card, compact && s.cardCompact]}>
       <View style={s.meta}>
-        <Text style={s.league} numberOfLines={1}>{fixture.league ?? "Maç"}</Text>
+        <Text style={s.league} numberOfLines={1}>{fixture.league ?? t("matchFallback")}</Text>
         {kickoff && <Text style={s.kickoff}>⏱ {kickoff}</Text>}
       </View>
 

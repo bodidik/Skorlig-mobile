@@ -3,9 +3,11 @@ import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Colors from "../../constants/colors";
+import Colors from "../../constants/colors";
+import { t, useLang } from "../../lib/i18n";
 
-export default function TabsLayout() {
+export default function TabsLayout() {
+  useLang(); // dil değişince sekme başlıkları yenilensin
   const insets = useSafeAreaInsets();
 
   return (
@@ -26,7 +28,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="live"
         options={{
-          title: "Maçlar",
+          title: t("matches"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="football-outline" color={color} size={size} />
           ),
@@ -35,7 +37,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="predict"
         options={{
-          title: "Tahmin",
+          title: t("tabPredict"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="create-outline" color={color} size={size} />
           ),
@@ -44,7 +46,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="arena"
         options={{
-          title: "Düello",
+          title: t("modeDuel"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="flash-outline" color={color} size={size} />
           ),
@@ -53,7 +55,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="stats"
         options={{
-          title: "Sıralama",
+          title: t("rankingTab"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="podium-outline" color={color} size={size} />
           ),
@@ -62,7 +64,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="me"
         options={{
-          title: "Profil",
+          title: t("tabProfile"),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-circle-outline" color={color} size={size} />
           ),

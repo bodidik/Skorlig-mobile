@@ -1,4 +1,5 @@
 import React from "react";
+import { t, useLang } from "../lib/i18n";
 import { View, Text, StyleSheet } from "react-native";
 
 type Tier = { threshold: number; bonus: number; label: string } | null;
@@ -18,6 +19,7 @@ const TIERS = [
 ];
 
 export default function StreakBar({ seriesCumOdds, seriesCount, activeSeries, bestSeries, currentTier }: Props) {
+  useLang(); // dil değişince yeniden çizilsin
   if (!activeSeries && seriesCount === 0 && bestSeries === 0) return null;
 
   const nextTier = TIERS.find(t => t.threshold > seriesCumOdds) || TIERS[TIERS.length - 1];
@@ -29,11 +31,11 @@ export default function StreakBar({ seriesCumOdds, seriesCount, activeSeries, be
         <Text style={s.label}>
           {activeSeries && seriesCount > 0
             ? `${currentTier?.label ?? "Seri"} ${currentTier ? TIERS.find(t => t.label === currentTier.label)?.emoji ?? "" : ""}`
-            : "Yeni seri başlat!"
+            : t("newStreak")
           }
         </Text>
         <Text style={s.stats}>
-          {seriesCount} maç • {seriesCumOdds.toFixed(1)}x
+          {t("streakRow", { n: seriesCount, x: seriesCumOdds.toFixed(1) })}
         </Text>
       </View>
 
