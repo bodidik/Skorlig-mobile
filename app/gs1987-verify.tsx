@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -28,6 +29,7 @@ async function apiFetch(path: string, init?: RequestInit) {
 }
 
 export default function Gs1987VerifyScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
 
   const [userId, setUserId] = useState<string>("demo1");
@@ -39,7 +41,7 @@ export default function Gs1987VerifyScreen() {
     const raw = code.trim();
 
     if (!uid || !raw) {
-      Alert.alert("SkorLig", "Kullanıcı ve kod alanları zorunludur.");
+      Alert.alert("SkorLig", t("userCodeRequired"));
       return;
     }
 
@@ -60,7 +62,7 @@ export default function Gs1987VerifyScreen() {
       } catch {
         Alert.alert(
           "Hata",
-          `Sunucudan beklenmeyen cevap geldi:\n\n${txt.slice(0, 300)}`
+          t("unexpectedResp") + `\n\n${txt.slice(0, 300)}`
         );
         return;
       }
@@ -69,9 +71,9 @@ export default function Gs1987VerifyScreen() {
         Alert.alert(
           "1987GS",
           j?.error === "INVALID_CODE"
-            ? "Kod geçersiz."
+            ? t("codeInvalid")
             : j?.error === "CODE_EXHAUSTED"
-            ? "Bu kod maksimum kullanımına ulaşmış."
+            ? t("codeExhausted")
             : j?.error || `DOĞRULAMA_HATASI (HTTP ${res.status})`
         );
         return;
@@ -80,12 +82,12 @@ export default function Gs1987VerifyScreen() {
       const label = j?.code?.label || "1987GS";
       const remaining =
         typeof j?.code?.remaining === "number"
-          ? `Kalan hak: ${j.code.remaining}`
+          ? t("remainingUses", { n: j.code.remaining })
           : "";
 
-      Alert.alert("1987GS", `${label} erişimi açıldı.\n${remaining}`, [
+      Alert.alert("1987GS", t("accessOpened", { l: label, r: remaining }), [
         {
-          text: "Tamam",
+          text: t("ok"),
           onPress: () => {
             // İstersen direkt üye listesine atla:
             // router.push("/gs1987-members");
@@ -93,7 +95,7 @@ export default function Gs1987VerifyScreen() {
         },
       ]);
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setSending(false);
     }
@@ -133,7 +135,7 @@ export default function Gs1987VerifyScreen() {
               color: Colors.slate900,
             }}
           >
-            1987GS Kod Doğrulama
+            {t("gs1987VerifyTitle")}
           </Text>
           <Text
             style={{
@@ -142,7 +144,7 @@ export default function Gs1987VerifyScreen() {
               marginTop: 2,
             }}
           >
-            Özel kod / QR ile 1987 döngüsüne giriş.
+            {t("gs1987VerifySub")}
           </Text>
         </View>
       </View>
@@ -157,9 +159,7 @@ export default function Gs1987VerifyScreen() {
         }}
       >
         <Text style={{ color: "#e5e7eb", fontSize: 12 }}>
-          1987 üyeliği, verilen özel kod / barkod ile açılır. SkorLig hesabın 1987
-          ile eşleştirildikten sonra, giriş yaptığın sürece 1987 alanına rahatça
-          erişebilirsin.
+          {t("gs1987Explain")}
         </Text>
       </View>
 
@@ -175,12 +175,12 @@ export default function Gs1987VerifyScreen() {
           gap: 8,
         }}
       >
-        <Text style={{ fontWeight: "700", fontSize: 13 }}>Kullanıcı</Text>
+        <Text style={{ fontWeight: "700", fontSize: 13 }}>{t("userLbl2")}</Text>
         <TextInput
           value={userId}
           onChangeText={setUserId}
           autoCapitalize="none"
-          placeholder="ör: demo1"
+          placeholder={t("userPh")}
           style={{
             borderWidth: 1,
             borderColor: Colors.border,
@@ -191,7 +191,7 @@ export default function Gs1987VerifyScreen() {
           }}
         />
         <Text style={{ fontSize: 11, color: Colors.muted }}>
-          Uygulamada giriş yaptığın kullanıcı adı / ID burada kullanılacak.
+          {t("userIdHelp2")}
         </Text>
       </View>
 
@@ -212,7 +212,7 @@ export default function Gs1987VerifyScreen() {
           value={code}
           onChangeText={setCode}
           autoCapitalize="characters"
-          placeholder="ör: GS1987-ABC123"
+          placeholder={t("codePh2")}
           style={{
             borderWidth: 1,
             borderColor: Colors.border,
@@ -250,7 +250,7 @@ export default function Gs1987VerifyScreen() {
             fontSize: 15,
           }}
         >
-          {sending ? "Doğrulanıyor..." : "Kodu Doğrula"}
+          {sending ? t("verifying") : t("verifyCodeBtn")}
         </Text>
       </TouchableOpacity>
 

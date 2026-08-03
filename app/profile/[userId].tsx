@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { hataMesaji } from "../../lib/hataMesaji";
+import { t, useLang } from "../../lib/i18n";
 import {
   View,
   Text,
@@ -84,6 +85,7 @@ function pointColor(pts: number) {
 }
 
 export default function ProfileUserScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const { userId: qUserId } = useLocalSearchParams<{ userId?: string }>();
   const ownUserId = useUserId();
@@ -181,12 +183,12 @@ export default function ProfileUserScreen() {
       {loading && !profile ? (
         <View style={{ paddingVertical: 40, alignItems: "center" }}>
           <ActivityIndicator size="large" />
-          <Text style={{ marginTop: 8, color: Colors.muted }}>Yükleniyor...</Text>
+          <Text style={{ marginTop: 8, color: Colors.muted }}>{t("loading")}</Text>
         </View>
       ) : error && !profile ? (
         <View style={{ margin: 16, padding: 12, borderRadius: 12, backgroundColor: "#7f1d1d" }}>
-          <Text style={{ color: "#fee2e2", fontWeight: "700" }}>Kullanıcı bulunamadı</Text>
-          <Text style={{ color: "#fecaca", fontSize: 12, marginTop: 4 }}>{hataMesaji(error, "Bu kullanıcıya ulaşılamadı.")}</Text>
+          <Text style={{ color: "#fee2e2", fontWeight: "700" }}>{t("userNotFound")}</Text>
+          <Text style={{ color: "#fecaca", fontSize: 12, marginTop: 4 }}>{hataMesaji(error, t("userUnreachable"))}</Text>
         </View>
       ) : (
         <View style={{ padding: 16, gap: 12 }}>
@@ -229,7 +231,7 @@ export default function ProfileUserScreen() {
               </View>
               {profile?.createdAt && (
                 <Text style={{ fontSize: 10, color: Colors.muted }}>
-                  Kayıt: {String(profile.createdAt).slice(0, 10)}
+                  {t("regRow", { d: String(profile.createdAt).slice(0, 10) })}
                 </Text>
               )}
             </View>
@@ -238,10 +240,10 @@ export default function ProfileUserScreen() {
           {/* ─── Ana istatistik kartları ─── */}
           <View style={{ flexDirection: "row", gap: 8 }}>
             {[
-              { label: "Puan", value: totalPts, icon: "🏆", color: "#f59e0b" },
-              { label: "Tahmin", value: predCount, icon: "📋", color: Colors.accent },
-              { label: "İsabet %", value: wr !== null ? `${wr}%` : "—", icon: "✅", color: "#16a34a" },
-              { label: "Seri", value: streak > 0 ? `${streak} 🔥` : streak, icon: "🎯", color: "#dc2626" },
+              { label: t("ptsLbl"), value: totalPts, icon: "🏆", color: "#f59e0b" },
+              { label: t("statPred"), value: predCount, icon: "📋", color: Colors.accent },
+              { label: t("hitRate"), value: wr !== null ? `${wr}%` : "—", icon: "✅", color: "#16a34a" },
+              { label: t("streakLbl"), value: streak > 0 ? `${streak} 🔥` : streak, icon: "🎯", color: "#dc2626" },
             ].map(s => (
               <View key={s.label} style={{
                 flex: 1, backgroundColor: "#fff", borderRadius: 12, padding: 10,
@@ -270,7 +272,7 @@ export default function ProfileUserScreen() {
                 onPress={() => router.push({ pathname: "/lc-ledger", params: { userId } } as any)}
                 style={{ paddingHorizontal: 12, paddingVertical: 7, backgroundColor: "#f59e0b", borderRadius: 999 }}
               >
-                <Text style={{ fontWeight: "700", fontSize: 12 }}>Geçmiş →</Text>
+                <Text style={{ fontWeight: "700", fontSize: 12 }}>{t("historyBtn")}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -281,13 +283,13 @@ export default function ProfileUserScreen() {
               backgroundColor: "#fff", borderRadius: 12, padding: 14,
               borderWidth: 1, borderColor: Colors.border, gap: 10,
             }}>
-              <Text style={{ fontWeight: "700", fontSize: 14 }}>Tahmin Dağılımı</Text>
+              <Text style={{ fontWeight: "700", fontSize: 14 }}>{t("predDist2")}</Text>
               <View style={{ flexDirection: "row", gap: 6 }}>
                 {[
-                  { label: "Doğru", value: outcomeBreakdown.correct, color: "#16a34a", bg: "#dcfce7" },
-                  { label: "Yanlış", value: outcomeBreakdown.wrong,  color: "#dc2626", bg: "#fee2e2" },
-                  { label: "Nötr",  value: outcomeBreakdown.neutral, color: Colors.muted, bg: "#f8fafc" },
-                  { label: "Skor",  value: outcomeBreakdown.exact,   color: Colors.accent, bg: "#edf4ff" },
+                  { label: t("correctLbl"), value: outcomeBreakdown.correct, color: "#16a34a", bg: "#dcfce7" },
+                  { label: t("wrongLbl"), value: outcomeBreakdown.wrong,  color: "#dc2626", bg: "#fee2e2" },
+                  { label: t("neutralLbl"),  value: outcomeBreakdown.neutral, color: Colors.muted, bg: "#f8fafc" },
+                  { label: t("scoreLbl"),  value: outcomeBreakdown.exact,   color: Colors.accent, bg: "#edf4ff" },
                 ].map(b => (
                   <View key={b.label} style={{
                     flex: 1, backgroundColor: b.bg, borderRadius: 10, padding: 8,
@@ -302,7 +304,7 @@ export default function ProfileUserScreen() {
               {/* En iyi seri */}
               {best > 1 && (
                 <Text style={{ fontSize: 12, color: Colors.muted }}>
-                  En iyi seri: <Text style={{ fontWeight: "700", color: Colors.slate900 }}>{best} maç</Text> üst üste doğru
+                  {t("bestStreakPre")}<Text style={{ fontWeight: "700", color: Colors.slate900 }}>{t("nMatches", { n: best })}</Text>{t("bestStreakPost")}
                 </Text>
               )}
 
@@ -310,7 +312,7 @@ export default function ProfileUserScreen() {
               {wr !== null && history.length >= 3 && (
                 <View>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-                    <Text style={{ fontSize: 11, color: Colors.muted }}>İsabet oranı</Text>
+                    <Text style={{ fontSize: 11, color: Colors.muted }}>{t("hitRateLbl")}</Text>
                     <Text style={{ fontSize: 11, fontWeight: "700", color: Colors.slate900 }}>{wr}%</Text>
                   </View>
                   <View style={{ height: 8, backgroundColor: "#f1f5f9", borderRadius: 999, overflow: "hidden" }}>
@@ -349,7 +351,7 @@ export default function ProfileUserScreen() {
                         {home && away ? `${home} – ${away}` : it.fixtureId}
                       </Text>
                       <Text style={{ fontSize: 11, color: Colors.muted }}>
-                        {score ? `Sonuç: ${score}` : "Bekleniyor"}
+                        {score ? t("resultShort", { s: score }) : t("waiting")}
                         {it.meta?.league ? ` · ${it.meta.league}` : ""}
                         {it.computedAt ? ` · ${String(it.computedAt).slice(0, 10)}` : ""}
                       </Text>
@@ -373,7 +375,7 @@ export default function ProfileUserScreen() {
             <View style={{ padding: 24, alignItems: "center", gap: 8 }}>
               <Text style={{ fontSize: 32 }}>📋</Text>
               <Text style={{ color: Colors.muted, textAlign: "center" }}>
-                Henüz tamamlanmış tahmin yok.
+                {t("noCompletedPreds")}
               </Text>
             </View>
           )}

@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 
 type Props = {
   userId: string;
@@ -13,12 +14,13 @@ type Props = {
 };
 
 export default function TournamentJoin({ userId, onJoined, onClose }: Props) {
+  useLang(); // dil değişince yeniden çizilsin
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function handleJoin() {
     const c = code.trim().toUpperCase();
-    if (c.length < 4) return Alert.alert("Hata", "Geçerli bir kod gir");
+    if (c.length < 4) return Alert.alert(t("error"), t("enterValidCode"));
     setBusy(true);
     try {
       const base = await getApiBase();
@@ -30,25 +32,25 @@ export default function TournamentJoin({ userId, onJoined, onClose }: Props) {
       });
       const json = await r.json();
       if (json.ok) {
-        Alert.alert("Katıldın!", `${json.tournament.name} turnuvasına katıldın. Giriş: ${json.tournament.entryLC} LC`);
+        Alert.alert(t("joinedTitle"), t("joinedMsg", { n: json.tournament.name, g: json.tournament.entryLC }));
         onJoined?.(c);
       } else {
-        const msg = json.error === "NOT_FOUND" ? "Turnuva bulunamadı"
-          : json.error === "ALREADY_JOINED" ? "Zaten katılmışsın"
-          : json.error === "CLOSED" ? "Turnuva kapanmış"
-          : json.error || "Katılınamadı";
-        Alert.alert("Hata", msg);
+        const msg = json.error === "NOT_FOUND" ? t("tourNotFound")
+          : json.error === "ALREADY_JOINED" ? t("alreadyJoined")
+          : json.error === "CLOSED" ? t("tourClosed")
+          : json.error || t("joinFailed");
+        Alert.alert(t("error"), msg);
       }
     } catch (e: any) {
-      Alert.alert("Hata", e.message);
+      Alert.alert(t("error"), e.message);
     }
     setBusy(false);
   }
 
   return (
     <View style={s.container}>
-      <Text style={s.title}>🎟️ Turnuvaya Katıl</Text>
-      <Text style={s.subtitle}>Arkadaşından aldığın 6 haneli kodu gir</Text>
+      <Text style={s.title}>{t("joinTourTitle")}</Text>
+      <Text style={s.subtitle}>{t("joinTourSub")}</Text>
 
       <TextInput
         style={s.input}
@@ -68,7 +70,7 @@ export default function TournamentJoin({ userId, onJoined, onClose }: Props) {
       >
         {busy
           ? <ActivityIndicator color="#000" />
-          : <Text style={s.joinBtnText}>Katıl</Text>
+          : <Text style={s.joinBtnText}>{t("join")}</Text>
         }
       </TouchableOpacity>
 

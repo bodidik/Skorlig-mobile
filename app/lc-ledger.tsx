@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 import BackBar from "../components/BackBar";
 
 type LedgerItem = {
@@ -97,25 +98,26 @@ function formatDate(iso?: string) {
 function describeKind(tx: LedgerItem) {
   const { kind, reason } = tx;
   if (kind === "init") {
-    if (reason === "initial_1987") return "Başlangıç (1987 üyesi)";
-    if (reason === "initial_default") return "Başlangıç bakiyesi";
-    return "Başlangıç";
+    if (reason === "initial_1987") return t("txInit1987");
+    if (reason === "initial_default") return t("txInitDefault");
+    return t("txInit");
   }
   if (kind === "reward") {
-    if (reason === "daily") return "Günlük LC ödülü";
-    if (reason === "match_reward") return "Maç ödülü";
-    return "Ödül";
+    if (reason === "daily") return t("txDaily");
+    if (reason === "match_reward") return t("txMatchReward");
+    return t("txReward");
   }
   if (kind === "spend") {
     if (reason === "match_entry" || reason === "match_pred") {
-      return "Maç tahmini girişi";
+      return t("txMatchEntry");
     }
-    return "Harcanan LC";
+    return t("txSpend");
   }
-  return kind || "işlem";
+  return kind || t("txGeneric");
 }
 
 export default function LcLedgerScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const { userId: qUser } = useLocalSearchParams<{ userId?: string }>();
   const userId = useMemo(() => String(qUser || "demo1"), [qUser]);
   const router = useRouter();
@@ -199,9 +201,9 @@ export default function LcLedgerScreen() {
       contentContainerStyle={{ padding: 16, gap: 12 }}
     >
       <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>
-        LC Hareketlerim
+        {t("lcHistory")}
       </Text>
-      <Text style={{ color: Colors.muted, fontSize: 12 }}>Kullanıcı: {userId}</Text>
+      <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("userLbl", { u: userId })}</Text>
 
       {/* Özet kartı */}
       <View
@@ -218,29 +220,27 @@ export default function LcLedgerScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <ActivityIndicator />
             <Text style={{ color: Colors.muted, fontSize: 12 }}>
-              Cüzdan yükleniyor...
+              {t("walletLoading")}
             </Text>
           </View>
         ) : wallet ? (
           <>
-            <Text style={{ fontWeight: "700" }}>Güncel Bakiye</Text>
+            <Text style={{ fontWeight: "700" }}>{t("currentBalance")}</Text>
             <Text style={{ fontSize: 26, fontWeight: "800", color: Colors.accent }}>
               {wallet.user?.balance ?? 0} LC
             </Text>
             <Text style={{ color: Colors.muted, fontSize: 12 }}>
-              Toplam kazanç: {wallet.user?.totalEarned ?? 0} · Toplam harcama:{" "}
-              {wallet.user?.totalSpent ?? 0}
+              {t("earnSpend", { e: wallet.user?.totalEarned ?? 0, s: wallet.user?.totalSpent ?? 0 })}
             </Text>
             {wallet.pricing && (
               <Text style={{ color: Colors.muted, fontSize: 11 }}>
-                Maç girişi: {wallet.pricing.matchEntryCost} LC · Günlük hak:{" "}
-                {wallet.pricing.daily} LC
+                {t("entryDaily", { e: wallet.pricing.matchEntryCost, d: wallet.pricing.daily })}
               </Text>
             )}
           </>
         ) : (
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Cüzdan bilgisi alınamadı.
+            {t("walletInfoShort")}
           </Text>
         )}
       </View>
@@ -256,21 +256,20 @@ export default function LcLedgerScreen() {
           backgroundColor: "#fff",
         }}
       >
-        <Text style={{ fontWeight: "700", marginBottom: 4 }}>Son işlemler</Text>
+        <Text style={{ fontWeight: "700", marginBottom: 4 }}>{t("lastTx")}</Text>
         <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 8 }}>
-          Son 100 LC hareketin görüntülenir. Artı değerler eklenen, eksi değerler
-          harcanan LC’yi gösterir.
+          {t("last100")}
         </Text>
 
         {loading && (
           <Text style={{ color: Colors.muted, fontSize: 12, marginBottom: 4 }}>
-            Yükleniyor...
+            {t("loading")}
           </Text>
         )}
 
         {items.length === 0 && !loading ? (
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Henüz kayıtlı işlem yok.
+            {t("noTx")}
           </Text>
         ) : (
           items.map((tx) => {
@@ -289,7 +288,7 @@ export default function LcLedgerScreen() {
                   {describeKind(tx)}
                 </Text>
                 <Text style={{ color: Colors.muted, fontSize: 11 }}>
-                  {formatDate(tx.createdAt)} {tx.fixtureId ? `• Maç: ${tx.fixtureId}` : ""}
+                  {formatDate(tx.createdAt)} {tx.fixtureId ? t("txMatchRow", { f: tx.fixtureId }) : ""}
                 </Text>
                 <Text style={{ marginTop: 2, fontWeight: "700", fontSize: 14, color }}>
                   {sign}
