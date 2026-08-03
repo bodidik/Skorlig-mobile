@@ -188,7 +188,7 @@ export default function KingsScreen() {
           const r = await apiFetch(`/api/users/profile?userId=${encodeURIComponent(uid)}`);
           const j = await r.json();
           benimTakim = j?.profile?.mainTeam ? String(j.profile.mainTeam).trim() : null;
-        } catch {}
+        } catch (e) { console.warn("[kings] profil yuklenemedi:", e); }
       }
 
       const toplananlar: UserProfile[] = [];
@@ -202,7 +202,7 @@ export default function KingsScreen() {
             const id = String(m?.userId || m?.id || "").trim();
             if (id) toplananlar.push({ userId: id, mainTeam: benimTakim } as UserProfile);
           }
-        } catch {}
+        } catch (e) { console.warn("[kings] takim kadrosu yuklenemedi:", e); }
       }
 
       // 3) 1987 segmenti
@@ -213,7 +213,7 @@ export default function KingsScreen() {
           const id = String(u?.userId || "").trim();
           if (id) toplananlar.push({ userId: id, is1987: true } as UserProfile);
         }
-      } catch {}
+      } catch (e) { console.warn("[kings] 1987 segmenti yuklenemedi:", e); }
 
       // Kendi profilim de listede olsun (takım segmenti için gerekli).
       if (uid && benimTakim) {

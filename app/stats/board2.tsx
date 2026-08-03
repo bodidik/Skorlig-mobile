@@ -36,10 +36,12 @@ export default function Board2Screen() {
 
   const [items, setItems] = useState<BoardRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   async function load() {
     try {
       setLoading(true);
+      setLoadError(false);
       // ⚠️ YOL DÜZELTİLDİ: `/api/stats/board2` diye bir uç YOK (404) — ekran hep
       // boş kalıyordu. Rota `totals-read.cjs` içinde ve `/api/rt` altında mount
       // ediliyor. Aynı sınıf hata "kings" ekranında da vardı (`/api/users`).
@@ -51,8 +53,10 @@ export default function Board2Screen() {
       } else {
         setItems([]);
       }
-    } catch {
+    } catch (e) {
+      console.warn("[board2] yuklenemedi:", e);
       setItems([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -96,8 +100,8 @@ export default function Board2Screen() {
         }}
       >
         {items.length === 0 ? (
-          <Text style={{ padding: 12, color: Colors.muted }}>
-            Kayıt bulunamadı.
+          <Text style={{ padding: 12, color: loadError ? Colors.danger : Colors.muted }}>
+            {loadError ? "Tablo yüklenemedi. Aşağı çekerek tekrar deneyin." : "Kayıt bulunamadı."}
           </Text>
         ) : (
           items.slice(0, 100).map((x, idx) => (

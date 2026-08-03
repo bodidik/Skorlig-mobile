@@ -124,6 +124,8 @@ export default function MatchRaceScreen() {
   const [profileVisible, setProfileVisible] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState(false);
+  const [profileTargetId, setProfileTargetId] = useState("");
   const [blocked, setBlocked] = useState(false);
 
   const load = useCallback(async () => {
@@ -156,11 +158,18 @@ export default function MatchRaceScreen() {
     setProfileVisible(true);
     setProfileLoading(true);
     setProfile(null);
+    setProfileError(false);
+    setProfileTargetId(targetUserId);
     setBlocked(false);
     try {
-      const r = await apiFetch(`/api/rt/user-profile?userId=${encodeURIComponent(targetUserId)}`).then((x) => x.json());
+      const res = await apiFetch(`/api/rt/user-profile?userId=${encodeURIComponent(targetUserId)}`);
+      const r = await res.json();
       if (r.ok) setProfile(r);
-    } catch (_) {}
+      else setProfileError(true);
+    } catch (e) {
+      console.warn("[match-race] profil yuklenemedi:", e);
+      setProfileError(true);
+    }
     setProfileLoading(false);
   };
 
@@ -545,9 +554,20 @@ export default function MatchRaceScreen() {
             )}
 
             {!profileLoading && !profile && (
-              <Text style={{ color: Colors.muted, textAlign: "center", paddingVertical: 40 }}>
-                {t("profileLoadFailed")}
-              </Text>
+              <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                <Text style={{ color: Colors.muted, textAlign: "center" }}>
+                  {profileError ? t("profileLoadError") : t("profileLoadFailed")}
+                </Text>
+                {profileError && profileTargetId && (
+                  <TouchableOpacity
+                    onPress={() => openProfile(profileTargetId)}
+                    style={{ marginTop: 12, paddingHorizontal: 16, paddingVertical: 8,
+                      backgroundColor: Colors.accent + "22", borderRadius: 8 }}
+                  >
+                    <Text style={{ color: Colors.accent }}>{t("retry")}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
           </TouchableOpacity>
         </TouchableOpacity>
