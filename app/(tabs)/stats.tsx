@@ -17,6 +17,7 @@ import { useRuntimeConfig } from "../../lib/runtimeConfig";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { withAdminHeaders } from "../../lib/adminToken";
+import { t, useLang } from "../../lib/i18n";
 
 const DEFAULT_COMPETITION_ID = process.env.EXPO_PUBLIC_DEFAULT_COMPETITION_ID || "";
 
@@ -96,6 +97,7 @@ async function apiFetch(path: string, init?: RequestInit) {
 }
 
 export default function StatsScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const { userId: qUser } = useLocalSearchParams<{ userId?: string }>();
   const userId = useUserId(qUser);
@@ -251,10 +253,10 @@ export default function StatsScreen() {
     if (!targetUserId) return;
     if (targetUserId.toLowerCase() === userId.toLowerCase()) return;
 
-    Alert.alert("Arkadaşlık isteği", `${targetUserId} kullanıcısına arkadaşlık isteği gönderilsin mi?`, [
-      { text: "Vazgeç", style: "cancel" },
+    Alert.alert(t("friendReqTitle"), t("friendReqAsk", { id: targetUserId }), [
+      { text: t("dismiss"), style: "cancel" },
       {
-        text: "Gönder",
+        text: t("send"),
         onPress: async () => {
           try {
             const r = await apiFetch(`/api/friends/request`, {
@@ -263,10 +265,10 @@ export default function StatsScreen() {
               body: JSON.stringify({ fromUserId: userId, toUserId: targetUserId }),
             });
             const j = await r.json();
-            if (j?.ok) Alert.alert("SkorLig", "Arkadaşlık isteği gönderildi ✅");
-            else Alert.alert("Hata", hataMesaji(j?.error));
+            if (j?.ok) Alert.alert("SkorLig", t("friendReqSentOk"));
+            else Alert.alert(t("error"), hataMesaji(j?.error));
           } catch (e: any) {
-            Alert.alert("Hata", String(e?.message || e));
+            Alert.alert(t("error"), String(e?.message || e));
           }
         },
       },
@@ -280,8 +282,8 @@ export default function StatsScreen() {
       const j = (await r.json()) as MeStats;
       if (j && j.ok) {
         setMeStats(j);
-        const t = (j.favTeam && j.favTeam.trim()) || (j.team && j.team.team) || "Galatasaray";
-        setTeamName(t);
+        const tName = (j.favTeam && j.favTeam.trim()) || (j.team && j.team.team) || "";
+        if (tName) setTeamName(tName);
       }
     } catch {
       // me gelmese de leaderboard çalışır
@@ -394,7 +396,7 @@ export default function StatsScreen() {
       setCupRows([]);
       setCupMeta(null);
       setCupUpdatedAt(null);
-      setCupError("Seçilmiş kupa için competitionId yapılandırılmamış.");
+      setCupError(t("cupNotConfigured"));
       return;
     }
 
@@ -454,10 +456,10 @@ export default function StatsScreen() {
   // meStats güncellendikçe takım bazlı sıralamayı güncelle
   useEffect(() => {
     if (meStats) {
-      const t = (meStats.favTeam && meStats.favTeam.trim()) || (meStats.team && meStats.team.team) || teamName;
-      if (t && t !== teamName) {
-        setTeamName(t);
-        loadTeamRanks(t);
+      const tName = (meStats.favTeam && meStats.favTeam.trim()) || (meStats.team && meStats.team.team) || teamName;
+      if (tName && tName !== teamName) {
+        setTeamName(tName);
+        loadTeamRanks(tName);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -511,7 +513,7 @@ export default function StatsScreen() {
   const summaryMatches = mode === "global" ? globalSummaryMatches : cupSummaryMatches;
 
   const cupTitle =
-    cupMeta?.shortName || cupMeta?.name || cupMeta?.competitionId || DEFAULT_COMPETITION_ID || "Seçilmiş kupa";
+    cupMeta?.shortName || cupMeta?.name || cupMeta?.competitionId || DEFAULT_COMPETITION_ID || t("selectedCupFallback");
 
   const effectiveRuntime = runtimeShadow || runtimeMode || null;
 
@@ -556,7 +558,7 @@ export default function StatsScreen() {
       const j = await res.json();
 
       if (!res.ok || !j?.ok) {
-        Alert.alert("Hata", hataMesaji(j?.error));
+        Alert.alert(t("error"), hataMesaji(j?.error));
         return;
       }
 
@@ -566,7 +568,7 @@ export default function StatsScreen() {
       Alert.alert("SkorLig", "Çalışma modu güncellendi. /api/config çıktısına yansıyacak.");
       setAdminModalOpen(false);
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setAdminSaving(false);
     }
@@ -601,10 +603,10 @@ export default function StatsScreen() {
                 marginRight: 8,
               }}
             >
-              <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+              <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
             </TouchableOpacity>
             <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>
-              İstatistikler & Krallar
+              {t("statsTitle")}
             </Text>
           </View>
 
@@ -657,7 +659,7 @@ export default function StatsScreen() {
 
           {/* MOD (Global sezon / Kupa) */}
           <View style={{ flexDirection: "row", backgroundColor: Colors.dark, borderRadius: 999, padding: 4 }}>
-            {[{ key: "global", label: "Global sezon" }, { key: "kupon", label: "Kupon" }, { key: "cup", label: "Kupa" }].map((tab) => {
+            {[{ key: "global", label: t("tabGlobalSeason") }, { key: "kupon", label: t("tabKupon") }, { key: "cup", label: t("tabCup") }].map((tab) => {
               const active = mode === (tab.key as ModeKey);
               return (
                 <TouchableOpacity
@@ -688,12 +690,12 @@ export default function StatsScreen() {
           {/* Diğer istatistik sayfaları */}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
             {[
-              { label: "Gol Kralları", pathname: "/kings" },
-              { label: "Detaylı Ben Sayfası", pathname: "/stats/me" },
-              { label: "Takım Paneli", pathname: "/stats/team", params: { team: teamName } },
-              { label: "Bayraklı Liderlik", pathname: "/stats/board2" },
-              { label: "Favori Takım Ayarları", pathname: "/stats/fav" },
-              { label: "Kupa Krallığı", pathname: "/stats/competition-kings" },
+              { label: t("goalKingsBtn"), pathname: "/kings" },
+              { label: t("linkDetailedMe"), pathname: "/stats/me" },
+              { label: t("linkTeamPanel"), pathname: "/stats/team", params: { team: teamName } },
+              { label: t("linkFlagBoard"), pathname: "/stats/board2" },
+              { label: t("linkFavSettings"), pathname: "/stats/fav" },
+              { label: t("linkCupKings"), pathname: "/stats/competition-kings" },
             ].map((item) => (
               <TouchableOpacity
                 key={item.pathname}
@@ -719,23 +721,23 @@ export default function StatsScreen() {
 
           {/* Özet kartı */}
           <View style={{ padding: 12, backgroundColor: "#0f172a", borderRadius: 12, borderWidth: 1, borderColor: Colors.border, gap: 4 }}>
-            <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>{mode === "global" ? "Global sezon özetim" : "Kupa özetim"}</Text>
+            <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>{mode === "global" ? t("myGlobalSummary") : t("myCupSummary")}</Text>
 
             <Text style={{ fontSize: 26, fontWeight: "800", color: Colors.primary, marginTop: 4 }}>
-              {summaryPoints} puan
+              {t("nPts", { n: summaryPoints })}
             </Text>
 
             {typeof summaryMatches === "number" && (
-              <Text style={{ color: Colors.muted, fontSize: 12 }}>Tahmin girilen maç: {summaryMatches}</Text>
+              <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("predMatches", { n: summaryMatches })}</Text>
             )}
 
             <Text style={{ color: Colors.muted, fontSize: 12 }}>
-              Ana takım: {teamName || meStats?.favTeam || meStats?.team?.team || "-"}
+              {t("mainTeamLbl", { t: teamName || meStats?.favTeam || meStats?.team?.team || "-" })}
             </Text>
 
             {mode === "global" && formArray.length > 0 && (
               <View style={{ marginTop: 8 }}>
-                <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 2 }}>Form (son 10 maç puanları):</Text>
+                <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 2 }}>{t("formLast10Pts")}</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
                   {formArray.map((p, ix) => (
                     <View
@@ -758,7 +760,7 @@ export default function StatsScreen() {
 
             {typeof summaryMatches === "number" && (
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 6 }}>
-                Not: Bu sayı, en az bir tahmin girdiğin ve işlenmiş maç sayısıdır.
+                {t("statNote")}
               </Text>
             )}
           </View>
@@ -766,7 +768,7 @@ export default function StatsScreen() {
           {/* Sekmeler: sadece GLOBAL sezonda */}
           {mode === "global" && (
             <View style={{ flexDirection: "row", backgroundColor: Colors.dark, borderRadius: 999, padding: 4 }}>
-              {[{ key: "genel", label: "Genel" }, { key: "fav", label: "Takımıma göre" }, { key: "me", label: "Ben" }].map((tab) => {
+              {[{ key: "genel", label: t("viewGeneral") }, { key: "fav", label: t("viewByTeam") }, { key: "me", label: t("viewMe") }].map((tab) => {
                 const active = view === (tab.key as ViewKey);
                 return (
                   <TouchableOpacity
@@ -789,8 +791,8 @@ export default function StatsScreen() {
             <View style={{ gap: 6 }}>
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {([
-                  { key: "country" as ScopeKey, label: myCountry ? `🏠 ${myCountry}` : "🏠 Ülkem" },
-                  { key: "global" as ScopeKey, label: "🌍 Dünya" },
+                  { key: "country" as ScopeKey, label: myCountry ? `🏠 ${myCountry}` : t("myCountryTab") },
+                  { key: "global" as ScopeKey, label: t("worldTab") },
                 ]).map((s) => {
                   const active = scope === s.key;
                   return (
@@ -843,15 +845,13 @@ export default function StatsScreen() {
                 >
                   <View style={{ flex: 1, paddingRight: 8 }}>
                     <Text style={{ color: Colors.text, fontSize: 12, fontWeight: "700" }}>
-                      {sezonEtiket} sezonu{guncelSezonMu ? "" : "  (arşiv)"}
+                      {t("seasonOf", { s: sezonEtiket })}{guncelSezonMu ? "" : t("archiveSuffix")}
                     </Text>
                     <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 2 }}>
                       {guncelSezonMu
-                        ? (totalsRows.length === 0
-                            ? "Yeni sezon başladı, tablo sıfırlandı. İlk tahminini yap!"
-                            : "Sıralama her ay başında sıfırlanır.")
-                        : "Geçmiş sezonun kapanış tablosu."}
-                      {arsivKisitli ? "  Daha eski sezonlar Premium'da." : ""}
+                        ? (totalsRows.length === 0 ? t("newSeasonReset") : t("seasonResets"))
+                        : t("pastSeasonTable")}
+                      {arsivKisitli ? t("olderPremium") : ""}
                     </Text>
                   </View>
 
@@ -860,14 +860,14 @@ export default function StatsScreen() {
                       onPress={() => { setBakilanSezon(oncekiSezon); loadTotals(scope, humansOnly); }}
                       style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "#1f2937" }}
                     >
-                      <Text style={{ color: "#a3e635", fontSize: 11, fontWeight: "700" }}>Geçen sezon</Text>
+                      <Text style={{ color: "#a3e635", fontSize: 11, fontWeight: "700" }}>{t("lastSeason")}</Text>
                     </TouchableOpacity>
                   ) : !guncelSezonMu ? (
                     <TouchableOpacity
                       onPress={() => { setBakilanSezon(null); loadTotals(scope, humansOnly); }}
                       style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "#1f2937" }}
                     >
-                      <Text style={{ color: "#a3e635", fontSize: 11, fontWeight: "700" }}>Bu sezon</Text>
+                      <Text style={{ color: "#a3e635", fontSize: 11, fontWeight: "700" }}>{t("thisSeason")}</Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -889,10 +889,10 @@ export default function StatsScreen() {
                   }}
                 >
                   <Text style={{ color: humansOnly ? "#4ade80" : Colors.muted, fontSize: 12, fontWeight: "700" }}>
-                    {humansOnly ? "✓ Sadece gerçek oyuncular" : "Sadece gerçek oyuncuları göster"}
+                    {humansOnly ? t("humansOn") : t("humansOff")}
                   </Text>
                   <Text style={{ color: Colors.muted, fontSize: 11 }}>
-                    {humanCount} oyuncu · {botCount} bot
+                    {t("playersBots", { h: humanCount, b: botCount })}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -900,7 +900,7 @@ export default function StatsScreen() {
               {/* Ülke seçilmemişse sekme boş liste getirir gibi görünmesin */}
               {scope === "country" && scopeFellBack && (
                 <Text style={{ color: "#f97316", fontSize: 11 }}>
-                  Ülkeni seçmediğin için dünya sıralaması gösteriliyor. Profil ekranından ülkeni seçebilirsin.
+                  {t("countryFellBack")}
                 </Text>
               )}
             </View>
@@ -909,10 +909,10 @@ export default function StatsScreen() {
           {/* Güncelleme bilgileri */}
           {mode === "global" && (
             <>
-              <Text style={{ color: Colors.muted, fontSize: 12 }}>Güncelleme (genel sezon): {updatedAtTotals || "-"}</Text>
+              <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("updGeneral", { d: updatedAtTotals || "-" })}</Text>
               {view === "fav" && (
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  Takım: {teamName} · Güncelleme (takım): {updatedAtTeam || "-"}
+                  {t("teamUpd", { t: teamName, d: updatedAtTeam || "-" })}
                 </Text>
               )}
             </>
@@ -921,24 +921,22 @@ export default function StatsScreen() {
           {mode === "kupon" && (
             <View style={{ marginTop: 12 }}>
               <Text style={{ color: Colors.text, fontSize: 15, fontWeight: "800" }}>
-                Haftalık Kupon — kümülatif
+                {t("kuponCumTitle")}
               </Text>
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2, marginBottom: 10 }}>
-                Bu sezonda oynanan tüm kuponların toplamı. Sıralama PUANA göre —
-                kazanılan LC harcanabilir, puan beceriyi gösterir.
+                {t("kuponCumDesc")}
               </Text>
 
               {kuponYukleniyor ? (
-                <Text style={{ color: Colors.muted, fontSize: 12 }}>Yükleniyor...</Text>
+                <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("loading")}</Text>
               ) : kuponSira.length === 0 ? (
                 /* Boş durum sebebini söylüyor — "veri yok" tek başına bir şey anlatmaz. */
                 <View style={{ padding: 14, borderRadius: 12, backgroundColor: Colors.dark }}>
                   <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "700" }}>
-                    Henüz sonuçlanmış kupon yok
+                    {t("noSettledKupon")}
                   </Text>
                   <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 6, lineHeight: 17 }}>
-                    Tablo, bir kuponun tüm maçları bitince dolmaya başlar. Kupon
-                    alıp hafta sonunu bekle.
+                    {t("noSettledKuponDesc")}
                   </Text>
                 </View>
               ) : (
@@ -957,18 +955,18 @@ export default function StatsScreen() {
                       <Text style={{ color: Colors.muted, fontSize: 12, width: 28 }}>{r.sira}.</Text>
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "700" }}>
-                          {r.userId}{benMi ? " (ben)" : ""}
+                          {r.userId}{benMi ? t("me2") : ""}
                         </Text>
                         <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 2 }}>
-                          {r.kuponSayisi} kupon · {r.toplamDogru}/{r.toplamMac} doğru (%{r.isabetYuzde})
-                          {r.tamKupon > 0 ? ` · ${r.tamKupon} tam kupon 🎯` : ""}
+                          {t("kuponRow", { n: r.kuponSayisi, d: r.toplamDogru, m: r.toplamMac, p: r.isabetYuzde })}
+                          {r.tamKupon > 0 ? t("fullKupon", { n: r.tamKupon }) : ""}
                         </Text>
                       </View>
                       <View style={{ alignItems: "flex-end" }}>
                         <Text style={{ color: "#a3e635", fontSize: 15, fontWeight: "800" }}>
                           {r.toplamPuan}
                         </Text>
-                        <Text style={{ color: Colors.muted, fontSize: 9 }}>puan</Text>
+                        <Text style={{ color: Colors.muted, fontSize: 9 }}>{t("points")}</Text>
                       </View>
                     </View>
                   );
@@ -979,9 +977,9 @@ export default function StatsScreen() {
 
           {mode === "cup" && (
             <View style={{ gap: 2 }}>
-              <Text style={{ color: Colors.muted, fontSize: 12 }}>Seçilmiş kupa: {cupTitle}</Text>
-              <Text style={{ color: Colors.muted, fontSize: 12 }}>Güncelleme (kupa): {cupUpdatedAt || "-"}</Text>
-              {cupError && <Text style={{ color: "#f97316", fontSize: 11 }}>Kupa verisi: {cupError}</Text>}
+              <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("selectedCup", { c: cupTitle })}</Text>
+              <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("cupUpd", { d: cupUpdatedAt || "-" })}</Text>
+              {cupError && <Text style={{ color: "#f97316", fontSize: 11 }}>{t("cupData", { e: cupError })}</Text>}
             </View>
           )}
 
@@ -1005,10 +1003,10 @@ export default function StatsScreen() {
                             <View>
                               <Text style={{ color: "#fff", fontWeight: "600" }}>
                                 {ix + 1}. {r.userId}
-                                {isMe ? " (ben)" : ""}
+                                {isMe ? t("me2") : ""}
                               </Text>
                               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
-                                {r.matches} maç · {r.totalPoints} puan · Ceza: {r.totalPenalty}
+                                {t("rowStats", { m: r.matches, p: r.totalPoints, c: r.totalPenalty })}
                               </Text>
                               {/* Nitelik eşiği: eşiğin altındaki oyuncunun rating'i havuz
                                   ortalamasını aşamaz (tek şanslı maç zirveye çıkmasın).
@@ -1016,7 +1014,7 @@ export default function StatsScreen() {
                                   diye düşünür — kaç maç kaldığını yazıyoruz. */}
                               {r.qualified === false && r.minPlayed ? (
                                 <Text style={{ color: "#eab308", fontSize: 10, marginTop: 2 }}>
-                                  Sıralamaya girmek için {Math.max(0, r.minPlayed - r.matches)} maç daha
+                                  {t("needMoreMatches", { n: Math.max(0, r.minPlayed - r.matches) })}
                                 </Text>
                               ) : null}
                             </View>
@@ -1028,7 +1026,7 @@ export default function StatsScreen() {
                                 {r.rating != null ? r.rating.toFixed(1) : r.totalPoints}
                               </Text>
                               <Text style={{ color: Colors.muted, fontSize: 9 }}>
-                                {r.rating != null ? "maç ort." : "puan"}
+                                {r.rating != null ? t("matchAvg") : t("points")}
                               </Text>
                             </View>
                           </View>
@@ -1059,7 +1057,7 @@ export default function StatsScreen() {
                     }}
                   >
                     <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12.5 }}>
-                      Daha fazla göster ({genelRows.length - gosterilecek} kaldı)
+                      {t("showMore", { n: genelRows.length - gosterilecek })}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1079,12 +1077,12 @@ export default function StatsScreen() {
                           <View>
                             <Text style={{ color: "#fff", fontWeight: "600" }}>
                               {ix + 1}. {r.userId}
-                              {isMe ? " (ben)" : ""}
+                              {isMe ? t("me2") : ""}
                               {r.flag ? ` ${r.flag}` : ""}
                             </Text>
-                            <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>Takım: {r.team || teamName}</Text>
+                            <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>{t("teamOf", { t: r.team || teamName })}</Text>
                           </View>
-                          <Text style={{ color: "#facc15", fontWeight: "700", fontSize: 14 }}>{r.total} puan</Text>
+                          <Text style={{ color: "#facc15", fontWeight: "700", fontSize: 14 }}>{t("nPts", { n: r.total })}</Text>
                         </View>
                       </TouchableOpacity>
                     );
@@ -1092,21 +1090,21 @@ export default function StatsScreen() {
 
                 {view === "me" && (
                   <View style={{ padding: 12, backgroundColor: "#020617", borderRadius: 12, borderWidth: 1, borderColor: Colors.border, gap: 6 }}>
-                    <Text style={{ color: "#fff", fontWeight: "700", marginBottom: 4 }}>Benim detaylarım (global sezon)</Text>
-                    <Text style={{ color: Colors.muted, fontSize: 12 }}>Kullanıcı: {userId}</Text>
-                    <Text style={{ color: Colors.muted, fontSize: 12 }}>Ana takım: {teamName || meStats?.favTeam || meStats?.team?.team || "-"}</Text>
-                    <Text style={{ color: "#a3e635", fontWeight: "700", fontSize: 16, marginTop: 4 }}>Toplam puan: {globalSummaryPoints}</Text>
+                    <Text style={{ color: "#fff", fontWeight: "700", marginBottom: 4 }}>{t("myDetails")}</Text>
+                    <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("userLbl", { u: userId })}</Text>
+                    <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("mainTeamLbl", { t: teamName || meStats?.favTeam || meStats?.team?.team || "-" })}</Text>
+                    <Text style={{ color: "#a3e635", fontWeight: "700", fontSize: 16, marginTop: 4 }}>{t("totalPts", { n: globalSummaryPoints })}</Text>
                     {typeof globalSummaryMatches === "number" && (
-                      <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 2 }}>Tahmin girilen maç: {globalSummaryMatches}</Text>
+                      <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 2 }}>{t("predMatches", { n: globalSummaryMatches })}</Text>
                     )}
                     {typeof (meStats?.team?.rank ?? null) === "number" && (
                       <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                        Takım içi sıram: {meStats!.team!.rank} / {meStats!.team!.count}
+                        {t("teamRank", { r: meStats!.team!.rank!, c: meStats!.team!.count })}
                       </Text>
                     )}
                     {formArray.length > 0 && (
                       <View style={{ marginTop: 8 }}>
-                        <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 2 }}>Form (son 10 maç):</Text>
+                        <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 2 }}>{t("formLast10")}</Text>
                         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
                           {formArray.map((p, ix) => (
                             <View
@@ -1127,7 +1125,7 @@ export default function StatsScreen() {
                       </View>
                     )}
                     <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 8 }}>
-                      Not: “Tahmin girilen maç”, en az bir tahmin girdiğin ve sistemde işlenmiş maçların sayısını temsil eder.
+                      {t("statNote2")}
                     </Text>
                   </View>
                 )}
@@ -1146,18 +1144,18 @@ export default function StatsScreen() {
                       <View>
                         <Text style={{ color: "#fff", fontWeight: "600" }}>
                           {ix + 1}. {r.userId}
-                          {isMe ? " (ben)" : ""}
+                          {isMe ? t("me2") : ""}
                         </Text>
                         <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
-                          Tahmin girilen maç: {r.matches} · Ceza: {r.totalPenalty}
+                          {t("cupMatchesRow", { n: r.matches, c: r.totalPenalty })}
                         </Text>
                       </View>
-                      <Text style={{ color: "#7dd3fc", fontWeight: "700", fontSize: 14 }}>{r.totalPoints} puan</Text>
+                      <Text style={{ color: "#7dd3fc", fontWeight: "700", fontSize: 14 }}>{t("nPts", { n: r.totalPoints })}</Text>
                     </View>
                   );
                 })}
                 <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
-                  Not: Kupa sıralaması, competition_totals üzerinden hesaplanır. Buradaki “tahmin girilen maç” sayısı da ilgili kupa kapsamındaki tahminli maçları gösterir.
+                  {t("cupNote")}
                 </Text>
               </View>
             )}

@@ -7,6 +7,7 @@ import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
 import { sharePrediction } from "../../lib/share";
+import { t, useLang } from "../../lib/i18n";
 
 type Outcome = "H" | "D" | "A" | null;
 type Side = "H" | "A" | null;
@@ -82,6 +83,7 @@ const QUICK_SCORES: { h: number; a: number }[] = [
 ];
 
 export default function PredictScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
 
   // Tek kalıp: base’i içeriden alıp çağır (IP değişince 1 kez reset + retry)
   /**
@@ -308,10 +310,10 @@ export default function PredictScreen() {
     const fx = fixtureId.trim();
     const uid = userId.trim();
     if (!fx || !uid) return;
-    Alert.alert("Tahmini İptal Et", "Bu maç için tahminini silmek istediğine emin misin?", [
-      { text: "Vazgeç", style: "cancel" },
+    Alert.alert(t("cancelPredTitle"), t("cancelPredMsg"), [
+      { text: t("dismiss"), style: "cancel" },
       {
-        text: "Sil", style: "destructive",
+        text: t("delete2"), style: "destructive",
         onPress: async () => {
           try {
             const res = await apiFetch("/api/pred/cancel", {
@@ -325,12 +327,12 @@ export default function PredictScreen() {
               setMyPredDetail(null);
               clearForm();
               prefilledFor.current = null;
-              Alert.alert("SkorLig", "Tahmin iptal edildi.");
+              Alert.alert("SkorLig", t("predCancelled"));
             } else {
-              Alert.alert("Hata", j?.error || "İptal edilemedi");
+              Alert.alert(t("error"), j?.error || t("cancelFailed"));
             }
           } catch (e: any) {
-            Alert.alert("Hata", String(e?.message || e));
+            Alert.alert(t("error"), String(e?.message || e));
           }
         },
       },
@@ -363,12 +365,12 @@ export default function PredictScreen() {
         Alert.alert(
           "SkorLig",
           j?.error === "DAILY_ALREADY_CLAIMED"
-            ? "Günlük hakkını bugün zaten aldın. Yarın tekrar."
-            : "Günlük hak alınamadı."
+            ? t("dailyAlready2")
+            : t("dailyClaimFailed")
         );
       }
     } catch {
-      Alert.alert("SkorLig", "Bağlantı kurulamadı.");
+      Alert.alert("SkorLig", t("noConnection"));
     } finally {
       setDailyBusy(false);
     }
@@ -541,14 +543,15 @@ export default function PredictScreen() {
 
   // Seçilen takım için bir sonraki maçı otomatik getir
   async function loadNextMatch(team: TeamCode) {
-    const t = team;
-    setTeamCode(t);
+    // ⚠️ Eskiden `const t = team` idi — i18n'in `t()` fonksiyonunu gölgeliyordu.
+    const tk = team;
+    setTeamCode(tk);
 
     try {
       setLoadingMatch(true);
       setMatchError(null);
 
-      const res = await apiFetch(`/api/skorlig/next?team=${encodeURIComponent(t)}`);
+      const res = await apiFetch(`/api/skorlig/next?team=${encodeURIComponent(tk)}`);
       const j = await res.json();
 
       if (!res.ok || !j) {
@@ -577,7 +580,7 @@ export default function PredictScreen() {
       setNextMatch(null);
       setMatchError(
         String(e?.message || e) ||
-          "Sonraki maç bulunamadı, gerekirse Fixture ID'yi elle girebilirsin."
+          t("nextMatchNotFound")
       );
       setFixtureId((prev) => prev || "1905-GS-TS");
     } finally {
@@ -734,17 +737,17 @@ useEffect(() => {
     // ne olduğunu söylemiyor, çıkış yolu vermiyor. Giriş duvarı kaldırıldığı
     // için (bkz. app/_layout.tsx) artık buraya gerçekten misafirler geliyor.
     Alert.alert(
-      "Tahmin için giriş gerekli",
-      "Puanların ve LC'n hesabına kaydedilsin diye giriş yapman gerekiyor. Tek dokunuş.",
+      t("loginNeededTitle"),
+      t("loginNeededMsg"),
       [
-        { text: "Şimdi değil", style: "cancel" },
-        { text: "Google ile giriş yap", onPress: () => { signInWithGoogle().catch(() => {}); } },
+        { text: t("notNow"), style: "cancel" },
+        { text: t("signInGoogle2"), onPress: () => { signInWithGoogle().catch(() => {}); } },
       ]
     );
     return;
   }
   if (!fx) {
-    Alert.alert("SkorLig", "Maç bilgisi okunamadı, listeye dönüp tekrar dene.");
+    Alert.alert("SkorLig", t("matchReadFailed"));
     return;
   }
 
@@ -752,8 +755,8 @@ useEffect(() => {
     Alert.alert(
       "SkorLig",
       predLock.reason === "MATCH_STARTED"
-        ? "Maç başladıktan sonra tahmin yapılamaz."
-        : "Maç başlamasına 10 dakika kala tahminler kilitlenir."
+        ? t("lockedStarted")
+        : t("lockedBefore")
     );
     return;
   }
@@ -764,7 +767,7 @@ useEffect(() => {
   if (matchCost > 0 && hasPredByMe === false && !bakiyeBilinmiyor && currentBalance < matchCost) {
     Alert.alert(
       "SkorLig",
-      `Bu maç için giriş bedeli ${matchCost} LC. Cüzdan bakiyen (${currentBalance} LC) yetersiz görünüyor.`
+      t("entryInsufficient", { cost: matchCost, bal: currentBalance })
     );
     return;
   }
@@ -788,7 +791,7 @@ useEffect(() => {
   if (!skorVar && outcome === null) {
     Alert.alert(
       "SkorLig",
-      "En az bir tahmin gir: kazananı seç ya da skor yaz. İkisini birden girersen daha çok puan."
+      t("needOnePred")
     );
     return;
   }
@@ -799,7 +802,7 @@ useEffect(() => {
     const hh = Number(homeScore);
     const aa = Number(awayScore);
     if (!Number.isFinite(hh) || !Number.isFinite(aa)) {
-      Alert.alert("SkorLig", "Skor alanlarına sayı girin.");
+      Alert.alert("SkorLig", t("scoreNumbers"));
       return;
     }
     h = hh;
@@ -844,13 +847,13 @@ useEffect(() => {
     } catch {
       Alert.alert(
         "Hata",
-        `Sunucudan beklenmeyen cevap geldi:\n\n${rawText.slice(0, 300)}`
+        t("unexpectedResp") + `\n\n${rawText.slice(0, 300)}`
       );
       return;
     }
 
     if (!res.ok || !j?.ok) {
-      Alert.alert("Hata", j?.error || `TAHMIN_KAYIT_HATASI (HTTP ${res.status})`);
+      Alert.alert(t("error"), j?.error || `TAHMIN_KAYIT_HATASI (HTTP ${res.status})`);
       return;
     }
 
@@ -860,15 +863,15 @@ useEffect(() => {
     const gain = sel.gain;
     setJustSubmitted({ wasUpdate, gain });
   } catch (e: any) {
-    Alert.alert("Hata", String(e?.message || e));
+    Alert.alert(t("error"), String(e?.message || e));
   } finally {
     setSending(false);
   }
 }
 
   const hasExtras = firstGoal !== null || firstHalf !== null || redAny !== null || penaltyAny !== null;
-  const homeName = paramHome || nextMatch?.home || "Ev";
-  const awayName = paramAway || nextMatch?.away || "Dep";
+  const homeName = paramHome || nextMatch?.home || t("home");
+  const awayName = paramAway || nextMatch?.away || t("away");
   const hasScore = homeScore.trim() !== "" && awayScore.trim() !== "";
 
   // Skordan türetilen sonuç (outcome’u override etmez, sadece gösterim için)
@@ -889,16 +892,16 @@ useEffect(() => {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 60, gap: 16 }}>
           <Text style={{ fontSize: 40 }}>⚽</Text>
           <Text style={{ color: "#e2e8f0", fontSize: 18, fontWeight: "800", textAlign: "center" }}>
-            Tahmin yapmak için önce bir maç seç
+            {t("pickMatchFirst")}
           </Text>
           <Text style={{ color: Colors.muted, fontSize: 13, textAlign: "center" }}>
-            "Maçlar" sekmesinden oynayacak bir maça tıkla, buraya otomatik gelirsin.
+            {t("pickMatchHelp")}
           </Text>
           <TouchableOpacity
             onPress={() => router.replace("/(tabs)/live")}
             style={{ paddingHorizontal: 24, paddingVertical: 13, borderRadius: 999, backgroundColor: Colors.primary }}
           >
-            <Text style={{ color: Colors.onAccent, fontWeight: "800", fontSize: 15 }}>Maçlara Git</Text>
+            <Text style={{ color: Colors.onAccent, fontWeight: "800", fontSize: 15 }}>{t("goMatches")}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -939,7 +942,7 @@ useEffect(() => {
                 style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#1e293b", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 }}
               >
                 <Text style={{ fontSize: 14 }}>⚔️</Text>
-                <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>Duello Modu</Text>
+                <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>{t("duelMode")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -950,7 +953,7 @@ useEffect(() => {
                 style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#1e293b", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 }}
               >
                 <Text style={{ fontSize: 14 }}>💰</Text>
-                <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>Havuz</Text>
+                <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>{t("poolLbl")}</Text>
               </TouchableOpacity>
             </View>
           ) : null}
@@ -961,11 +964,9 @@ useEffect(() => {
           <View style={{ padding: 12, borderRadius: 10, backgroundColor: "#1a0606", borderWidth: 1, borderColor: "#ef4444", flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Text style={{ fontSize: 18 }}>🔒</Text>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: "#fca5a5", fontWeight: "800", fontSize: 13 }}>Tahmin Kilitli</Text>
+              <Text style={{ color: "#fca5a5", fontWeight: "800", fontSize: 13 }}>{t("predLockedTitle")}</Text>
               <Text style={{ fontSize: 11, color: "#f87171", marginTop: 2 }}>
-                {predLock.reason === "MATCH_STARTED"
-                  ? "Maç başladıktan sonra tahmin yapılamaz."
-                  : "Maç başlamasına 10 dakika kala tahminler kilitlenir."}
+                {predLock.reason === "MATCH_STARTED" ? t("lockedStarted") : t("lockedBefore")}
               </Text>
             </View>
           </View>
@@ -1007,7 +1008,7 @@ useEffect(() => {
           {lcInsufficient && (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
               <Text style={{ fontSize: 11, color: "#f87171", flex: 1 }}>
-                Giriş bedeli {matchCost} LC — bakiye yetersiz
+                {t("entryShort", { n: matchCost })}
               </Text>
               {/* Çıkmazı eyleme çevir: hak varsa tek dokunuş, yoksa ne zaman
                   geleceğini söyle. Sessiz bir "yetersiz" kullanıcıyı kaybettirir. */}
@@ -1021,11 +1022,11 @@ useEffect(() => {
                   }}
                 >
                   <Text style={{ color: Colors.onAccent, fontWeight: "800", fontSize: 11 }}>
-                    {dailyBusy ? "..." : `Günlük +${wallet.daily.amount} LC al`}
+                    {dailyBusy ? "..." : t("claimDailyShort", { n: wallet.daily.amount })}
                   </Text>
                 </TouchableOpacity>
               ) : (
-                <Text style={{ fontSize: 10, color: "#64748b" }}>Günlük hak yarın</Text>
+                <Text style={{ fontSize: 10, color: "#64748b" }}>{t("dailyTomorrow")}</Text>
               )}
             </View>
           )}
@@ -1037,7 +1038,7 @@ useEffect(() => {
                 {streak.currentTier?.label === "Durdurulamıyor" ? "💥" : "🔥"}
               </Text>
               <Text style={{ color: streak.currentTier ? "#fbbf24" : "#60a5fa", fontWeight: "800", fontSize: 12 }}>
-                {streak.seriesCount} maçlık seri
+                {t("streakOf", { n: streak.seriesCount })}
               </Text>
               {streak.currentTier && (
                 <View style={{ backgroundColor: "#f59e0b33", borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 }}>
@@ -1053,7 +1054,7 @@ useEffect(() => {
               onPress={() => router.push({ pathname: "/match-race/[fixtureId]", params: { fixtureId, userId } } as any)}
               style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#065f46", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}
             >
-              <Text style={{ fontSize: 11, color: "#a7f3d0", fontWeight: "700" }}>🏁 Yarış</Text>
+              <Text style={{ fontSize: 11, color: "#a7f3d0", fontWeight: "700" }}>{t("raceBtn")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -1071,18 +1072,18 @@ useEffect(() => {
             const showPct = total >= 2;
             const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
             const cols = [
-              { key: "H" as const, label: "Ev",  n: communityStats?.H ?? 0, color: "#3b82f6" },
-              { key: "D" as const, label: "Ber", n: communityStats?.D ?? 0, color: "#f59e0b" },
-              { key: "A" as const, label: "Dep", n: communityStats?.A ?? 0, color: "#ef4444" },
+              { key: "H" as const, label: t("home"),  n: communityStats?.H ?? 0, color: "#3b82f6" },
+              { key: "D" as const, label: t("draw"), n: communityStats?.D ?? 0, color: "#f59e0b" },
+              { key: "A" as const, label: t("away"), n: communityStats?.A ?? 0, color: "#ef4444" },
             ];
             return (
               <View style={{ gap: 4 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>
-                    MAÇ SONUCU
+                    {t("matchOutcome")}
                   </Text>
                   <Text style={{ color: "#475569", fontSize: 10 }}>
-                    {showPct ? `${total} tahmin` : "ilk tahminlerden biri ol"}
+                    {showPct ? t("nPreds", { n: total }) : t("beFirst")}
                   </Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 5 }}>
@@ -1123,13 +1124,13 @@ useEffect(() => {
               {/* Skor artık zorunlu değil — başlık bunu söylemeli, yoksa
                   kullanıcı yine "girmem lazım" sanır. */}
               <Text style={{ fontWeight: "800", color: "#e2e8f0", fontSize: 14 }}>
-                Skor Tahmini <Text style={{ fontWeight: "600", color: "#64748b", fontSize: 12 }}>· isteğe bağlı</Text>
+                {t("scorePred")} <Text style={{ fontWeight: "600", color: "#64748b", fontSize: 12 }}>{t("optionalLbl")}</Text>
               </Text>
               {/* Sonuç chip — skordan türetilmiş */}
               {derivedOutcomeFromScore && (
                 <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: derivedOutcomeFromScore === "H" ? "#1d4ed822" : derivedOutcomeFromScore === "D" ? "#92400e22" : "#7f1d1d22", borderWidth: 1, borderColor: derivedOutcomeFromScore === "H" ? "#3b82f644" : derivedOutcomeFromScore === "D" ? "#f59e0b44" : "#ef444444" }}>
                   <Text style={{ fontSize: 10, fontWeight: "800", color: derivedOutcomeFromScore === "H" ? "#60a5fa" : derivedOutcomeFromScore === "D" ? "#fbbf24" : "#f87171" }}>
-                    {derivedOutcomeFromScore === "H" ? "Ev kazanır" : derivedOutcomeFromScore === "D" ? "Berabere" : "Dep kazanır"}
+                    {derivedOutcomeFromScore === "H" ? t("homeWins") : derivedOutcomeFromScore === "D" ? t("drawLbl") : t("awayWins")}
                   </Text>
                 </View>
               )}
@@ -1192,12 +1193,12 @@ useEffect(() => {
           {/* Maç sonucu — yalnızca skor girilmemişse göster */}
           {!hasScore && (
             <View style={{ gap: 6 }}>
-              <Text style={{ fontWeight: "700", color: "#94a3b8", fontSize: 12 }}>veya sadece sonuç</Text>
+              <Text style={{ fontWeight: "700", color: "#94a3b8", fontSize: 12 }}>{t("orJustOutcome")}</Text>
               <View style={{ flexDirection: "row", gap: 6 }}>
                 {(["H", "D", "A"] as Outcome[]).map((v) => {
                   const active = outcome === v;
                   const colors = { H: "#3b82f6", D: "#f59e0b", A: "#ef4444" };
-                  const labels = { H: "Ev kazanır", D: "Berabere", A: "Dep kazanır" };
+                  const labels = { H: t("homeWins"), D: t("drawLbl"), A: t("awayWins") };
                   return (
                     <TouchableOpacity
                       key={v!}
@@ -1217,14 +1218,14 @@ useEffect(() => {
           {/* Kazanç özeti (seçim varsa) */}
           {sel.count > 0 && (
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 6, borderTopWidth: 1, borderTopColor: "#1e293b" }}>
-              <Text style={{ color: "#64748b", fontSize: 11 }}>{sel.count} seçim</Text>
+              <Text style={{ color: "#64748b", fontSize: 11 }}>{t("nSelections", { n: sel.count })}</Text>
               <View style={{ flexDirection: "row", gap: 10 }}>
                 {sel.gain !== null ? (
-                  <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 15 }}>+{sel.gain} <Text style={{ fontWeight: "400", fontSize: 11, color: "#64748b" }}>puan</Text></Text>
+                  <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 15 }}>+{sel.gain} <Text style={{ fontWeight: "400", fontSize: 11, color: "#64748b" }}>{t("points")}</Text></Text>
                 ) : (
-                  <Text style={{ color: "#64748b", fontSize: 11 }}>puan hesaplanıyor…</Text>
+                  <Text style={{ color: "#64748b", fontSize: 11 }}>{t("calcPoints")}</Text>
                 )}
-                <Text style={{ color: "#f87171", fontWeight: "700", fontSize: 13 }}>-{sel.risk} <Text style={{ fontWeight: "400", fontSize: 11, color: "#64748b" }}>risk</Text></Text>
+                <Text style={{ color: "#f87171", fontWeight: "700", fontSize: 13 }}>-{sel.risk} <Text style={{ fontWeight: "400", fontSize: 11, color: "#64748b" }}>{t("riskLbl")}</Text></Text>
               </View>
             </View>
           )}
@@ -1241,13 +1242,13 @@ useEffect(() => {
             }}
           >
             <Text style={{ textAlign: "center", fontWeight: "800", fontSize: 16, color: sending || lcInsufficient || predLock.locked || sel.count === 0 ? Colors.muted : Colors.onAccent }}>
-              {sending ? "Gönderiliyor…"
-                : predLock.locked ? "🔒 Tahmin Kilitli"
-                : lcInsufficient ? "LC Yetersiz"
-                : sel.count === 0 ? "Kazananı seç ya da skor gir"
+              {sending ? t("sending2")
+                : predLock.locked ? t("lockedBtn")
+                : lcInsufficient ? t("lcInsufBtn")
+                : sel.count === 0 ? t("pickOrScore")
                 : hasPredByMe
-                  ? (sel.gain !== null ? `Tahmini Güncelle  +${sel.gain} puana kadar` : "Tahmini Güncelle")
-                  : (sel.gain !== null ? `Tahmini Gönder  +${sel.gain} puana kadar` : "Tahmini Gönder")}
+                  ? (sel.gain !== null ? t("updatePred") + t("upToPts", { n: sel.gain }) : t("updatePred"))
+                  : (sel.gain !== null ? t("sendPred") + t("upToPts", { n: sel.gain }) : t("sendPred"))}
             </Text>
           </TouchableOpacity>
         )}
@@ -1257,12 +1258,12 @@ useEffect(() => {
           <View style={{ flexDirection: "row", gap: 6, justifyContent: "center" }}>
             {sel.count > 0 && (
               <TouchableOpacity onPress={clearForm} style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
-                <Text style={{ color: Colors.muted, fontWeight: "600", fontSize: 12 }}>🧹 Temizle</Text>
+                <Text style={{ color: Colors.muted, fontWeight: "600", fontSize: 12 }}>{t("clearBtn")}</Text>
               </TouchableOpacity>
             )}
             {hasPredByMe && (
               <TouchableOpacity onPress={cancelPrediction} style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
-                <Text style={{ color: "#f87171", fontWeight: "600", fontSize: 12 }}>🗑 İptal et</Text>
+                <Text style={{ color: "#f87171", fontWeight: "600", fontSize: 12 }}>{t("cancelPredBtn")}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1275,13 +1276,13 @@ useEffect(() => {
             style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14 }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 13 }}>Ekstra Tahminler</Text>
-              <Text style={{ color: "#64748b", fontSize: 11 }}>isteğe bağlı · +6 puana kadar</Text>
+              <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 13 }}>{t("extras")}</Text>
+              <Text style={{ color: "#64748b", fontSize: 11 }}>{t("extrasHint")}</Text>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               {hasExtras && (
                 <View style={{ backgroundColor: "#2563eb33", borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 }}>
-                  <Text style={{ color: "#60a5fa", fontSize: 10, fontWeight: "800" }}>seçildi</Text>
+                  <Text style={{ color: "#60a5fa", fontSize: 10, fontWeight: "800" }}>{t("selectedChip")}</Text>
                 </View>
               )}
               <Text style={{ color: "#64748b", fontSize: 14 }}>{extrasOpen ? "▲" : "▼"}</Text>
@@ -1293,8 +1294,8 @@ useEffect(() => {
               {/* İlk Gol */}
               <View style={{ gap: 6, marginTop: 10 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>İlk Golü Kim Atar?</Text>
-                  <Text style={{ color: "#4ade80", fontSize: 11 }}>+1 puan</Text>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>{t("firstGoalQ")}</Text>
+                  <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("plusPts", { n: 1 })}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 6 }}>
                   {(["H", "A"] as Side[]).map((v) => (
@@ -1311,12 +1312,12 @@ useEffect(() => {
               {/* İlk Yarı */}
               <View style={{ gap: 6 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>İlk Yarı Sonucu</Text>
-                  <Text style={{ color: "#4ade80", fontSize: 11 }}>+2 puan</Text>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>{t("firstHalfRes")}</Text>
+                  <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("plusPts", { n: 2 })}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 6 }}>
                   {(["H", "D", "A"] as Outcome[]).map((v) => {
-                    const labels = { H: "Ev önde", D: "Berabere", A: "Dep önde" };
+                    const labels = { H: t("homeAhead"), D: t("drawLbl"), A: t("awayAhead") };
                     return (
                       <TouchableOpacity key={v!} onPress={() => setFirstHalf(cur => cur === v ? null : v)}
                         style={{ flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: firstHalf === v ? Colors.accent : "#1e293b", backgroundColor: firstHalf === v ? "#1d4ed822" : "#0a1120", alignItems: "center" }}>
@@ -1332,15 +1333,15 @@ useEffect(() => {
               {/* Kırmızı Kart */}
               <View style={{ gap: 6 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>Kırmızı Kart</Text>
-                  <Text style={{ color: "#4ade80", fontSize: 11 }}>+1.5 puan</Text>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>{t("redCard")}</Text>
+                  <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("plusPts", { n: 1.5 })}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 6 }}>
                   {([true, false] as const).map((v) => (
                     <TouchableOpacity key={String(v)} onPress={() => setRedAny(cur => { const n = cur === v ? null : v; if (n !== true) setRedSide(null); return n; })}
                       style={{ flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: redAny === v ? (v ? "#ef4444" : Colors.accent) : "#1e293b", backgroundColor: redAny === v ? (v ? "#7f1d1d22" : "#1d4ed822") : "#0a1120", alignItems: "center" }}>
                       <Text style={{ color: redAny === v ? (v ? "#f87171" : "#60a5fa") : "#64748b", fontWeight: redAny === v ? "800" : "500", fontSize: 12 }}>
-                        {v ? "Kırmızı VAR" : "Kırmızı YOK"}
+                        {v ? t("redYes") : t("redNo")}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -1351,7 +1352,7 @@ useEffect(() => {
                       <TouchableOpacity key={v!} onPress={() => setRedSide(cur => cur === v ? null : v)}
                         style={{ flex: 1, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: redSide === v ? "#ef4444" : "#1e293b", backgroundColor: redSide === v ? "#7f1d1d22" : "#0a1120", alignItems: "center" }}>
                         <Text style={{ color: redSide === v ? "#f87171" : "#64748b", fontWeight: redSide === v ? "700" : "500", fontSize: 11 }}>
-                          {v === "H" ? `${homeName} görür` : `${awayName} görür`}
+                          {t("seesRed", { team: v === "H" ? homeName : awayName })}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -1362,15 +1363,15 @@ useEffect(() => {
               {/* Penaltı */}
               <View style={{ gap: 6 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>Penaltı</Text>
-                  <Text style={{ color: "#4ade80", fontSize: 11 }}>+1.5 puan</Text>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>{t("penalty")}</Text>
+                  <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("plusPts", { n: 1.5 })}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 6 }}>
                   {([true, false] as const).map((v) => (
                     <TouchableOpacity key={String(v)} onPress={() => setPenaltyAny(cur => { const n = cur === v ? null : v; if (n !== true) setPenaltySide(null); return n; })}
                       style={{ flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: penaltyAny === v ? (v ? "#f59e0b" : Colors.accent) : "#1e293b", backgroundColor: penaltyAny === v ? (v ? "#92400e22" : "#1d4ed822") : "#0a1120", alignItems: "center" }}>
                       <Text style={{ color: penaltyAny === v ? (v ? "#fbbf24" : "#60a5fa") : "#64748b", fontWeight: penaltyAny === v ? "800" : "500", fontSize: 12 }}>
-                        {v ? "Penaltı VAR" : "Penaltı YOK"}
+                        {v ? t("penYes") : t("penNo")}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -1381,7 +1382,7 @@ useEffect(() => {
                       <TouchableOpacity key={v!} onPress={() => setPenaltySide(cur => cur === v ? null : v)}
                         style={{ flex: 1, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: penaltySide === v ? "#f59e0b" : "#1e293b", backgroundColor: penaltySide === v ? "#92400e22" : "#0a1120", alignItems: "center" }}>
                         <Text style={{ color: penaltySide === v ? "#fbbf24" : "#64748b", fontWeight: penaltySide === v ? "700" : "500", fontSize: 11 }}>
-                          {v === "H" ? `${homeName} kullanır` : `${awayName} kullanır`}
+                          {t("usesPen", { team: v === "H" ? homeName : awayName })}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -1391,13 +1392,13 @@ useEffect(() => {
 
               {/* Puan rehberi */}
               <View style={{ marginTop: 4, padding: 10, backgroundColor: "#0a1120", borderRadius: 8 }}>
-                <Text style={{ color: "#475569", fontSize: 10, marginBottom: 4 }}>💡 Az kişinin tuttuğu sonucu bilirsen daha çok puan kazanırsın</Text>
+                <Text style={{ color: "#475569", fontSize: 10, marginBottom: 4 }}>{t("rareHint")}</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
                   {[
-                    { label: "İlk Gol", pts: "+1", risk: "-0.2" },
-                    { label: "İlk Yarı", pts: "+2", risk: "-0.4" },
-                    { label: "Kırmızı", pts: "+1.5", risk: "-0.3" },
-                    { label: "Penaltı", pts: "+1.5", risk: "-0.3" },
+                    { label: t("firstGoalLbl"), pts: "+1", risk: "-0.2" },
+                    { label: t("firstHalfLbl"), pts: "+2", risk: "-0.4" },
+                    { label: t("redLbl"), pts: "+1.5", risk: "-0.3" },
+                    { label: t("penalty"), pts: "+1.5", risk: "-0.3" },
                   ].map(({ label, pts, risk }) => (
                     <View key={label} style={{ flexDirection: "row", gap: 3, backgroundColor: "#1e293b", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 3 }}>
                       <Text style={{ color: "#64748b", fontSize: 9 }}>{label}</Text>
@@ -1415,11 +1416,11 @@ useEffect(() => {
         {justSubmitted && (
           <View style={{ padding: 16, borderRadius: 14, backgroundColor: "#052e16", borderWidth: 1, borderColor: "#22c55e66", gap: 10, alignItems: "center" }}>
             <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 18 }}>
-              {justSubmitted.wasUpdate ? "✅ Güncellendi!" : "🎉 Kaydedildi!"}
+              {justSubmitted.wasUpdate ? t("updatedBang") : t("savedBang")}
             </Text>
             {justSubmitted.gain > 0 && (
               <Text style={{ color: "#86efac", fontSize: 13, textAlign: "center" }}>
-                Bu maçtan en fazla <Text style={{ fontWeight: "900" }}>+{justSubmitted.gain} puan</Text> kazanabilirsin.
+                {t("maxGainPre")}<Text style={{ fontWeight: "900" }}>+{justSubmitted.gain} {t("points")}</Text>{t("maxGainPost")}
               </Text>
             )}
             {/* Paylaşım — en görünür yer burası: kullanıcı tahminini yeni
@@ -1435,7 +1436,7 @@ useEffect(() => {
             >
               <Text style={{ fontSize: 15 }}>📣</Text>
               <Text style={{ color: Colors.onAccent, fontWeight: "900", fontSize: 14 }}>
-                Arkadaşına Meydan Oku
+                {t("challengeFriend")}
               </Text>
             </TouchableOpacity>
 
@@ -1445,7 +1446,7 @@ useEffect(() => {
                   onPress={() => router.push({ pathname: "/match-race/[fixtureId]", params: { fixtureId, userId } } as any)}
                   style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: "#065f46" }}
                 >
-                  <Text style={{ color: "#a7f3d0", fontWeight: "700", fontSize: 13 }}>🏁 Yarışı Takip Et</Text>
+                  <Text style={{ color: "#a7f3d0", fontWeight: "700", fontSize: 13 }}>{t("followRace")}</Text>
                 </TouchableOpacity>
               )}
               {/* ⚠️ TAHMİNE DÖNÜŞ — eksik olan buydu.
@@ -1461,7 +1462,7 @@ useEffect(() => {
                   style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: "#134e4a" }}
                 >
                   <Text style={{ color: "#99f6e4", fontWeight: "700", fontSize: 13 }}>
-                    {hasExtras ? "✏️ Tahmini düzenle" : "➕ Ekstra tahmin ekle"}
+                    {hasExtras ? t("editPred") : t("addExtra")}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -1469,7 +1470,7 @@ useEffect(() => {
                 onPress={() => router.replace({ pathname: "/(tabs)/live", params: { tab: "open" } })}
                 style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: "#1e293b" }}
               >
-                <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 13 }}>⚽ Maçlara Dön</Text>
+                <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 13 }}>{t("backMatches")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1479,7 +1480,7 @@ useEffect(() => {
         {myPredDetail && !justSubmitted && (() => {
           const d = myPredDetail;
           const oc = String(d.outcome || "").toUpperCase();
-          const ocLabel = oc === "H" ? "Ev Kazanır" : oc === "D" ? "Beraberlik" : oc === "A" ? "Dep Kazanır" : null;
+          const ocLabel = oc === "H" ? t("homeWins") : oc === "D" ? t("drawLbl") : oc === "A" ? t("awayWins") : null;
           const ocColor = oc === "H" ? "#3b82f6" : oc === "D" ? "#f59e0b" : oc === "A" ? "#ef4444" : "#94a3b8";
           return (
             <View style={{ borderRadius: 12, borderWidth: 1, borderColor: "#3b82f622", backgroundColor: "#0f1f2a", overflow: "hidden" }}>
@@ -1488,7 +1489,7 @@ useEffect(() => {
                 style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 11 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <Text style={{ color: "#3b82f6", fontWeight: "800", fontSize: 13 }}>📋 Mevcut Tahminim</Text>
+                  <Text style={{ color: "#3b82f6", fontWeight: "800", fontSize: 13 }}>{t("myCurrentPred")}</Text>
                   {(d.homeScore != null || d.home != null) && (d.awayScore != null || d.away != null) && (
                     <View style={{ backgroundColor: "#1e3a5f", borderRadius: 5, paddingHorizontal: 7, paddingVertical: 2 }}>
                       <Text style={{ color: "#93c5fd", fontSize: 11, fontWeight: "800" }}>{d.homeScore ?? d.home}–{d.awayScore ?? d.away}</Text>
@@ -1500,13 +1501,13 @@ useEffect(() => {
               </TouchableOpacity>
               {showMyPred && (() => {
                 const rows: { label: string; value: string; color?: string }[] = [];
-                if (ocLabel) rows.push({ label: "Sonuç", value: `${oc} — ${ocLabel}`, color: ocColor });
+                if (ocLabel) rows.push({ label: t("resultLbl"), value: `${oc} — ${ocLabel}`, color: ocColor });
                 const hs = d.homeScore ?? d.home; const as2 = d.awayScore ?? d.away;
-                if (hs != null && as2 != null) rows.push({ label: "Skor", value: `${hs} – ${as2}`, color: "#a3e635" });
-                if (d.firstGoal) rows.push({ label: "İlk Gol", value: d.firstGoal === "H" ? homeName : awayName });
-                if (d.firstHalf) { const fh = String(d.firstHalf).toUpperCase(); rows.push({ label: "İlk Yarı", value: fh === "H" ? "Ev önde" : fh === "D" ? "Berabere" : "Dep önde" }); }
-                if (d.redAny != null) rows.push({ label: "Kırmızı", value: d.redAny ? (d.redSide === "H" ? `${homeName}’e` : d.redSide === "A" ? `${awayName}’a` : "Var") : "Yok", color: d.redAny ? "#ef4444" : "#94a3b8" });
-                if (d.penaltyAny != null) rows.push({ label: "Penaltı", value: d.penaltyAny ? (d.penaltySide === "H" ? `${homeName}` : d.penaltySide === "A" ? `${awayName}` : "Var") : "Yok", color: d.penaltyAny ? "#f59e0b" : "#94a3b8" });
+                if (hs != null && as2 != null) rows.push({ label: t("scoreLbl"), value: `${hs} – ${as2}`, color: "#a3e635" });
+                if (d.firstGoal) rows.push({ label: t("firstGoalLbl"), value: d.firstGoal === "H" ? homeName : awayName });
+                if (d.firstHalf) { const fh = String(d.firstHalf).toUpperCase(); rows.push({ label: t("firstHalfLbl"), value: fh === "H" ? t("homeAhead") : fh === "D" ? t("drawLbl") : t("awayAhead") }); }
+                if (d.redAny != null) rows.push({ label: t("redLbl"), value: d.redAny ? (d.redSide === "H" ? homeName : d.redSide === "A" ? awayName : t("varLbl")) : t("yokLbl"), color: d.redAny ? "#ef4444" : "#94a3b8" });
+                if (d.penaltyAny != null) rows.push({ label: t("penalty"), value: d.penaltyAny ? (d.penaltySide === "H" ? homeName : d.penaltySide === "A" ? awayName : t("varLbl")) : t("yokLbl"), color: d.penaltyAny ? "#f59e0b" : "#94a3b8" });
                 return (
                   <View style={{ paddingHorizontal: 14, paddingBottom: 12, gap: 6, borderTopWidth: 1, borderTopColor: "#1e293b" }}>
                     {rows.map(r => (

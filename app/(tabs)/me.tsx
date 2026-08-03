@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { hataMesaji } from "../../lib/hataMesaji";
+import { t, useLang } from "../../lib/i18n";
 import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
 import Colors, { on } from "../../constants/colors";
@@ -140,19 +141,20 @@ export default function Me() {
   const userId = useUserId(qUser);
   const nav = useRouter();
   const { user, logout } = useAuth();
+  useLang(); // dil değişince ekran yeniden çizilsin
 
   const onLogout = useCallback(() => {
-    Alert.alert("Çıkış", "Hesabından çıkmak istiyor musun?", [
-      { text: "Vazgeç", style: "cancel" },
+    Alert.alert(t("logoutTitle"), t("logoutConfirm"), [
+      { text: t("dismiss"), style: "cancel" },
       {
-        text: "Çıkış Yap",
+        text: t("logoutDo"),
         style: "destructive",
         onPress: async () => {
           try {
             await logout();
             nav.replace("/login");
           } catch (e: any) {
-            Alert.alert("Hata", e?.message || "Çıkış yapılamadı");
+            Alert.alert(t("error"), e?.message || t("logoutFailed"));
           }
         },
       },
@@ -383,16 +385,16 @@ export default function Me() {
       }).then((x) => x.json());
       if (r?.ok) {
         setInviteInputCode("");
-        Alert.alert("SkorLig 🎉", r.message || "Arkadaş eklendi!");
+        Alert.alert("SkorLig 🎉", r.message || t("friendAdded"));
         await loadWalletSummary(uid);
       } else {
-        const msg = r?.error === "INVALID_CODE" ? "Geçersiz davet kodu."
-          : r?.error === "CANNOT_USE_OWN_CODE" ? "Kendi kodunu kullanamazsın."
-          : r?.error || "Kod kullanılamadı.";
-        Alert.alert("Hata", msg);
+        const msg = r?.error === "INVALID_CODE" ? t("invalidInvite")
+          : r?.error === "CANNOT_USE_OWN_CODE" ? t("ownInvite")
+          : r?.error || t("inviteFailed");
+        Alert.alert(t("error"), msg);
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setInviteBusy(false);
     }
@@ -514,7 +516,7 @@ export default function Me() {
 
       await loadPendingCountIfAdmin(isEff);
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     }
   }, [userId, isAdminLocal, loadIsAdmin, loadWalletSummary, loadPredCount, loadPendingCountIfAdmin, loadInviteCode]);
 
@@ -576,12 +578,12 @@ export default function Me() {
 
   async function buyPackage(pkg: StorePkg) {
     Alert.alert(
-      "LC Satın Al",
-      `${pkg.label}: ${pkg.lc} LC — ₺${pkg.priceTRY}${storeMode === "mock" ? "\n\n(Test modu: gerçek ödeme alınmaz)" : ""}`,
+      t("buyLcTitle"),
+      `${pkg.label}: ${pkg.lc} LC — ₺${pkg.priceTRY}${storeMode === "mock" ? "\n\n" + t("buyMockNote") : ""}`,
       [
-        { text: "Vazgeç", style: "cancel" },
+        { text: t("dismiss"), style: "cancel" },
         {
-          text: "Satın Al",
+          text: t("buy"),
           onPress: async () => {
             try {
               setBuying(pkg.id);
@@ -591,13 +593,13 @@ export default function Me() {
                 body: JSON.stringify({ userId, packageId: pkg.id }),
               }).then((x) => x.json());
               if (r?.ok) {
-                Alert.alert("SkorLig", `${pkg.lc} LC hesabına yüklendi! Yeni bakiye: ${r.newBalance} LC 💰`);
+                Alert.alert("SkorLig", t("lcLoaded", { lc: pkg.lc, bal: r.newBalance }));
                 await loadWalletSummary(userId);
               } else {
-                Alert.alert("SkorLig", r?.detail || r?.error || "Satın alma başarısız.");
+                Alert.alert("SkorLig", r?.detail || r?.error || t("buyFailed"));
               }
             } catch (e: any) {
-              Alert.alert("Hata", String(e?.message || e));
+              Alert.alert(t("error"), String(e?.message || e));
             } finally {
               setBuying(null);
             }
@@ -628,13 +630,13 @@ export default function Me() {
         body: JSON.stringify({ userId, country }),
       }).then((x) => x.json());
       if (r?.ok) {
-        Alert.alert("SkorLig", `Yerel görünümün ${country} olarak ayarlandı. Maçlar sekmesi buna göre kişiselleşecek.`);
+        Alert.alert("SkorLig", t("countrySet", { c: country }));
         load();
       } else {
-        Alert.alert("Hata", hataMesaji(r?.error));
+        Alert.alert(t("error"), hataMesaji(r?.error));
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setCountrySaving(false);
     }
@@ -643,7 +645,7 @@ export default function Me() {
   async function saveNickname() {
     const nick = nicknameInput.trim();
     if (nick.length < 2) {
-      Alert.alert("SkorLig", "Kullanıcı adı en az 2 karakter olmalı.");
+      Alert.alert("SkorLig", t("nickMin"));
       return;
     }
     try {
@@ -655,18 +657,18 @@ export default function Me() {
       }).then((x) => x.json());
       if (r?.ok) {
         setProfile((prev) => (prev ? { ...prev, nickname: r.nickname } : prev));
-        Alert.alert("SkorLig", "Kullanıcı adın kaydedildi. Yarış ve sıralamalarda bu isim görünecek.");
+        Alert.alert("SkorLig", t("nickSaved"));
       } else {
         const msg =
-          r?.error === "NICKNAME_TAKEN" ? "Bu kullanıcı adı alınmış, başka bir tane dene."
-          : r?.error === "NICKNAME_RESERVED" ? "Bu kullanıcı adı kullanılamaz (rezerve)."
-          : r?.error === "NICKNAME_LENGTH" ? "2-20 karakter olmalı."
-          : r?.error === "NICKNAME_INVALID" ? "Geçersiz karakter kullandın."
-          : r?.detail || r?.error || "Kaydedilemedi.";
-        Alert.alert("Hata", msg);
+          r?.error === "NICKNAME_TAKEN" ? t("nickTaken")
+          : r?.error === "NICKNAME_RESERVED" ? t("nickReserved")
+          : r?.error === "NICKNAME_LENGTH" ? t("nickLength")
+          : r?.error === "NICKNAME_INVALID" ? t("nickInvalid")
+          : r?.detail || r?.error || t("saveFailed");
+        Alert.alert(t("error"), msg);
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setNicknameSaving(false);
     }
@@ -680,11 +682,11 @@ export default function Me() {
         body: JSON.stringify({ userId, team: teamInput.trim() }),
       }).then((r) => r.json());
       if (r?.ok) {
-        Alert.alert("SkorLig", "Ana takım kaydedildi");
+        Alert.alert("SkorLig", t("mainTeamSaved"));
         load();
-      } else Alert.alert("Hata", hataMesaji(r?.error));
+      } else Alert.alert(t("error"), hataMesaji(r?.error));
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     }
   }
 
@@ -705,13 +707,13 @@ export default function Me() {
       ]);
       if (r1?.ok && r2?.ok) {
         setTeamInput(team);
-        Alert.alert("SkorLig", `${team} (${countryCode}) kaydedildi`);
+        Alert.alert("SkorLig", t("teamCountrySaved", { team, c: countryCode }));
         load();
       } else {
-        Alert.alert("Hata", r1?.error || r2?.error || "SAVE_FAILED");
+        Alert.alert(t("error"), r1?.error || r2?.error || "SAVE_FAILED");
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setCountrySaving(false);
     }
@@ -727,10 +729,10 @@ export default function Me() {
       }).then(x => x.json());
       if (r?.ok) {
         setPreferredLeagues(r.leagues || leagues);
-        Alert.alert("SkorLig", "Lig tercihlerin kaydedildi");
-      } else Alert.alert("Hata", hataMesaji(r?.error));
+        Alert.alert("SkorLig", t("leaguesSaved"));
+      } else Alert.alert(t("error"), hataMesaji(r?.error));
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setLeagueSaving(false);
     }
@@ -748,10 +750,10 @@ export default function Me() {
         setPreferredLang(lang);
         const { setLang } = require("../../lib/i18n");
         setLang(lang);
-        Alert.alert("SkorLig", "Dil tercihin kaydedildi");
-      } else Alert.alert("Hata", hataMesaji(r?.error));
+        Alert.alert("SkorLig", t("langSaved"));
+      } else Alert.alert(t("error"), hataMesaji(r?.error));
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setLangSaving(false);
     }
@@ -781,7 +783,7 @@ export default function Me() {
       const ok = await setPushPrefs({ [key]: next[key] });
       if (!ok) {
         setPushPrefsState(pushPrefs);  // sunucu reddetti, geri al
-        Alert.alert("Hata", "Bildirim tercihi kaydedilemedi.");
+        Alert.alert(t("error"), t("pushPrefFailed"));
       }
     } finally {
       setPushSavingKey(null);
@@ -797,10 +799,7 @@ export default function Me() {
       setPushPrefsState(prefs);
       setPushDevices(deviceCount);
     } else {
-      Alert.alert(
-        "Bildirim izni",
-        "Bildirim izni verilmedi. Telefon ayarlarından SkorLig için bildirimleri açabilirsin."
-      );
+      Alert.alert(t("pushPermTitle"), t("pushPermMsg"));
     }
     setPushLoading(false);
   }
@@ -814,22 +813,22 @@ export default function Me() {
         body: JSON.stringify({ ownerId: userId, name }),
       }).then((r) => r.json());
       if (r?.ok) {
-        Alert.alert("SkorLig", "Grup oluşturuldu");
+        Alert.alert("SkorLig", t("groupCreated"));
         load();
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     }
   }
 
   async function sendFriendRequest() {
     const toId = friendTarget.trim();
     if (!toId) {
-      Alert.alert("SkorLig", "Önce arkadaşının kullanıcı adını / ID'sini yaz.");
+      Alert.alert("SkorLig", t("friendFirstWrite"));
       return;
     }
     if (toId.toLowerCase() === userId.toLowerCase()) {
-      Alert.alert("SkorLig", "Kendine arkadaşlık isteği gönderemezsin :)");
+      Alert.alert("SkorLig", t("friendSelf"));
       return;
     }
 
@@ -841,14 +840,14 @@ export default function Me() {
       }).then((x) => x.json());
 
       if (r?.ok) {
-        Alert.alert("SkorLig", "Arkadaşlık isteği gönderildi. Karşı taraf kabul edince listeye düşecek.");
+        Alert.alert("SkorLig", t("friendReqSent"));
         setFriendTarget("");
         load();
       } else {
-        Alert.alert("Hata", hataMesaji(r?.error));
+        Alert.alert(t("error"), hataMesaji(r?.error));
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     }
   }
 
@@ -864,18 +863,18 @@ export default function Me() {
 
       if (r?.ok) {
         const gained = r.daily?.amount ?? 0;
-        Alert.alert("SkorLig", `Günlük ${gained} LC hesabına eklendi. Keyifli tahminler!`);
+        Alert.alert("SkorLig", t("dailyAdded", { n: gained }));
         await loadWalletSummary(userId);
         await loadPredCount(userId);
         await loadPendingCountIfAdmin(effectiveIsAdmin);
       } else {
         const code = r?.error || "DAILY_CLAIM_FAILED";
-        let msg = "Günlük LC hakkı şu anda kullanılamıyor.";
-        if (code === "DAILY_ALREADY_CLAIMED") msg = "Bugünkü günlük LC hakkını zaten kullandın.";
+        let msg = t("dailyUnavailable");
+        if (code === "DAILY_ALREADY_CLAIMED") msg = t("dailyAlready");
         Alert.alert("SkorLig", msg);
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setClaiming(false);
     }
@@ -897,7 +896,7 @@ export default function Me() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: Colors.bg }}>
       <View style={{ padding: 16, gap: 16 }}>
-        <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>Profilim</Text>
+        <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>{t("myProfile")}</Text>
 
         {/* Google hesap kartı + çıkış */}
         <View
@@ -914,7 +913,7 @@ export default function Me() {
         >
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: "800", color: Colors.slate900, fontSize: 15 }} numberOfLines={1}>
-              {profile?.nickname || user?.displayName || "Kullanıcı"}
+              {profile?.nickname || user?.displayName || t("userFallback")}
             </Text>
             {user?.email ? (
               <Text style={{ color: Colors.muted, fontSize: 12 }} numberOfLines={1}>
@@ -933,7 +932,7 @@ export default function Me() {
               backgroundColor: "#1a0606",
             }}
           >
-            <Text style={{ color: "#dc2626", fontWeight: "800", fontSize: 13 }}>Çıkış</Text>
+            <Text style={{ color: "#dc2626", fontWeight: "800", fontSize: 13 }}>{t("logout")}</Text>
           </TouchableOpacity>
         </View>
 
@@ -948,15 +947,15 @@ export default function Me() {
             gap: 8,
           }}
         >
-          <Text style={{ fontWeight: "700", color: Colors.slate900 }}>Kullanıcı Adı</Text>
+          <Text style={{ fontWeight: "700", color: Colors.slate900 }}>{t("nickname")}</Text>
           <Text style={{ fontSize: 11, color: Colors.muted }}>
-            Yarış ve sıralamalarda diğer oyuncular bu adı görür. 2-20 karakter.
+            {t("nicknameHelp")}
           </Text>
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
             <TextInput
               value={nicknameInput}
               onChangeText={setNicknameInput}
-              placeholder="Örn: KartalGözü07"
+              placeholder={t("nicknamePh")}
               placeholderTextColor={Colors.muted}
               autoCapitalize="none"
               autoCorrect={false}
@@ -984,7 +983,7 @@ export default function Me() {
               }}
             >
               <Text style={{ color: "#fff", fontWeight: "900", fontSize: 13 }}>
-                {nicknameSaving ? "..." : "Kaydet"}
+                {nicknameSaving ? "..." : t("save")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1251,14 +1250,14 @@ export default function Me() {
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: rank.color, fontWeight: "900", fontSize: 18 }}>{rank.label}</Text>
                   <Text style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
-                    {totalsRow ? `${totalsRow.matches} maç oynandı` : ""}
+                    {totalsRow ? t("matchesPlayed", { n: totalsRow.matches }) : ""}
                   </Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={{ fontSize: 28, fontWeight: "900", color: rank.color }}>
                     {totalPoints !== undefined ? totalPoints : "—"}
                   </Text>
-                  <Text style={{ color: "#64748b", fontSize: 10 }}>puan</Text>
+                  <Text style={{ color: "#64748b", fontSize: 10 }}>{t("points")}</Text>
                 </View>
               </View>
 
@@ -1267,7 +1266,7 @@ export default function Me() {
                 <View style={{ gap: 4 }}>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                     <Text style={{ color: "#64748b", fontSize: 10 }}>
-                      {next.emoji} {next.label}: {next.minPts} puan
+                      {next.emoji} {next.label}: {next.minPts} {t("points")}
                     </Text>
                     <Text style={{ color: rank.color, fontSize: 10, fontWeight: "700" }}>
                       {Math.round(prog * 100)}%
@@ -1280,13 +1279,13 @@ export default function Me() {
                     }} />
                   </View>
                   <Text style={{ color: "#475569", fontSize: 10 }}>
-                    {next.minPts - pts} puan daha → {next.label}
+                    {t("ptsToNext", { n: next.minPts - pts, rank: next.label })}
                   </Text>
                 </View>
               )}
               {!next && (
                 <Text style={{ color: rank.color, fontSize: 12, fontWeight: "700" }}>
-                  En yüksek rütbeye ulaştın!
+                  {t("maxRank")}
                 </Text>
               )}
 
@@ -1299,11 +1298,11 @@ export default function Me() {
                   <Text style={{ fontSize: 20 }}>🔥</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: streakData.currentTier ? "#fbbf24" : "#60a5fa", fontWeight: "800", fontSize: 13 }}>
-                      {streakData.seriesCount} maçlık seri
+                      {t("streakOf", { n: streakData.seriesCount })}
                       {streakData.currentTier ? ` · ${streakData.currentTier.label}` : ""}
                     </Text>
                     <Text style={{ color: "#475569", fontSize: 10 }}>
-                      En iyi seri: {streakData.bestSeries.toFixed(1)} puan
+                      {t("bestStreak", { n: streakData.bestSeries.toFixed(1) })}
                     </Text>
                   </View>
                 </View>
@@ -1311,7 +1310,7 @@ export default function Me() {
 
               {totalsRow && (
                 <Text style={{ color: "#475569", fontSize: 11 }}>
-                  Toplam ceza: {totalsRow.totalPenalty}
+                  {t("totalPenalty", { n: totalsRow.totalPenalty })}
                 </Text>
               )}
 
@@ -1321,7 +1320,7 @@ export default function Me() {
                   style={{ flex: 1, padding: 10, backgroundColor: "#1e293b", borderRadius: 10 }}
                 >
                   <Text style={{ textAlign: "center", color: "#94a3b8", fontWeight: "600" }}>
-                    Genel İstatistikler
+                    {t("statsGeneral")}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1329,7 +1328,7 @@ export default function Me() {
                   style={{ flex: 1, padding: 10, backgroundColor: rank.color, borderRadius: 10 }}
                 >
                   <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
-                    Profil & Geçmiş →
+                    {t("profileHistory")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1356,7 +1355,7 @@ export default function Me() {
               borderWidth: 1, borderColor: Colors.border, gap: 10,
             }}>
               <Text style={{ fontWeight: "800", fontSize: 15, color: "#e2e8f0" }}>
-                Başarımlar ({unlocked.length}/{ACHIEVEMENTS.length})
+                {t("achievements")} ({unlocked.length}/{ACHIEVEMENTS.length})
               </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {unlocked.map(a => (
@@ -1394,8 +1393,8 @@ export default function Me() {
               key: "predict",
               done: (predCount ?? 0) > 0,
               icon: "⚽",
-              title: "İlk tahmini yap",
-              desc: "Açık bir maçta tahmin et",
+              title: t("stepPredict"),
+              desc: t("stepPredictDesc"),
               color: "#16a34a",
               bg: "#dcfce7",
               action: () => nav.replace({ pathname: "/(tabs)/live", params: { mode: "open" } } as any),
@@ -1404,8 +1403,8 @@ export default function Me() {
               key: "team",
               done: !!profile?.mainTeam,
               icon: "🏆",
-              title: "Takımını seç",
-              desc: "Maçlar takımına göre sıralanır",
+              title: t("stepTeam"),
+              desc: t("stepTeamDesc"),
               color: Colors.accent,
               bg: "#edf4ff",
               action: () => null, // zaten bu sayfada
@@ -1414,8 +1413,8 @@ export default function Me() {
               key: "tournament",
               done: false,
               icon: "🎯",
-              title: "Turnuvaya katıl",
-              desc: "Diğer kullanıcılarla yarış",
+              title: t("stepTournament"),
+              desc: t("stepTournamentDesc"),
               color: "#7c3aed",
               bg: "#f5f3ff",
               action: () => nav.replace({ pathname: "/(tabs)/live", params: { mode: "tournaments" } } as any),
@@ -1424,8 +1423,8 @@ export default function Me() {
               key: "mini",
               done: false,
               icon: "🏅",
-              title: "Mini lig kur",
-              desc: "Arkadaşlarınla özel lig",
+              title: t("stepMini"),
+              desc: t("stepMiniDesc"),
               color: "#ea580c",
               bg: "#fff7ed",
               action: () => nav.push({ pathname: "/mini/create", params: { userId } } as any),
@@ -1434,8 +1433,8 @@ export default function Me() {
               key: "friends",
               done: false,
               icon: "👥",
-              title: "Arkadaş ligi",
-              desc: "Arkadaşlarınla sıralanma",
+              title: t("stepFriends"),
+              desc: t("stepFriendsDesc"),
               color: "#0891b2",
               bg: "#ecfeff",
               action: () => nav.push({ pathname: "/friends/board", params: { userId } } as any),
@@ -1446,8 +1445,8 @@ export default function Me() {
               key: "kupon",
               done: false,
               icon: "🎟️",
-              title: "Haftalık Kupon",
-              desc: "Haftanın maçları tek kuponda — ödül başarına göre",
+              title: t("stepKupon"),
+              desc: t("stepKuponDesc"),
               color: "#0e7490",
               bg: "#082f3a",
               textColor: "#67e8f9",
@@ -1457,8 +1456,8 @@ export default function Me() {
               key: "gs1987",
               done: !!profile?.is1987,
               icon: "🔴",
-              title: "1987GS Modu",
-              desc: "Özel üye içeriğine eriş",
+              title: t("stepGs1987"),
+              desc: t("stepGs1987Desc"),
               color: "#991b1b",
               bg: "#1a0a0a",
               textColor: "#c9a227",
@@ -1476,10 +1475,10 @@ export default function Me() {
             }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <Text style={{ fontWeight: "800", fontSize: 14, color: Colors.slate900 }}>
-                  Sıradaki Adımın
+                  {t("nextStepTitle")}
                 </Text>
                 <Text style={{ fontSize: 12, color: Colors.muted }}>
-                  {doneCount}/{steps.length} tamamlandı
+                  {t("stepsDone", { done: doneCount, total: steps.length })}
                 </Text>
               </View>
 
@@ -1542,12 +1541,12 @@ export default function Me() {
             gap: 8,
           }}
         >
-          <Text style={{ fontWeight: "700" }}>LC Cüzdanım</Text>
+          <Text style={{ fontWeight: "700" }}>{t("myWallet")}</Text>
 
           {walletLoading && (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
               <ActivityIndicator />
-              <Text style={{ color: Colors.muted, fontSize: 12 }}>Cüzdan yükleniyor...</Text>
+              <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("walletLoading")}</Text>
             </View>
           )}
 
@@ -1567,31 +1566,30 @@ export default function Me() {
                   </Text>
                   {wallet.daily?.canClaim && (
                     <Text style={{ fontSize: 11, color: "#78350f", fontWeight: "600" }}>
-                      Günlük LC hazır! ↓
+                      {t("dailyReady")}
                     </Text>
                   )}
                 </View>
               </View>
               <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                Toplam kazanç: {wallet.user?.totalEarned ?? 0} · Toplam harcama: {wallet.user?.totalSpent ?? 0}
+                {t("earnSpend", { e: wallet.user?.totalEarned ?? 0, s: wallet.user?.totalSpent ?? 0 })}
               </Text>
 
               {wallet.user?.lastDailyAt && (
                 <Text style={{ color: Colors.muted, fontSize: 11 }}>
-                  Son günlük hak kullanımı: {String(wallet.user.lastDailyAt).slice(0, 10)}
+                  {t("lastDaily", { d: String(wallet.user.lastDailyAt).slice(0, 10) })}
                 </Text>
               )}
 
               {wallet.daily && (
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  Günlük hak: {wallet.daily.amount} LC · Bugün: {wallet.daily.today}
+                  {t("dailyInfo", { n: wallet.daily.amount, d: wallet.daily.today })}
                 </Text>
               )}
 
               {wallet.pricing && (
                 <Text style={{ color: Colors.muted, fontSize: 11 }}>
-                  Maç girişi: {wallet.pricing.matchEntryCost} LC · Yeni kullanıcı: {wallet.pricing.initialDefault} LC ·
-                  1987 üyesi: {wallet.pricing.initial1987} LC
+                  {t("pricingInfo", { entry: wallet.pricing.matchEntryCost, init: wallet.pricing.initialDefault, init87: wallet.pricing.initial1987 })}
                 </Text>
               )}
 
@@ -1607,7 +1605,7 @@ export default function Me() {
                 }}
               >
                 <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700", fontSize: 13 }}>
-                  {wallet.daily?.canClaim ? "Günlük LC'yi Al" : "Bugünkü günlük hak kullanıldı"}
+                  {wallet.daily?.canClaim ? t("claimDaily") : t("dailyUsed")}
                 </Text>
               </TouchableOpacity>
 
@@ -1621,7 +1619,7 @@ export default function Me() {
                 }}
               >
                 <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "700", fontSize: 13 }}>
-                  LC hareketlerimi gör
+                  {t("seeLedger")}
                 </Text>
               </TouchableOpacity>
 
@@ -1638,10 +1636,10 @@ export default function Me() {
                   }}
                 >
                   <Text style={{ color: "#92400e", fontSize: 11, fontWeight: "600" }}>
-                    🌟 Premium aylık kasa: {wallet.premiumMonthly.amount} LC ·{" "}
+                    {t("premiumMonthly", { n: wallet.premiumMonthly.amount })}
                     {wallet.premiumMonthly.grantedThisMonth
-                      ? `bu ay alındı · sonraki yenileme ${wallet.premiumMonthly.nextRenewal}`
-                      : "bu ay bekliyor"}
+                      ? t("premiumGranted", { d: String(wallet.premiumMonthly.nextRenewal) })
+                      : t("premiumWaiting")}
                   </Text>
                 </View>
               )}
@@ -1659,10 +1657,9 @@ export default function Me() {
                   }}
                 >
                   <Text style={{ color: "#166534", fontSize: 11 }}>
-                    ⏳ LC bittiğinde panik yok: bakiye {wallet.regen.cap} LC'nin altındayken her{" "}
-                    {wallet.regen.intervalHours} saatte +{wallet.regen.amountPerTick} LC kendiliğinden birikir.
+                    {t("regenInfo", { cap: wallet.regen.cap, h: wallet.regen.intervalHours, n: wallet.regen.amountPerTick })}
                     {wallet.regen.active && wallet.regen.nextAt
-                      ? ` Sonraki: ${new Date(wallet.regen.nextAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}`
+                      ? t("regenNext", { t: new Date(wallet.regen.nextAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) })
                       : ""}
                   </Text>
                 </View>
@@ -1672,7 +1669,7 @@ export default function Me() {
               {storePkgs.length > 0 && storeMode !== "disabled" && (
                 <View style={{ marginTop: 8, gap: 6 }}>
                   <Text style={{ fontWeight: "700", fontSize: 13 }}>
-                    LC Mağazası{storeMode === "mock" ? "  (test modu)" : ""}
+                    {t("lcStore")}{storeMode === "mock" ? t("testMode") : ""}
                   </Text>
                   {storePkgs.map((p) => (
                     <TouchableOpacity
@@ -1698,7 +1695,7 @@ export default function Me() {
                           {p.popular ? " ⭐" : ""}
                         </Text>
                         <Text style={{ color: Colors.muted, fontSize: 11 }}>
-                          {p.lc} LC{p.emergency ? " · tokenin bitince hızlı çözüm" : ""}
+                          {p.lc} LC{p.emergency ? t("emergencyPkg") : ""}
                         </Text>
                       </View>
                       <Text style={{ fontWeight: "800", color: Colors.accent }}>
@@ -1712,14 +1709,14 @@ export default function Me() {
           )}
 
           {!walletLoading && !wallet && (
-            <Text style={{ color: Colors.muted, fontSize: 12 }}>Cüzdan bilgisi alınamadı. Daha sonra tekrar dene.</Text>
+            <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("walletFailed")}</Text>
           )}
 
           {predCountLoading ? (
-            <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 6 }}>Tahmin yaptığın maç sayısı yükleniyor...</Text>
+            <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 6 }}>{t("predCountLoading")}</Text>
           ) : predCount !== null ? (
             <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 6 }}>
-              Bugüne kadar tahmin yaptığın maç sayısı: {predCount}
+              {t("predCountInfo", { n: predCount })}
             </Text>
           ) : null}
         </View>
@@ -1735,9 +1732,9 @@ export default function Me() {
             gap: 10,
           }}
         >
-          <Text style={{ fontWeight: "700" }}>Takımım & Ülkem</Text>
+          <Text style={{ fontWeight: "700" }}>{t("teamCountry")}</Text>
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Takımının maçları her zaman önde çıkar. Ülkeni seç, sonra takımını belirle.
+            {t("teamCountryHelp")}
           </Text>
 
           {/* Mevcut kayıtlı seçimler */}
@@ -1772,7 +1769,7 @@ export default function Me() {
                   }}
                 >
                   <Text style={{ fontWeight: "600", fontSize: 12, color: on(Colors.live) }}>
-                    {profile.mainTeam} Paneli →
+                    {t("teamPanel", { team: profile.mainTeam })}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -1780,7 +1777,7 @@ export default function Me() {
           )}
 
           {/* Ülke seçici — yatay kaydırmalı */}
-          <Text style={{ fontSize: 12, color: Colors.muted, fontWeight: "600" }}>Ülke seç:</Text>
+          <Text style={{ fontSize: 12, color: Colors.muted, fontWeight: "600" }}>{t("pickCountry")}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -1822,7 +1819,7 @@ export default function Me() {
           {!!selectedCountryCode && (
             <>
               <TextInput
-                placeholder="Takım ara..."
+                placeholder={t("searchTeam")}
                 value={teamSearch}
                 onChangeText={setTeamSearch}
                 style={{
@@ -1868,7 +1865,7 @@ export default function Me() {
                   }}
                 >
                   <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
-                    {countrySaving ? "Kaydediliyor..." : `⚽ ${teamInput} — kaydet`}
+                    {countrySaving ? t("saving") : t("saveTeamBtn", { team: teamInput })}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -1879,15 +1876,14 @@ export default function Me() {
         {/* ── Bildirimler ── */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={{ fontWeight: "800", fontSize: 14 }}>🔔 Bildirimler</Text>
+            <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("notifications")}</Text>
             {pushLoading && <ActivityIndicator size="small" color={Colors.accent} />}
           </View>
 
           {!pushLoading && pushDevices === 0 ? (
             <>
               <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                Bu cihaz bildirim almıyor. Maçın başlamasına dakikalar kala ve puanın
-                hesaplandığında haberdar olmak için aç.
+                {t("pushOffHelp")}
               </Text>
               <TouchableOpacity
                 onPress={enablePushOnDevice}
@@ -1897,25 +1893,25 @@ export default function Me() {
                 }}
               >
                 <Text style={{ color: "#020617", fontWeight: "900", fontSize: 13 }}>
-                  Bildirimleri Aç
+                  {t("pushEnable")}
                 </Text>
               </TouchableOpacity>
             </>
           ) : (
             <>
               <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                {pushDevices} cihaz kayıtlı. İstemediğin bildirimi kapatabilirsin.
+                {t("pushDevices", { n: pushDevices })}
               </Text>
 
               {([
-                { key: "matchStart" as const, icon: "⏱", label: "Maç başlıyor",
-                  desc: "Tahmin ettiğin maça 30 dk kala" },
-                { key: "result" as const, icon: "🏁", label: "Sonuç ve puanım",
-                  desc: "Maç bitip puanın hesaplandığında" },
-                { key: "duel" as const, icon: "⚔️", label: "Düello",
-                  desc: "Meydan okuma ve düello sonucu" },
-                { key: "daily" as const, icon: "🪙", label: "Günlük LC",
-                  desc: "Ücretsiz LC hakkın hazır olduğunda" },
+                { key: "matchStart" as const, icon: "⏱", label: t("pushMatchStart"),
+                  desc: t("pushMatchStartD") },
+                { key: "result" as const, icon: "🏁", label: t("pushResult"),
+                  desc: t("pushResultD") },
+                { key: "duel" as const, icon: "⚔️", label: t("pushDuel"),
+                  desc: t("pushDuelD") },
+                { key: "daily" as const, icon: "🪙", label: t("pushDaily"),
+                  desc: t("pushDailyD") },
               ]).map((row) => {
                 const on = pushPrefs[row.key];
                 const busy = pushSavingKey === row.key;
@@ -1963,8 +1959,8 @@ export default function Me() {
 
         {/* ── Dil Tercihi ── */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
-          <Text style={{ fontWeight: "800", fontSize: 14 }}>Dil Tercihi</Text>
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>Uygulama dilini manuel olarak seç. Boş bırakırsan cihaz dili kullanılır.</Text>
+          <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("langPref")}</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("langPrefHelp")}</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
             {[
               { code: "tr", label: "🇹🇷 Türkçe" }, { code: "en", label: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 English" },
@@ -2006,16 +2002,16 @@ export default function Me() {
               disabled={langSaving}
               style={{ alignSelf: "flex-start" }}
             >
-              <Text style={{ fontSize: 11, color: Colors.muted }}>✕ Tercihi kaldır (cihaz diline dön)</Text>
+              <Text style={{ fontSize: 11, color: Colors.muted }}>{t("langClear")}</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {/* ── Takip Ettiğim Ligler ── */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
-          <Text style={{ fontWeight: "800", fontSize: 14 }}>Takip Ettiğim Ligler</Text>
+          <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("myLeagues")}</Text>
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Ana ülkene ek olarak takip etmek istediğin ligleri seç. Seçilen liglerin maçları da senin için öncelikli gösterilir.
+            {t("myLeaguesHelp")}
           </Text>
           {preferredLeagues.length > 0 && (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
@@ -2063,7 +2059,7 @@ export default function Me() {
               disabled={leagueSaving}
               style={{ alignSelf: "flex-start" }}
             >
-              <Text style={{ fontSize: 11, color: Colors.muted }}>✕ Tümünü kaldır</Text>
+              <Text style={{ fontSize: 11, color: Colors.muted }}>{t("clearAll")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -2078,7 +2074,7 @@ export default function Me() {
               borderRadius: 10,
             }}
           >
-            <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "600" }}>Arkadaş Ligim</Text>
+            <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "600" }}>{t("friendLeague")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -2090,7 +2086,7 @@ export default function Me() {
               borderRadius: 10,
             }}
           >
-            <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "600" }}>Arkadaşlık İsteklerim</Text>
+            <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "600" }}>{t("friendRequests")}</Text>
           </TouchableOpacity>
         </View>
 
@@ -2105,9 +2101,9 @@ export default function Me() {
             gap: 8,
           }}
         >
-          <Text style={{ fontWeight: "700" }}>Gruplarım</Text>
+          <Text style={{ fontWeight: "700" }}>{t("myGroups")}</Text>
           {groups.length === 0 ? (
-            <Text style={{ color: Colors.muted }}>Henüz grubun yok.</Text>
+            <Text style={{ color: Colors.muted }}>{t("noGroups")}</Text>
           ) : (
             groups.map((g, i) => (
               <View
@@ -2122,13 +2118,13 @@ export default function Me() {
               >
                 <Text style={{ fontWeight: "600" }}>{g.name}</Text>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  Üye: {Array.isArray(g.members) ? g.members.length : 0}
+                  {t("memberCount", { n: Array.isArray(g.members) ? g.members.length : 0 })}
                 </Text>
               </View>
             ))
           )}
           <TouchableOpacity onPress={createGroup} style={{ padding: 10, backgroundColor: Colors.purple, borderRadius: 10 }}>
-            <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>Grup Oluştur</Text>
+            <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>{t("createGroup")}</Text>
           </TouchableOpacity>
         </View>
 
@@ -2143,9 +2139,9 @@ export default function Me() {
             gap: 8,
           }}
         >
-          <Text style={{ fontWeight: "700" }}>Arkadaş Ligim</Text>
+          <Text style={{ fontWeight: "700" }}>{t("friendLeague")}</Text>
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Eklediğin ve seni kabul eden arkadaşlarınla arandaki sıralama.
+            {t("friendLeagueHelp")}
           </Text>
 
           <View
@@ -2159,10 +2155,10 @@ export default function Me() {
             }}
           >
             <Text style={{ color: Colors.muted, fontSize: 11 }}>
-              Arkadaşının kullanıcı ID&apos;sini yaz, arkadaşlık isteği gönder.
+              {t("friendIdHelp")}
             </Text>
             <TextInput
-              placeholder="ör: userA / 1987gs_ali..."
+              placeholder={t("friendIdPh")}
               value={friendTarget}
               onChangeText={setFriendTarget}
               autoCapitalize="none"
@@ -2180,13 +2176,13 @@ export default function Me() {
               style={{ marginTop: 4, paddingVertical: 8, borderRadius: 999, backgroundColor: Colors.live }}
             >
               <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700", fontSize: 13 }}>
-                Arkadaşlık isteği gönder
+                {t("sendFriendReq")}
               </Text>
             </TouchableOpacity>
           </View>
 
           {friendItems.length === 0 ? (
-            <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 6 }}>Henüz arkadaş ligin yok.</Text>
+            <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 6 }}>{t("noFriendLeague")}</Text>
           ) : (
             friendItems.slice(0, 10).map((row, idx) => {
               const isMe = String(row.userId || "").toLowerCase() === userId.toLowerCase();
@@ -2211,7 +2207,7 @@ export default function Me() {
                       }}
                     >
                       {idx + 1}. {row.name || row.userId}
-                      {isMe ? " (ben)" : ""}
+                      {isMe ? t("me2") : ""}
                     </Text>
                   </View>
                   <Text style={{ color: Colors.accent, fontWeight: "700", fontSize: 12 }}>
@@ -2224,7 +2220,7 @@ export default function Me() {
 
           {myFriendRow && myFriendRank && (
             <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
-              Arkadaş liginde sen: {myFriendRank}. sıradasın.
+              {t("friendRank", { n: myFriendRank })}
             </Text>
           )}
         </View>
@@ -2240,7 +2236,7 @@ export default function Me() {
             gap: 8,
           }}
         >
-          <Text style={{ fontWeight: "700" }}>Diğer Araçlar</Text>
+          <Text style={{ fontWeight: "700" }}>{t("otherTools")}</Text>
 
           {/* Kazanılan turnuvalar vitrini */}
           {miniWins.length > 0 && (
@@ -2255,7 +2251,7 @@ export default function Me() {
               }}
             >
               <Text style={{ fontWeight: "800", color: "#92400e" }}>
-                🏆 Kazandığım Turnuvalar ({miniWins.length})
+                {t("wonTournaments", { n: miniWins.length })}
               </Text>
               {miniWins.slice(0, 5).map((w) => (
                 <TouchableOpacity
@@ -2264,13 +2260,13 @@ export default function Me() {
                 >
                   <Text style={{ color: "#92400e", fontSize: 12 }} numberOfLines={1}>
                     • {w.name}
-                    {w.shared ? " (ortak şampiyonluk)" : ""} · +{w.rewardLc} LC ·{" "}
+                    {w.shared ? t("sharedChampion") : ""} · +{w.rewardLc} LC ·{" "}
                     {String(w.finishedAt).slice(0, 10)}
                   </Text>
                 </TouchableOpacity>
               ))}
               {miniWins.length > 5 && (
-                <Text style={{ color: "#b45309", fontSize: 11 }}>… ve {miniWins.length - 5} tane daha</Text>
+                <Text style={{ color: "#b45309", fontSize: 11 }}>{t("andMore", { n: miniWins.length - 5 })}</Text>
               )}
             </View>
           )}
@@ -2280,7 +2276,7 @@ export default function Me() {
             style={{ padding: 10, backgroundColor: "#f59e0b", borderRadius: 10 }}
           >
             <Text style={{ textAlign: "center", color: "#fff", fontWeight: "800" }}>
-              🌟 SkorLig Premium
+              {t("premiumBtn")}
             </Text>
           </TouchableOpacity>
           {/* ===== ARKADAŞ DAVET PANELİ ===== */}
@@ -2288,9 +2284,9 @@ export default function Me() {
             {/* Benim kodum + paylaş */}
             <View style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: "#4ade80", fontSize: 11, fontWeight: "700" }}>👥 ARKADAŞ DAVET ET</Text>
+                <Text style={{ color: "#4ade80", fontSize: 11, fontWeight: "700" }}>{t("inviteTitle")}</Text>
                 <Text style={{ color: "#94a3b8", fontSize: 10, marginTop: 2 }}>
-                  Kodunu paylaş, ikimiz de +15 LC kazanalım
+                  {t("inviteHelp")}
                 </Text>
               </View>
               <TouchableOpacity
@@ -2301,7 +2297,7 @@ export default function Me() {
                 <Text style={{ color: "#000", fontWeight: "900", fontSize: 13, letterSpacing: 2 }}>
                   {inviteCode || "..."}
                 </Text>
-                <Text style={{ color: "#000", fontSize: 9, fontWeight: "700" }}>PAYLAŞ ↗</Text>
+                <Text style={{ color: "#000", fontSize: 9, fontWeight: "700" }}>{t("share")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -2310,7 +2306,7 @@ export default function Me() {
               <TextInput
                 value={inviteInputCode}
                 onChangeText={setInviteInputCode}
-                placeholder="Arkadaşının davet kodu"
+                placeholder={t("inviteCodePh")}
                 placeholderTextColor="#475569"
                 autoCapitalize="characters"
                 maxLength={6}
@@ -2322,7 +2318,7 @@ export default function Me() {
                 style={{ backgroundColor: inviteInputCode.trim().length >= 4 ? "#3b82f6" : "#1e293b", borderRadius: 8, paddingHorizontal: 14, justifyContent: "center" }}
               >
                 <Text style={{ color: inviteInputCode.trim().length >= 4 ? "#fff" : "#475569", fontWeight: "800", fontSize: 13 }}>
-                  {inviteBusy ? "..." : "Gir"}
+                  {inviteBusy ? "..." : t("enter")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -2333,7 +2329,7 @@ export default function Me() {
             style={{ padding: 10, backgroundColor: "#0F172A", borderRadius: 10, borderWidth: 1, borderColor: Colors.accent }}
           >
             <Text style={{ textAlign: "center", color: Colors.accent, fontWeight: "700" }}>
-              📋 Tahminlerim
+              {t("myPredsBtn")}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -2341,7 +2337,7 @@ export default function Me() {
             style={{ padding: 10, backgroundColor: "#0F172A", borderRadius: 10, borderWidth: 1, borderColor: "#fbbf24" }}
           >
             <Text style={{ textAlign: "center", color: "#fbbf24", fontWeight: "700" }}>
-              🏆 Turnuvalarım
+              {t("myTournamentsBtn")}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -2349,7 +2345,7 @@ export default function Me() {
             style={{ padding: 10, backgroundColor: "#dc2626", borderRadius: 10 }}
           >
             <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
-              🇹🇷 Türkiye Tahmin Ligi
+              {t("trLeagueBtn")}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -2357,7 +2353,7 @@ export default function Me() {
             style={{ padding: 10, backgroundColor: Colors.live, borderRadius: 10 }}
           >
             <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
-              🏆 Mini Turnuvalar
+              {t("miniBtn")}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -2365,7 +2361,7 @@ export default function Me() {
             style={{ padding: 10, backgroundColor: Colors.purple, borderRadius: 10 }}
           >
             <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
-              GS 1987 Üyelik Doğrula
+              {t("gs1987VerifyBtn")}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -2373,7 +2369,7 @@ export default function Me() {
             style={{ padding: 10, backgroundColor: Colors.accent, borderRadius: 10 }}
           >
             <Text style={{ textAlign: "center", color: Colors.onAccent, fontWeight: "700" }}>
-              Gol Kralları
+              {t("goalKingsBtn")}
             </Text>
           </TouchableOpacity>
 
@@ -2381,12 +2377,12 @@ export default function Me() {
           <TouchableOpacity
             onPress={() => {
               Alert.alert(
-                "Hesabı Sil",
-                "Tüm tahminlerin, puanların ve LigCoin'lerin kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+                t("deleteAccTitle"),
+                t("deleteAccMsg"),
                 [
-                  { text: "Vazgeç", style: "cancel" },
+                  { text: t("dismiss"), style: "cancel" },
                   {
-                    text: "Evet, Sil",
+                    text: t("deleteAccYes"),
                     style: "destructive",
                     onPress: async () => {
                       try {
@@ -2397,12 +2393,12 @@ export default function Me() {
                           headers: authH,
                         });
                         const json = await r.json();
-                        if (!json.ok) throw new Error(json.error || "Sunucu hatası");
-                        Alert.alert("Hesap silindi", "Verileriniz temizlendi.", [
-                          { text: "Tamam", onPress: () => nav.replace("/login") },
+                        if (!json.ok) throw new Error(json.error || t("serverError"));
+                        Alert.alert(t("deleteAccDone"), t("deleteAccDoneMsg"), [
+                          { text: t("ok"), onPress: () => nav.replace("/login") },
                         ]);
                       } catch (e: any) {
-                        Alert.alert("Hata", e.message || "Hesap silinemedi.");
+                        Alert.alert(t("error"), e.message || t("deleteAccFailed"));
                       }
                     },
                   },
@@ -2412,7 +2408,7 @@ export default function Me() {
             style={{ padding: 10, backgroundColor: "#1a0a0a", borderRadius: 10, borderWidth: 1, borderColor: "#7f1d1d", marginTop: 8 }}
           >
             <Text style={{ textAlign: "center", color: "#ef4444", fontWeight: "700" }}>
-              🗑️ Hesabımı Sil
+              🗑️ {t("deleteAccount")}
             </Text>
           </TouchableOpacity>
         </View>
