@@ -17,6 +17,7 @@ import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { shareResult } from "../../lib/share";
 /* Hata kodunu kullaniciya anlasilir Turkce metne cevirir — bkz. engelleme akisi. */
 import { hataMesaji } from "../../lib/hataMesaji";
+import { t, useLang } from "../../lib/i18n";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -77,29 +78,30 @@ type UserProfile = {
   joinedAt: string | null;
 };
 
-const RANKS = [
-  { name: "Efsane", min: 2000, color: "#f59e0b" },
-  { name: "Uzman", min: 1000, color: "#a855f7" },
-  { name: "Profesyonel", min: 500, color: "#3b82f6" },
-  { name: "Yarı-Pro", min: 200, color: "#22c55e" },
-  { name: "Amatör", min: 50, color: "#94a3b8" },
-  { name: "Çaylak", min: 0, color: "#64748b" },
+const getRanks = () => [
+  { name: t("rk2000"), min: 2000, color: "#f59e0b" },
+  { name: t("rk1000"), min: 1000, color: "#a855f7" },
+  { name: t("rk500"), min: 500, color: "#3b82f6" },
+  { name: t("rk200"), min: 200, color: "#22c55e" },
+  { name: t("rk50"), min: 50, color: "#94a3b8" },
+  { name: t("rk0"), min: 0, color: "#64748b" },
 ];
 function getRankName(pts: number) {
+  const RANKS = getRanks();
   for (const r of RANKS) if (pts >= r.min) return r;
   return RANKS[RANKS.length - 1];
 }
 
 function timeAgo(dateStr: string | null): string {
-  if (!dateStr) return "bilinmiyor";
+  if (!dateStr) return t("unknownTime");
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
-  if (days < 1) return "bugün";
-  if (days < 30) return `${days} gün`;
+  if (days < 1) return t("todayLower");
+  if (days < 30) return t("nDays", { n: days });
   const months = Math.floor(days / 30);
-  if (months < 12) return `${months} ay`;
+  if (months < 12) return t("nMonths", { n: months });
   const years = Math.floor(months / 12);
-  return `${years} yıl ${months % 12} ay`;
+  return t("yearsMonths", { y: years, m: months % 12 });
 }
 
 const LIVE_STATUSES = new Set(["1H", "HT", "2H", "ET", "BT", "P", "LIVE", "INT"]);
@@ -107,6 +109,7 @@ const POLL_MS = 20000;
 const PRE_POLL_MS = 60000;
 
 export default function MatchRaceScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const { fixtureId: qFid, userId: qUserId } = useLocalSearchParams<{ fixtureId?: string; userId?: string }>();
   const fixtureId = String(qFid || "").trim();
@@ -163,14 +166,14 @@ export default function MatchRaceScreen() {
 
   const toggleBlock = async (targetUserId: string) => {
     const action = blocked ? "unblock" : "block";
-    const label = blocked ? "Engeli kaldır" : "Engelle";
+    const label = blocked ? t("unblock") : t("block");
     Alert.alert(
       label,
       blocked
-        ? `${targetUserId} engelini kaldırmak istiyor musun?`
-        : `${targetUserId} kullanıcısını engellemek istiyor musun?`,
+        ? t("unblockAsk", { id: targetUserId })
+        : t("blockAsk", { id: targetUserId }),
       [
-        { text: "İptal", style: "cancel" },
+        { text: t("cancel"), style: "cancel" },
         {
           text: label,
           style: blocked ? "default" : "destructive",
@@ -202,14 +205,14 @@ export default function MatchRaceScreen() {
               const j = await res.json().catch(() => null);
               if (!res.ok || j?.ok === false) {
                 Alert.alert(
-                  blocked ? "Engel kaldırılamadı" : "Engellenemedi",
+                  blocked ? t("unblockFailed") : t("blockFailed"),
                   hataMesaji(j?.error)
                 );
                 return;
               }
               setBlocked(!blocked);
             } catch (e: any) {
-              Alert.alert("Bağlantı hatası", String(e?.message || e));
+              Alert.alert(t("connError"), String(e?.message || e));
             }
           },
         },
@@ -248,11 +251,11 @@ export default function MatchRaceScreen() {
         <Text style={{ color: Colors.muted, fontWeight: "600", width: 34, fontSize: 12 }}>{label}</Text>
         <View style={{ flex: 1 }}>
           <Text style={{ color: "#fff", fontWeight: isMe ? "900" : "600" }} numberOfLines={1}>
-            {name}{isMe ? " (ben)" : ""}
+            {name}{isMe ? t("me2") : ""}
           </Text>
           {extra?.predScore && (
             <Text style={{ color: Colors.muted, fontSize: 10 }}>
-              Tahmin: {extra.predScore.home}-{extra.predScore.away}
+              {t("predShort", { h: extra.predScore.home, a: extra.predScore.away })}
             </Text>
           )}
         </View>
@@ -287,20 +290,20 @@ export default function MatchRaceScreen() {
         {/* Üst bar */}
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+            <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
           </TouchableOpacity>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <TouchableOpacity
               onPress={() => router.replace({ pathname: "/(tabs)/live", params: { tab: "open" } })}
               style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: "#1e293b" }}
             >
-              <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: "600" }}>Maçlar</Text>
+              <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: "600" }}>{t("matches")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => router.replace({ pathname: "/(tabs)/live", params: { tab: "mine" } })}
               style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: "#1e293b" }}
             >
-              <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: "600" }}>Tahminlerim</Text>
+              <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: "600" }}>{t("myPredsLbl")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -308,13 +311,13 @@ export default function MatchRaceScreen() {
         {loading && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <ActivityIndicator size="small" />
-            <Text style={{ color: Colors.muted }}>Yarış panosu yükleniyor...</Text>
+            <Text style={{ color: Colors.muted }}>{t("raceLoading")}</Text>
           </View>
         )}
 
         {!loading && !data?.ok && (
           <Text style={{ color: "#f97316" }}>
-            Pano yüklenemedi: {data?.error || "Bilinmeyen hata"}
+            {t("boardFailed", { e: data?.error || t("unknownError") })}
           </Text>
         )}
 
@@ -329,7 +332,7 @@ export default function MatchRaceScreen() {
             >
               {st.league && <Text style={{ color: "#60a5fa", fontSize: 11, fontWeight: "700" }}>{st.league}</Text>}
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800", textAlign: "center" }}>
-                {st.home || "Ev"} — {st.away || "Deplasman"}
+                {st.home || t("home")} — {st.away || t("away")}
               </Text>
               <Text style={{ color: "#a3e635", fontSize: 28, fontWeight: "900" }}>vs</Text>
               {(st.date || st.time) && (
@@ -338,7 +341,7 @@ export default function MatchRaceScreen() {
                 </Text>
               )}
               <View style={{ marginTop: 4, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 999, backgroundColor: "#1e293b" }}>
-                <Text style={{ color: "#fbbf24", fontSize: 11, fontWeight: "700" }}>⏳ Maç henüz başlamadı</Text>
+                <Text style={{ color: "#fbbf24", fontSize: 11, fontWeight: "700" }}>{t("notStartedChip")}</Text>
               </View>
             </View>
 
@@ -349,10 +352,10 @@ export default function MatchRaceScreen() {
               }}
             >
               <Text style={{ fontWeight: "900", fontSize: 32, color: Colors.accent }}>{data.totalPlayers || 0}</Text>
-              <Text style={{ fontWeight: "700", fontSize: 13, color: "#e2e8f0" }}>kişi bu maça tahmin gönderdi</Text>
+              <Text style={{ fontWeight: "700", fontSize: 13, color: "#e2e8f0" }}>{t("predSenders")}</Text>
               {data.meJoined && (
                 <View style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: "#052e16", borderWidth: 1, borderColor: "#22c55e66" }}>
-                  <Text style={{ color: "#4ade80", fontSize: 11, fontWeight: "700" }}>✅ Sen de yarışa katıldın</Text>
+                  <Text style={{ color: "#4ade80", fontSize: 11, fontWeight: "700" }}>{t("youJoined")}</Text>
                 </View>
               )}
             </View>
@@ -369,18 +372,16 @@ export default function MatchRaceScreen() {
               <Text style={{ fontSize: 18 }}>{notifyOn ? "🔔" : "🔕"}</Text>
               <View>
                 <Text style={{ fontWeight: "700", color: notifyOn ? "#4ade80" : "#e2e8f0", fontSize: 14 }}>
-                  {notifyOn ? "Bildirim açık — maç başlayınca güncellenecek" : "Maç başlayınca bildir"}
+                  {notifyOn ? t("notifyOnLbl") : t("notifyAsk")}
                 </Text>
                 <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
-                  {notifyOn
-                    ? "Ekranı açık tut, maç başlayınca otomatik canlı yarışa geçer."
-                    : "Bu ekranda kal, maç başladığında canlı sıralama otomatik açılır."}
+                  {notifyOn ? t("notifyOnHelp") : t("notifyOffHelp")}
                 </Text>
               </View>
             </TouchableOpacity>
 
             <Text style={{ fontWeight: "700", color: "#e2e8f0", marginTop: 4 }}>
-              Katılımcılar ({data.totalPlayers || 0})
+              {t("participants", { n: data.totalPlayers || 0 })}
             </Text>
             {(data.participants || []).map((p, i) => renderUserRow(p.userId, i, { displayName: p.displayName }))}
           </>
@@ -401,9 +402,9 @@ export default function MatchRaceScreen() {
                   🔴 CANLI {st.minute != null ? `· ${st.minute}'` : ""}
                 </Text>
               )}
-              {isFT && <Text style={{ color: Colors.muted, fontSize: 11, fontWeight: "800" }}>MAÇ SONUCU</Text>}
+              {isFT && <Text style={{ color: Colors.muted, fontSize: 11, fontWeight: "800" }}>{t("matchOutcome")}</Text>}
               <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", textAlign: "center" }}>
-                {st.home || "Ev"} — {st.away || "Deplasman"}
+                {st.home || t("home")} — {st.away || t("away")}
               </Text>
               <Text style={{ color: "#a3e635", fontSize: 34, fontWeight: "900" }}>
                 {st.score ? `${st.score.home} - ${st.score.away}` : "vs"}
@@ -411,11 +412,11 @@ export default function MatchRaceScreen() {
               <View style={{ flexDirection: "row", gap: 10 }}>
                 {st.firstGoal && (
                   <Text style={{ color: Colors.muted, fontSize: 11 }}>
-                    İlk gol: {st.firstGoal === "H" ? "ev" : "deplasman"}
+                    {t("firstGoalWho", { s: st.firstGoal === "H" ? t("home") : t("away") })}
                   </Text>
                 )}
-                {st.redAny && <Text style={{ color: "#ef4444", fontSize: 11 }}>🟥 kırmızı</Text>}
-                {st.penaltyAny && <Text style={{ color: "#f59e0b", fontSize: 11 }}>⚪ penaltı</Text>}
+                {st.redAny && <Text style={{ color: "#ef4444", fontSize: 11 }}>{t("redLower")}</Text>}
+                {st.penaltyAny && <Text style={{ color: "#f59e0b", fontSize: 11 }}>{t("penLower")}</Text>}
               </View>
             </View>
 
@@ -426,7 +427,7 @@ export default function MatchRaceScreen() {
               }}
             >
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ fontWeight: "700", fontSize: 13, color: "#e2e8f0" }}>🏃 Yarışta</Text>
+                <Text style={{ fontWeight: "700", fontSize: 13, color: "#e2e8f0" }}>{t("inRaceLbl")}</Text>
                 <Text style={{ fontWeight: "900", fontSize: 13, color: "#059669" }}>
                   {data.inRaceCount} / {data.totalPlayers}
                 </Text>
@@ -440,7 +441,7 @@ export default function MatchRaceScreen() {
                 />
               </View>
               <Text style={{ color: Colors.muted, fontSize: 10 }}>
-                Gerçek skor tahmini aştığında elenirsin. Yakın tahminler üstte sıralanır.
+                {t("eliminationHelp")}
               </Text>
             </View>
 
@@ -455,18 +456,18 @@ export default function MatchRaceScreen() {
               >
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <Text style={{ fontWeight: "900", fontSize: 15, color: "#e2e8f0" }}>
-                    Anlık sıran: {data.me.rank}. / {data.totalPlayers}
+                    {t("currentRank", { r: data.me.rank, n: data.totalPlayers })}
                   </Text>
                   <Text style={{ fontWeight: "900", fontSize: 20, color: Colors.accent }}>{data.me.points}p</Text>
                 </View>
                 {data.me.predScore && (
                   <Text style={{ color: "#94a3b8", fontSize: 12 }}>
-                    Tahminin: {data.me.predScore.home}-{data.me.predScore.away}
-                    {data.me.distance != null && data.me.distance < 999 ? ` · Uzaklık: ${data.me.distance}` : ""}
+                    {t("myPredScore", { h: data.me.predScore.home, a: data.me.predScore.away })}
+                    {data.me.distance != null && data.me.distance < 999 ? t("distanceSuffix", { d: data.me.distance }) : ""}
                   </Text>
                 )}
                 <Text style={{ color: data.me.inRace ? "#059669" : "#dc2626", fontSize: 12, fontWeight: "700" }}>
-                  {data.me.inRace ? "✅ Skorun hâlâ mümkün" : "❌ Skorun artık imkansız"}
+                  {data.me.inRace ? t("stillPossible") : t("impossible")}
                 </Text>
 
                 {/* Maç bitti ve puan kesinleşti → paylaşılacak bir sonuç var.
@@ -476,8 +477,8 @@ export default function MatchRaceScreen() {
                     onPress={() => shareResult({
                       match: {
                         fixtureId: String(fixtureId),
-                        home: st?.home || "Ev",
-                        away: st?.away || "Deplasman",
+                        home: st?.home || t("home"),
+                        away: st?.away || t("away"),
                         league: st?.league || null,
                       },
                       finalHome: Number(st?.score?.home ?? 0),
@@ -496,19 +497,19 @@ export default function MatchRaceScreen() {
                   >
                     <Text style={{ fontSize: 15 }}>📣</Text>
                     <Text style={{ color: Colors.onAccent, fontWeight: "900", fontSize: 14 }}>
-                      Sonucu Paylaş
+                      {t("shareResultBtn")}
                     </Text>
                   </TouchableOpacity>
                 )}
               </View>
             ) : (
               <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                Bu maça tahminin yok — pano sadece izleme modunda.
+                {t("watchOnly")}
               </Text>
             )}
 
             <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>
-              İlk {(data.top || []).length} · toplam {data.totalPlayers} tahminci
+              {t("topOfTotal", { a: (data.top || []).length, b: data.totalPlayers })}
             </Text>
             {(data.top || []).map((r, i) =>
               renderUserRow(r.userId, i, { points: r.points, inRace: r.inRace, rank: r.rank, displayName: r.displayName, distance: r.distance, predScore: r.predScore })
@@ -545,7 +546,7 @@ export default function MatchRaceScreen() {
 
             {!profileLoading && !profile && (
               <Text style={{ color: Colors.muted, textAlign: "center", paddingVertical: 40 }}>
-                Profil yüklenemedi.
+                {t("profileLoadFailed")}
               </Text>
             )}
           </TouchableOpacity>
@@ -583,13 +584,13 @@ function ProfileContent({ profile, blocked, onClose, onToggleBlock }: {
       </View>
 
       <View style={{ flexDirection: "row", gap: 8 }}>
-        <StatBox label="Toplam Puan" value={String(profile.totalPoints)} color="#a3e635" />
-        <StatBox label="Maç" value={String(profile.matches)} color="#60a5fa" />
-        <StatBox label="Tahmin" value={String(profile.predCount)} color="#f59e0b" />
+        <StatBox label={t("statTotalPts")} value={String(profile.totalPoints)} color="#a3e635" />
+        <StatBox label={t("statMatch")} value={String(profile.matches)} color="#60a5fa" />
+        <StatBox label={t("statPred")} value={String(profile.predCount)} color="#f59e0b" />
       </View>
 
       <View style={{ gap: 8 }}>
-        <DetailRow icon="📊" label="Maç başı ort." value={profile.matches > 0 ? `${(profile.totalPoints / profile.matches).toFixed(1)}p` : "—"} />
+        <DetailRow icon="📊" label={t("avgPerMatch")} value={profile.matches > 0 ? `${(profile.totalPoints / profile.matches).toFixed(1)}p` : "—"} />
         {/* ⚠️ BAKİYE ARTIK YALNIZCA KENDİ PROFİLİNDE GELİYOR. Uç herkesin
             bakiyesini döndürüyordu; bir tahmin oyununda rakibin ne kadar
             parası olduğunu bilmek düello ve havuzda doğrudan avantaj.
@@ -597,11 +598,11 @@ function ProfileContent({ profile, blocked, onClose, onToggleBlock }: {
             okunur ve yine bilgi sızdırır. Koşulsuz basmak ise ekrana
             "undefined LC" yazardı; aynı hata premium tablosunda yaşandı. */}
         {profile.lc != null && (
-          <DetailRow icon="💰" label="LC bakiye" value={`${profile.lc} LC`} />
+          <DetailRow icon="💰" label={t("lcBalance")} value={`${profile.lc} LC`} />
         )}
-        <DetailRow icon="📅" label="Üyelik süresi" value={timeAgo(profile.joinedAt)} />
+        <DetailRow icon="📅" label={t("membershipAge")} value={timeAgo(profile.joinedAt)} />
         {profile.totalPenalty > 0 && (
-          <DetailRow icon="⚠️" label="Toplam ceza" value={`-${profile.totalPenalty}p`} />
+          <DetailRow icon="⚠️" label={t("penaltyLbl")} value={`-${profile.totalPenalty}p`} />
         )}
       </View>
 
@@ -615,7 +616,7 @@ function ProfileContent({ profile, blocked, onClose, onToggleBlock }: {
         }}
       >
         <Text style={{ color: blocked ? "#94a3b8" : "#f87171", fontWeight: "700", fontSize: 13 }}>
-          {blocked ? "🔓 Engeli Kaldır" : "🚫 Engelle"}
+          {blocked ? t("unblockBtn") : t("blockBtn")}
         </Text>
       </TouchableOpacity>
     </View>

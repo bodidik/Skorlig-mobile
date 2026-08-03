@@ -11,6 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { getApiBase } from "../lib/apiBase";
 import { hataMesaji } from "../lib/hataMesaji";
+import { t, useLang } from "../lib/i18n";
 import BackBar from "../components/BackBar";
 import Colors, { on } from "../constants/colors";
 import { usePolling } from "../hooks/usePolling";
@@ -128,7 +129,7 @@ function formatDate(dateStr: string) {
     const d = new Date(dateStr);
     if (!Number.isFinite(d.getTime())) return dateStr;
     const day  = d.getDate();
-    const months = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+    const months = t("monthsShort").split(",");
     const month = months[d.getMonth()];
     return `${day} ${month}`;
   } catch {
@@ -353,7 +354,7 @@ function LeagueSection({
               backgroundColor: "#0a1120",
             }}>
               <Text style={{ fontSize: 10, color: "#334155", fontWeight: "700", marginRight: 8 }}>
-                📅 {date === "today" ? "Bugün" : formatDate(date)}
+                📅 {date === "today" ? t("today") : formatDate(date)}
               </Text>
               <View style={{ flex: 1, height: 0.5, backgroundColor: "#1e293b" }} />
             </View>
@@ -378,10 +379,10 @@ function PromoCard({
 }) {
   const title = hotMatch
     ? `${hotMatch.homeTeam} – ${hotMatch.awayTeam}`
-    : "Bugünün maçları";
+    : t("todaysMatches");
   const sub = hotMatch?.isLive
-    ? `🔴 Canlı maç devam ediyor! Tahminde tahmin lideri kim?`
-    : `Bu maçın tahmin krallığı seni bekliyor`;
+    ? t("livePromoLive")
+    : t("livePromoIdle");
 
   return (
     <TouchableOpacity
@@ -444,10 +445,10 @@ function BottomPromo({ onTap }: { onTap: () => void }) {
       }}>
         <Text style={{ fontSize: 30 }}>🌍</Text>
         <Text style={{ color: "#f59e0b", fontWeight: "900", fontSize: 15, textAlign: "center" }}>
-          Dünya Tahmin Şampiyonu Ol
+          {t("beWorldChampion")}
         </Text>
         <Text style={{ color: "#78716c", fontSize: 12, textAlign: "center" }}>
-          Maçları bil, puan kazan, liderlik tablosuna gir
+          {t("promoSub")}
         </Text>
         <View style={{
           marginTop: 6,
@@ -456,7 +457,7 @@ function BottomPromo({ onTap }: { onTap: () => void }) {
           paddingHorizontal: 24,
           paddingVertical: 9,
         }}>
-          <Text style={{ color: "#000", fontWeight: "900", fontSize: 13 }}>🎯 Hemen Başla</Text>
+          <Text style={{ color: "#000", fontWeight: "900", fontSize: 13 }}>{t("startNow")}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -466,6 +467,7 @@ function BottomPromo({ onTap }: { onTap: () => void }) {
 // ─── Ana ekran ────────────────────────────────────────────────────────────────
 
 export default function LiveScoresScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const [data, setData]             = useState<ApiResponse | null>(null);
   const [loading, setLoading]       = useState(true);
@@ -487,7 +489,7 @@ export default function LiveScoresScreen() {
         setLastUpdate(new Date(j.ts).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }));
       }
     } catch (e: any) {
-      setError(e.message || "Bağlantı hatası");
+      setError(e.message || t("connError"));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -550,7 +552,7 @@ export default function LiveScoresScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#030d18" }}>
-      <BackBar title="Canlı Skorlar" />
+      <BackBar title={t("liveScoresTitle")} />
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -569,7 +571,7 @@ export default function LiveScoresScreen() {
             {totalLive > 0 && (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#14532d55", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "#22c55e33" }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.live }} />
-                <Text style={{ color: Colors.live, fontSize: 11, fontWeight: "800" }}>{totalLive} Canlı</Text>
+                <Text style={{ color: Colors.live, fontSize: 11, fontWeight: "800" }}>{t("nLive", { n: totalLive })}</Text>
               </View>
             )}
             {data?.source ? (
@@ -595,7 +597,7 @@ export default function LiveScoresScreen() {
                 borderColor: selectedCountry === null ? Colors.primary : "#1e293b",
               }}
             >
-              <Text style={{ color: on(selectedCountry === null ? Colors.primary : "#0f172a"), fontWeight: "700", fontSize: 11 }}>🌍 Tümü</Text>
+              <Text style={{ color: on(selectedCountry === null ? Colors.primary : "#0f172a"), fontWeight: "700", fontSize: 11 }}>{t("allTab")}</Text>
             </TouchableOpacity>
             {countries.map((c) => {
               const active  = selectedCountry === c;
@@ -637,10 +639,10 @@ export default function LiveScoresScreen() {
             <Text style={{ fontSize: 16 }}>{flag(selectedCountry)}</Text>
             <View style={{ flex: 1 }}>
               <Text style={{ color: "#64748b", fontSize: 11, fontWeight: "600" }}>
-                {selectedCountry}'da bugün maç bulunamadı
+                {t("noMatchInCountry", { c: selectedCountry })}
               </Text>
               <Text style={{ color: "#22c55e", fontSize: 10, marginTop: 1 }}>
-                🌍 Dünyadan öne çıkan maçlar gösteriliyor
+                {t("worldHighlights")}
               </Text>
             </View>
             <TouchableOpacity onPress={() => setSelectedCountry(null)}>
@@ -653,26 +655,26 @@ export default function LiveScoresScreen() {
         {loading && !refreshing ? (
           <View style={{ paddingVertical: 60, alignItems: "center" }}>
             <ActivityIndicator size="large" color={Colors.live} />
-            <Text style={{ marginTop: 12, color: "#334155", fontSize: 13 }}>Maçlar yükleniyor...</Text>
+            <Text style={{ marginTop: 12, color: "#334155", fontSize: 13 }}>{t("loadingMatches")}</Text>
           </View>
         ) : error ? (
           <View style={{ margin: 12, padding: 16, borderRadius: 12, backgroundColor: "#1a0a0a", borderWidth: 1, borderColor: "#dc262644" }}>
-            <Text style={{ color: "#fca5a5", fontWeight: "700", fontSize: 13 }}>Bağlantı hatası</Text>
+            <Text style={{ color: "#fca5a5", fontWeight: "700", fontSize: 13 }}>{t("connError")}</Text>
             <Text style={{ color: "#fca5a5", fontSize: 11.5, marginTop: 4, opacity: 0.85 }}>{hataMesaji(error)}</Text>
             <TouchableOpacity
               onPress={() => load()}
               style={{ marginTop: 12, backgroundColor: "#dc2626", paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, alignSelf: "flex-start" }}
             >
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>Tekrar Dene</Text>
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>{t("retry")}</Text>
             </TouchableOpacity>
           </View>
         ) : displayLeagues.length === 0 ? (
           <View style={{ paddingVertical: 60, alignItems: "center" }}>
             <Text style={{ fontSize: 36, marginBottom: 10 }}>⚽</Text>
-            <Text style={{ color: "#334155", fontSize: 14, fontWeight: "600" }}>Bugün canlı maç yok</Text>
+            <Text style={{ color: "#334155", fontSize: 14, fontWeight: "600" }}>{t("noLiveToday")}</Text>
             {selectedCountry && (
               <TouchableOpacity onPress={() => setSelectedCountry(null)} style={{ marginTop: 14 }}>
-                <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: "700" }}>Tüm ülkeleri göster</Text>
+                <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: "700" }}>{t("showAllCountries")}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -687,7 +689,7 @@ export default function LiveScoresScreen() {
                 {splitAt > 0 && idx === splitAt && (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginVertical: 10 }}>
                     <View style={{ flex: 1, height: 0.5, backgroundColor: "#1e293b" }} />
-                    <Text style={{ color: "#334155", fontSize: 10, fontWeight: "700" }}>🌍 Dünyadan</Text>
+                    <Text style={{ color: "#334155", fontSize: 10, fontWeight: "700" }}>{t("fromWorld")}</Text>
                     <View style={{ flex: 1, height: 0.5, backgroundColor: "#1e293b" }} />
                   </View>
                 )}
@@ -709,8 +711,8 @@ export default function LiveScoresScreen() {
                   >
                     <Text style={{ fontSize: 20 }}>🎯</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: "#60a5fa", fontWeight: "800", fontSize: 12 }}>Tahmin Oyununa Katıl</Text>
-                      <Text style={{ color: "#334155", fontSize: 10 }}>Maçları bil, puan kazan, liderlik tablosuna gir</Text>
+                      <Text style={{ color: "#60a5fa", fontWeight: "800", fontSize: 12 }}>{t("joinPredGame")}</Text>
+                      <Text style={{ color: "#334155", fontSize: 10 }}>{t("promoSub")}</Text>
                     </View>
                     <Text style={{ color: "#3b82f6", fontSize: 16 }}>›</Text>
                   </TouchableOpacity>
