@@ -23,6 +23,7 @@ import { useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import { apiJson } from "../lib/apiFetch";
 import hataMesaji from "../lib/hataMesaji";
+import { t, useLang } from "../lib/i18n";
 
 type Mac = {
   fixtureId: string;
@@ -55,16 +56,17 @@ const SECIM: Array<{ k: "H" | "D" | "A"; etiket: string }> = [
 ];
 
 function sureMetni(saniye: number): string {
-  if (saniye <= 0) return "kapandı";
+  if (saniye <= 0) return t("closedLower");
   const g = Math.floor(saniye / 86400);
   const s = Math.floor((saniye % 86400) / 3600);
   const d = Math.floor((saniye % 3600) / 60);
-  if (g > 0) return `${g} gün ${s} saat`;
-  if (s > 0) return `${s} saat ${d} dk`;
-  return `${d} dk`;
+  if (g > 0) return t("daysHours", { g, s });
+  if (s > 0) return t("hoursMin", { s, d });
+  return t("nMin", { n: d });
 }
 
 export default function KuponEkrani() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const [yukleniyor, setYukleniyor] = useState(true);
   const [yenileniyor, setYenileniyor] = useState(false);
@@ -103,32 +105,30 @@ export default function KuponEkrani() {
     } as any);
     setIslemde(null);
     if (!j?.ok) {
-      Alert.alert("Katılamadın", hataMesaji(j?.error));
+      Alert.alert(t("joinFailedTitle"), hataMesaji(j?.error));
       return;
     }
-    Alert.alert("Kupon alındı", `${j.odenen} LC ödendi. Şimdi tüm maçlara tahmin gir.`);
+    Alert.alert(t("kuponBought"), t("kuponPaid", { n: j.odenen }));
     yukle();
   }
 
   async function kaydet(k: KuponT) {
-    const t = secimler[k.id] || {};
-    const eksik = k.fixtureIds.filter((f) => !t[f]).length;
+    const secim = secimler[k.id] || {};
+    const eksik = k.fixtureIds.filter((f) => !secim[f]).length;
     setIslemde(k.id);
     const j = await apiJson("/api/kupon/tahmin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kuponId: k.id, tahminler: t }),
+      body: JSON.stringify({ kuponId: k.id, tahminler: secim }),
     } as any);
     setIslemde(null);
     if (!j?.ok) {
-      Alert.alert("Kaydedilemedi", hataMesaji(j?.error));
+      Alert.alert(t("saveFailedTitle"), hataMesaji(j?.error));
       return;
     }
     Alert.alert(
-      "Kaydedildi",
-      eksik > 0
-        ? `${eksik} maç boş kaldı. Boş bırakılan maç yanlış sayılır — kilit kapanmadan tamamla.`
-        : "Tüm maçlar dolu. Bol şans!"
+      t("savedTitle"),
+      eksik > 0 ? t("kuponMissing", { n: eksik }) : t("kuponAllFilled")
     );
     yukle();
   }
@@ -152,10 +152,10 @@ export default function KuponEkrani() {
         <RefreshControl refreshing={yenileniyor} onRefresh={() => { setYenileniyor(true); yukle(); }} tintColor={Colors.accent} />
       }
     >
-      <Text style={{ color: Colors.text, fontSize: 22, fontWeight: "800" }}>Haftalık Kupon</Text>
+      <Text style={{ color: Colors.text, fontSize: 22, fontWeight: "800" }}>{t("weeklyKupon")}</Text>
       <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 4, lineHeight: 18 }}>
-        Haftanın maçları tek kuponda. Hepsine tahmin gir — ödül havuzdan değil,
-        <Text style={{ color: Colors.accent }}> senin başarından</Text>. Doğru oranın düşükse puanının bir kısmı geri alınır.
+        {t("kuponIntroA")}
+        <Text style={{ color: Colors.accent }}>{t("kuponIntroB")}</Text>{t("kuponIntroC")}
       </Text>
 
       {hata ? (
@@ -171,10 +171,9 @@ export default function KuponEkrani() {
         /* ⚠️ Boş durum sebebini söylüyor. "Kupon yok" demek kullanıcıya bir şey
            anlatmaz; ülkesi seçili değilse ülke kuponu hiç gelmez. */
         <View style={{ marginTop: 24, padding: 16, borderRadius: 12, backgroundColor: Colors.dark }}>
-          <Text style={{ color: Colors.text, fontSize: 14, fontWeight: "700" }}>Şu an açık kupon yok</Text>
+          <Text style={{ color: Colors.text, fontSize: 14, fontWeight: "700" }}>{t("noOpenKupon")}</Text>
           <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
-            Kuponlar hafta başında kurulur ve ilk maçtan 1 saat önce kapanır. Ülken
-            seçili değilse kendi ligindeki kupon görünmez.
+            {t("noOpenKuponHelp")}
           </Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/me")} style={{ marginTop: 12 }}>
             <Text style={{ color: Colors.accent, fontWeight: "700" }}>Profilime git →</Text>
@@ -183,10 +182,10 @@ export default function KuponEkrani() {
       ) : null}
 
       {kuponlar.map((k) => {
-        const t = secimler[k.id] || {};
-        const dolu = k.fixtureIds.filter((f) => t[f]).length;
+        const secim = secimler[k.id] || {};
+        const dolu = k.fixtureIds.filter((f) => secim[f]).length;
         const acik = k.durum === "open";
-        const baslik = k.tur === "avrupa" ? "🏆 Avrupa Kuponu" : `⚽ ${k.ulke} Ligi`;
+        const baslik = k.tur === "avrupa" ? t("kuponEurope") : t("kuponCountryLeague", { c: k.ulke });
 
         return (
           <View key={k.id} style={{ marginTop: 20, borderRadius: 14, backgroundColor: Colors.dark, overflow: "hidden" }}>
@@ -194,26 +193,23 @@ export default function KuponEkrani() {
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <Text style={{ color: Colors.text, fontSize: 16, fontWeight: "800" }}>{baslik}</Text>
                 <Text style={{ color: acik ? Colors.accent : Colors.muted, fontSize: 11, fontWeight: "700" }}>
-                  {acik ? sureMetni(k.kalanSaniye) : "kapandı"}
+                  {acik ? sureMetni(k.kalanSaniye) : t("closedLower")}
                 </Text>
               </View>
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
-                {k.maclar.length} maç · Giriş {k.girisBedeli} LC
-                {k.tur === "avrupa" ? " · tüm ülkeler aynı tabloda" : ""}
+                {t("kuponHeaderRow", { n: k.maclar.length, g: k.girisBedeli })}
+                {k.tur === "avrupa" ? t("allCountriesSame") : ""}
               </Text>
               {/* Kullanıcı "ilk maça kadar var" sanmasın: kilit 1 saat önce. */}
               <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 2 }}>
-                {acik
-                  ? "Katılım ilk maçtan 1 saat önce kapanır"
-                  : "Katılım kapandı — maçlar bitince sonucun görünecek"}
+                {acik ? t("joinCloses1h") : t("joinClosedLong")}
               </Text>
             </View>
 
             {!k.katildiMi ? (
               <View style={{ padding: 14 }}>
                 <Text style={{ color: Colors.muted, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>
-                  Kuponu al, {k.maclar.length} maçın hepsine tahmin gir. Tek tek
-                  oynamaktan ucuz ve doğru oranın yükseldikçe ödül büyür.
+                  {t("kuponBuyHelp", { n: k.maclar.length })}
                 </Text>
                 <TouchableOpacity
                   disabled={!acik || islemde === k.id}
@@ -224,15 +220,15 @@ export default function KuponEkrani() {
                   }}
                 >
                   <Text style={{ color: acik ? Colors.onAccent : Colors.muted, fontWeight: "800" }}>
-                    {islemde === k.id ? "..." : acik ? `Kuponu al — ${k.girisBedeli} LC` : "Katılım kapandı"}
+                    {islemde === k.id ? "..." : acik ? t("buyKuponBtn", { g: k.girisBedeli }) : t("joinClosedShort")}
                   </Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <View style={{ padding: 14 }}>
                 <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 10 }}>
-                  {dolu}/{k.maclar.length} maç dolduruldu
-                  {dolu < k.maclar.length ? " — boş bırakılan maç yanlış sayılır" : ""}
+                  {t("filledCount", { d: dolu, n: k.maclar.length })}
+                  {dolu < k.maclar.length ? t("emptyCountsWrong") : ""}
                 </Text>
 
                 {k.maclar.map((m) => (
@@ -242,7 +238,7 @@ export default function KuponEkrani() {
                     </Text>
                     <View style={{ flexDirection: "row", gap: 8 }}>
                       {SECIM.map((s) => {
-                        const secili = t[m.fixtureId] === s.k;
+                        const secili = secim[m.fixtureId] === s.k;
                         return (
                           <TouchableOpacity
                             key={s.k}
@@ -272,12 +268,12 @@ export default function KuponEkrani() {
                     style={{ backgroundColor: Colors.accent, paddingVertical: 13, borderRadius: 10, alignItems: "center", marginTop: 4 }}
                   >
                     <Text style={{ color: Colors.onAccent, fontWeight: "800" }}>
-                      {islemde === k.id ? "..." : "Tahminleri kaydet"}
+                      {islemde === k.id ? "..." : t("savePreds")}
                     </Text>
                   </TouchableOpacity>
                 ) : (
                   <Text style={{ color: Colors.muted, fontSize: 12, textAlign: "center", marginTop: 6 }}>
-                    Kupon kapandı. Maçlar bitince sonucun burada görünecek.
+                    {t("kuponClosedResult")}
                   </Text>
                 )}
               </View>

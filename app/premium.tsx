@@ -11,6 +11,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -57,6 +58,7 @@ type StatusResp = {
 };
 
 export default function PremiumScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const { userId: qUserId } = useLocalSearchParams<{ userId?: string }>();
   const userId = String(qUserId || "demo1").trim();
@@ -83,12 +85,12 @@ export default function PremiumScreen() {
 
   async function subscribe(plan: Plan) {
     Alert.alert(
-      "Premium Aboneliği",
-      `${plan.label} — ₺${plan.priceTRY}${data?.mode === "mock" ? "\n\n(Test modu: gerçek ödeme alınmaz)" : ""}`,
+      t("premiumSubTitle"),
+      `${plan.label} — ₺${plan.priceTRY}${data?.mode === "mock" ? "\n\n" + t("buyMockNote") : ""}`,
       [
-        { text: "Vazgeç", style: "cancel" },
+        { text: t("dismiss"), style: "cancel" },
         {
-          text: "Abone Ol",
+          text: t("subscribeBtn"),
           onPress: async () => {
             try {
               setSubscribing(plan.id);
@@ -98,13 +100,13 @@ export default function PremiumScreen() {
                 body: JSON.stringify({ userId, planId: plan.id }),
               }).then((x) => x.json());
               if (r?.ok) {
-                Alert.alert("SkorLig", `Premium aktif! 🌟\nBitiş: ${String(r.premiumUntil).slice(0, 10)}`);
+                Alert.alert("SkorLig", t("premiumActiveMsg", { d: String(r.premiumUntil).slice(0, 10) }));
                 load();
               } else {
-                Alert.alert("SkorLig", r?.detail || r?.error || "Abonelik başarısız.");
+                Alert.alert("SkorLig", r?.detail || r?.error || t("subFailed"));
               }
             } catch (e: any) {
-              Alert.alert("Hata", String(e?.message || e));
+              Alert.alert(t("error"), String(e?.message || e));
             } finally {
               setSubscribing(null);
             }
@@ -137,40 +139,39 @@ export default function PremiumScreen() {
    */
   const perkRows = perks && freePerks
     ? [
-        { icon: "🛡️", label: "Aylık LC güvencesi", note: "Ay başında bakiyen altına düşmüşse buraya tamamlanır",
-          free: "—", prem: `${perks.monthlyFloor} LC'ye tamamlanır` },
-        { icon: "🎁", label: "Günlük LC güvencesi", note: "Bakiyen tabanın altındaysa farklı yatırılır",
-          free: `${freePerks.dailyLc} LC'ye`, prem: `${perks.dailyLc} LC'ye` },
-        { icon: "⏳", label: "Token birikimi", note: null,
-          free: `${freePerks.regenCap} tavan / ${freePerks.regenHours} saatte +1`,
-          prem: `${perks.regenCap} tavan / ${perks.regenHours} saatte +1` },
-        { icon: "🛒", label: "Mağaza bonusu", note: null,
-          free: "—", prem: `%${Math.round(perks.storeBonusPct * 100)} ekstra LC` },
+        { icon: "🛡️", label: t("perkMonthlyFloor"), note: t("perkMonthlyNote"),
+          free: "—", prem: t("topUpTo", { n: perks.monthlyFloor }) },
+        { icon: "🎁", label: t("perkDaily"), note: t("perkDailyNote"),
+          free: t("toN", { n: freePerks.dailyLc }), prem: t("toN", { n: perks.dailyLc }) },
+        { icon: "⏳", label: t("perkRegen"), note: null,
+          free: t("regenRow", { cap: freePerks.regenCap, h: freePerks.regenHours }),
+          prem: t("regenRow", { cap: perks.regenCap, h: perks.regenHours }) },
+        { icon: "🛒", label: t("perkStore"), note: null,
+          free: "—", prem: t("extraPct", { n: Math.round(perks.storeBonusPct * 100) }) },
       ]
     : [];
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: Colors.bg }} contentContainerStyle={{ padding: 16, gap: 12 }}>
       <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 4 }}>
-        <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+        <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
       </TouchableOpacity>
 
       <Text style={{ fontSize: 22, fontWeight: "900", color: Colors.slate900 }}>🌟 SkorLig Premium</Text>
       <Text style={{ color: Colors.muted, fontSize: 12 }}>
-        Her ay yenilenen büyük LC kasası, daha hızlı token birikimi ve mağazada bonus LC. Bol bol tahmin gir.
+        {t("premiumIntro")}
       </Text>
       <Text style={{ color: "#059669", fontSize: 11, fontWeight: "600" }}>
         {/* ⚠️ Bedel METNE GÖMÜLÜYDU ("(3 LC)"). Sunucudaki değer değişirse ekran
             yalan söylerdi; artık sunucudan geliyor, gelmezse sayı hiç yazılmıyor. */}
-        ⚖️ Adil oyun: Puanlar, maç ödülleri ve maç girişi ücreti herkes için eşittir
-        {data?.matchEntryCost != null ? ` (${data.matchEntryCost} LC)` : ""}. Premium sıralamada
-        avantaj vermez, sadece token'a daha rahat ulaşmanı sağlar.
+        {t("fairPlayA")}
+        {data?.matchEntryCost != null ? ` (${data.matchEntryCost} LC)` : ""}{t("fairPlayB")}
       </Text>
 
       {loading && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <ActivityIndicator size="small" />
-          <Text style={{ color: Colors.muted }}>Yükleniyor...</Text>
+          <Text style={{ color: Colors.muted }}>{t("loading")}</Text>
         </View>
       )}
 
@@ -191,15 +192,15 @@ export default function PremiumScreen() {
             {active ? (
               <>
                 <Text style={{ fontSize: 26 }}>🌟</Text>
-                <Text style={{ fontWeight: "900", color: "#92400e", fontSize: 16 }}>Premium Aktif</Text>
+                <Text style={{ fontWeight: "900", color: "#92400e", fontSize: 16 }}>{t("premiumActive")}</Text>
                 {data.via === "1987" ? (
-                  <Text style={{ color: "#b45309", fontSize: 12 }}>1987 üyeliğinle premium ayrıcalıkların açık.</Text>
+                  <Text style={{ color: "#b45309", fontSize: 12 }}>{t("via1987")}</Text>
                 ) : data.premiumUntil ? (
-                  <Text style={{ color: "#b45309", fontSize: 12 }}>Bitiş: {String(data.premiumUntil).slice(0, 10)}</Text>
+                  <Text style={{ color: "#b45309", fontSize: 12 }}>{t("endsAt", { d: String(data.premiumUntil).slice(0, 10) })}</Text>
                 ) : null}
               </>
             ) : (
-              <Text style={{ color: Colors.muted, fontSize: 13 }}>Şu an ücretsiz kademedesin.</Text>
+              <Text style={{ color: Colors.muted, fontSize: 13 }}>{t("freeTier")}</Text>
             )}
           </View>
 
@@ -214,8 +215,8 @@ export default function PremiumScreen() {
             }}
           >
             <View style={{ flexDirection: "row", padding: 10, backgroundColor: "#0f172a" }}>
-              <Text style={{ flex: 1, color: "#fff", fontWeight: "700", fontSize: 12 }}>Ayrıcalık</Text>
-              <Text style={{ width: 90, color: "#94a3b8", fontWeight: "700", fontSize: 11, textAlign: "center" }}>Ücretsiz</Text>
+              <Text style={{ flex: 1, color: "#fff", fontWeight: "700", fontSize: 12 }}>{t("perkCol")}</Text>
+              <Text style={{ width: 90, color: "#94a3b8", fontWeight: "700", fontSize: 11, textAlign: "center" }}>{t("freeCol")}</Text>
               <Text style={{ width: 100, color: "#fbbf24", fontWeight: "800", fontSize: 11, textAlign: "center" }}>Premium</Text>
             </View>
             {perkRows.map((row, ix) => (
@@ -252,8 +253,8 @@ export default function PremiumScreen() {
           {!active || data.via !== "1987" ? (
             <>
               <Text style={{ fontWeight: "700", marginTop: 4 }}>
-                {active ? "Uzat" : "Abone Ol"}
-                {data.mode === "mock" ? "  (test modu)" : ""}
+                {active ? t("extend") : t("subscribeBtn")}
+                {data.mode === "mock" ? t("testMode") : ""}
               </Text>
               {(data.plans || []).map((p) => (
                 <TouchableOpacity
@@ -277,7 +278,7 @@ export default function PremiumScreen() {
                       {p.label}
                       {p.popular ? " ⭐" : ""}
                     </Text>
-                    <Text style={{ color: Colors.muted, fontSize: 11 }}>{p.days} gün</Text>
+                    <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("nDays", { n: p.days })}</Text>
                   </View>
                   <Text style={{ fontWeight: "900", color: Colors.accent, fontSize: 16 }}>
                     {subscribing === p.id ? "..." : `₺${p.priceTRY}`}
@@ -290,7 +291,7 @@ export default function PremiumScreen() {
       )}
 
       {!loading && !data?.ok && (
-        <Text style={{ color: "#f97316", marginTop: 8 }}>Premium bilgisi yüklenemedi: {data?.error || "?"}</Text>
+        <Text style={{ color: "#f97316", marginTop: 8 }}>{t("premiumLoadFailed", { e: data?.error || "?" })}</Text>
       )}
     </ScrollView>
   );

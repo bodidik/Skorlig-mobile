@@ -8,6 +8,7 @@ import Colors from "../../constants/colors";
 import { getApiBase, resetApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { useUserId } from "../../lib/useUserId";
+import { t, useLang } from "../../lib/i18n";
 
 /**
  * MAÇ HAVUZU EKRANI (bkz. api/lib/pool-store.cjs, docs/ekonomi-tasarim.md §4).
@@ -44,7 +45,7 @@ type PoolSummary = {
 type Distribution = { H: number; D: number; A: number; total: number; humans: number; bots: number };
 type MyBet = { side: Side; amount: number } | null;
 
-const SIDE_LABEL: Record<Side, string> = { H: "Ev", D: "Beraberlik", A: "Deplasman" };
+const SIDE_LABEL = (): Record<Side, string> => ({ H: t("home"), D: t("draw"), A: t("away") });
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -61,6 +62,7 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
 }
 
 export default function PoolScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const { fixtureId } = useLocalSearchParams<{ fixtureId: string }>();
   const userId = useUserId();
   const fid = String(fixtureId || "");
@@ -99,10 +101,10 @@ export default function PoolScreen() {
   useEffect(() => { yukle(); }, [yukle]);
 
   const bahisKoy = async () => {
-    if (!secilenTaraf) return Alert.alert("Taraf seç", "Önce Ev / Beraberlik / Deplasman seç.");
+    if (!secilenTaraf) return Alert.alert(t("pickSideTitle"), t("pickSideMsg"));
     const miktar = Math.round(Number(tutar || 0));
     if (!Number.isFinite(miktar) || miktar <= 0) {
-      return Alert.alert("Tutar", "Geçerli bir LC tutarı gir.");
+      return Alert.alert(t("amountTitle"), t("amountMsg"));
     }
     setGonderiliyor(true);
     try {
@@ -114,23 +116,23 @@ export default function PoolScreen() {
       if (!j?.ok) {
         // Sunucu sebebi kod olarak dönüyor; kullanıcıya ne yapabileceğini söyle.
         const mesajlar: Record<string, string> = {
-          LC_NOT_ENOUGH: `Bakiyen yetmiyor (${j.lc ?? "?"} LC).`,
-          OVER_CAP: `Bu maçta şu an en fazla ${j.cap} LC oynanabilir. Havuz büyüdükçe sınır da artar.`,
-          MIN_BET: `En az ${j.minBet} LC oynanabilir.`,
-          SIDE_LOCKED: `Bu maçta "${SIDE_LABEL[j.side as Side]}" seçmiştin. Taraf değiştirilemez, üstüne ekleyebilirsin.`,
-          POOL_SETTLED: "Bu maçın havuzu kapandı.",
-          BOT_NOT_ALLOWED: "Bu hesap havuza katılamaz.",
-          AUTH_REQUIRED: "Bahis için giriş yapmalısın.",
+          LC_NOT_ENOUGH: t("errNotEnough", { n: j.lc ?? "?" }),
+          OVER_CAP: t("errOverCap", { n: j.cap }),
+          MIN_BET: t("errMinBet", { n: j.minBet }),
+          SIDE_LOCKED: t("errSideLocked", { s: SIDE_LABEL()[j.side as Side] }),
+          POOL_SETTLED: t("errPoolSettled"),
+          BOT_NOT_ALLOWED: t("errBot"),
+          AUTH_REQUIRED: t("errAuth"),
         };
-        Alert.alert("Olmadı", mesajlar[j.error] || "Bahis kaydedilemedi.");
+        Alert.alert(t("failTitle"), mesajlar[j.error] || t("betFailed"));
         return;
       }
       setTutar("");
       setPool(j.summary);
       setMyBet(j.bet);
-      Alert.alert("Tamam", `${miktar} LC ${SIDE_LABEL[secilenTaraf]} tarafına kondu.`);
+      Alert.alert(t("okTitle"), t("betPlaced", { n: miktar, s: SIDE_LABEL()[secilenTaraf] }));
     } catch {
-      Alert.alert("Bağlantı", "Sunucuya ulaşılamadı.");
+      Alert.alert(t("connTitle"), t("serverUnreachable"));
     } finally {
       setGonderiliyor(false);
     }
@@ -159,7 +161,7 @@ export default function PoolScreen() {
         />
       }
     >
-      <Text style={{ color: Colors.text, fontSize: 20, fontWeight: "700" }}>Maç Havuzu</Text>
+      <Text style={{ color: Colors.text, fontSize: 20, fontWeight: "700" }}>{t("matchPool")}</Text>
 
       {/* ── HAVUZ: yalnızca gerçek para ───────────────────────────────── */}
       <View style={{ backgroundColor: Colors.card, borderColor: Colors.cardBorder, borderWidth: 1, borderRadius: 12, padding: 14, gap: 6 }}>
@@ -186,12 +188,12 @@ export default function PoolScreen() {
         </Text>
         <Text style={{ color: Colors.muted, fontSize: 13 }}>
           {pool
-            ? `${pool.players ?? 0} oyuncu · kesinti %${Math.round((pool.cutPct ?? 0) * 100)} (yakılır)`
-            : "Havuz bilgisi yüklenemedi"}
+            ? t("poolRow", { p: pool.players ?? 0, c: Math.round((pool.cutPct ?? 0) * 100) })
+            : t("poolLoadFailed")}
         </Text>
         {kapali && (
           <Text style={{ color: Colors.finished, fontSize: 13, fontWeight: "600" }}>
-            Kapandı · sonuç {pool?.outcome ? SIDE_LABEL[pool.outcome] : "—"}
+            {t("closedResult", { s: pool?.outcome ? SIDE_LABEL()[pool.outcome] : "—" })}
           </Text>
         )}
       </View>
@@ -217,10 +219,10 @@ export default function PoolScreen() {
             >
               <View>
                 <Text style={{ color: secili ? Colors.onAccent : Colors.text, fontWeight: "700", fontSize: 15 }}>
-                  {SIDE_LABEL[s]}
+                  {SIDE_LABEL()[s]}
                 </Text>
                 <Text style={{ color: secili ? Colors.onAccent : Colors.muted, fontSize: 12 }}>
-                  {pool?.totals?.[s] ?? 0} LC · {pool?.counts?.[s] ?? 0} kişi
+                  {t("sideRow", { l: pool?.totals?.[s] ?? 0, k: pool?.counts?.[s] ?? 0 })}
                 </Text>
               </View>
               <Text style={{ color: secili ? Colors.onAccent : Colors.accent, fontWeight: "800", fontSize: 18 }}>
@@ -230,7 +232,7 @@ export default function PoolScreen() {
           );
         })}
         <Text style={{ color: Colors.muted, fontSize: 12 }}>
-          Çarpanlar canlı: az tutulan taraf daha çok kazandırır.
+          {t("multipliersLive")}
         </Text>
       </View>
 
@@ -239,8 +241,8 @@ export default function PoolScreen() {
         <View style={{ backgroundColor: Colors.card, borderColor: Colors.cardBorder, borderWidth: 1, borderRadius: 12, padding: 14, gap: 10 }}>
           {myBet && (
             <Text style={{ color: Colors.text, fontSize: 13 }}>
-              Mevcut bahsin: <Text style={{ fontWeight: "700" }}>{myBet.amount} LC · {SIDE_LABEL[myBet.side]}</Text>
-              {"  "}(taraf değiştirilemez, üstüne ekleyebilirsin)
+              {t("myBetRow")}<Text style={{ fontWeight: "700" }}>{myBet.amount} LC · {SIDE_LABEL()[myBet.side]}</Text>
+              {t("sideNoChange")}
             </Text>
           )}
           <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
@@ -272,15 +274,14 @@ export default function PoolScreen() {
           {/* Tavan kuralını gizlemek yerine açıkla: kullanıcı reddedilince
               "neden" diye sormasın. */}
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Bu maçta üst sınır {pool?.cap ?? 20} LC. Sınır havuzun dörtte biri kadar —
-            havuz büyüdükçe artar.
+            {t("capExplain", { n: pool?.cap ?? 20 })}
           </Text>
         </View>
       )}
 
       {/* ── TAHMİN DAĞILIMI: bot + insan, PARA DEĞİL ──────────────────── */}
       <View style={{ backgroundColor: Colors.card, borderColor: Colors.cardBorder, borderWidth: 1, borderRadius: 12, padding: 14, gap: 8 }}>
-        <Text style={{ color: Colors.muted, fontSize: 12 }}>TAHMİN DAĞILIMI</Text>
+        <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("predDist")}</Text>
         <Text style={{ color: Colors.text, fontSize: 16, fontWeight: "700" }}>
           {dist?.H ?? 0} / {dist?.D ?? 0} / {dist?.A ?? 0}
         </Text>
@@ -301,7 +302,7 @@ export default function PoolScreen() {
         {/* ⚠️ Bu satır olmazsa "158 kişi oynadı ama havuz 60 LC" hata sanılır. */}
         <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 4 }}>
           {toplamDagilim} tahmin ({dist?.humans ?? 0} oyuncu, {dist?.bots ?? 0} bot).
-          Dağılım tahminleri gösterir; havuzdaki para yalnızca gerçek oyunculardan gelir.
+          {t("distNote")}
         </Text>
       </View>
     </ScrollView>

@@ -9,6 +9,7 @@ import { auth } from "../lib/firebase";
 /* Jetonu otomatik ekler — sunucu kendi tahminini yalnızca doğrulanmış
  * kimliğe veriyor (bkz. api/routes/weekly-picks.cjs). */
 import { apiFetch } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 
 const API = Constants.expoConfig?.extra?.apiBase ?? "https://skorlig87.onrender.com";
 
@@ -47,10 +48,10 @@ interface Pick {
 interface LeaderEntry { rank: number; userId: string; points: number; matches: number; correct: number; }
 
 function countdown(min: number) {
-  if (min <= 0) return "Başladı";
-  if (min < 60) return `${min} dk`;
+  if (min <= 0) return t("started");
+  if (min < 60) return t("nMin", { n: min });
   const h = Math.floor(min / 60), m = min % 60;
-  return m ? `${h} sa ${m} dk` : `${h} saat`;
+  return m ? t("hMin", { h, m }) : t("nHours", { h });
 }
 
 // ─── MikroPanel ──────────────────────────────────────────────
@@ -69,7 +70,7 @@ function MicroPanel({
   return (
     <View style={mp.wrap}>
       {/* 1X2 */}
-      <Text style={mp.label}>Maç Sonucu</Text>
+      <Text style={mp.label}>{t("matchOutcomeTitle")}</Text>
       <View style={mp.row}>
         {(["H", "D", "A"] as Outcome[]).map(o => {
           const lbl = o === "H" ? `1  ${pick.home.split(" ")[0]}` : o === "D" ? "X  Beraberlik" : `2  ${pick.away.split(" ")[0]}`;
@@ -83,7 +84,7 @@ function MicroPanel({
       </View>
 
       {/* İlk gol */}
-      <Text style={mp.label}>İlk Golü Kim Atar?</Text>
+      <Text style={mp.label}>{t("firstGoalQ")}</Text>
       <View style={mp.row}>
         {(["H", "A"] as const).map(s => {
           const lbl = s === "H" ? pick.home.split(" ")[0] : pick.away.split(" ")[0];
@@ -97,7 +98,7 @@ function MicroPanel({
       </View>
 
       {/* İlk yarı */}
-      <Text style={mp.label}>İlk Yarı Sonucu</Text>
+      <Text style={mp.label}>{t("firstHalfRes")}</Text>
       <View style={mp.row}>
         {(["H", "D", "A"] as Outcome[]).map(o => {
           const lbl = o === "H" ? "1" : o === "D" ? "X" : "2";
@@ -113,7 +114,7 @@ function MicroPanel({
       {/* Toggle'lar */}
       <View style={mp.toggleRow}>
         <View style={mp.toggleItem}>
-          <Text style={mp.label}>Kırmızı Kart?</Text>
+          <Text style={mp.label}>{t("redCardQ")}</Text>
           <Switch
             value={draft.redAny === true}
             onValueChange={v => set("redAny", draft.redAny === null ? true : draft.redAny === true ? false : null)}
@@ -123,7 +124,7 @@ function MicroPanel({
           <Text style={mp.toggleSub}>{draft.redAny === true ? "Var" : draft.redAny === false ? "Yok" : "—"}</Text>
         </View>
         <View style={mp.toggleItem}>
-          <Text style={mp.label}>Penaltı?</Text>
+          <Text style={mp.label}>{t("penaltyQ")}</Text>
           <Switch
             value={draft.penaltyAny === true}
             onValueChange={v => set("penaltyAny", draft.penaltyAny === null ? true : draft.penaltyAny === true ? false : null)}
@@ -138,7 +139,7 @@ function MicroPanel({
         <TouchableOpacity style={mp.submit} onPress={onSubmit} disabled={submitting}>
           {submitting
             ? <ActivityIndicator color="#fff" />
-            : <Text style={mp.submitTxt}>{pick.pred ? "Güncelle" : "Tahmin Gönder"}</Text>
+            : <Text style={mp.submitTxt}>{pick.pred ? t("update") : t("sendPred")}</Text>
           }
         </TouchableOpacity>
       )}
@@ -148,6 +149,7 @@ function MicroPanel({
 
 // ─── Ana bileşen ──────────────────────────────────────────────
 export default function Picks1987() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const [tab,        setTab]        = useState<"picks" | "board">("picks");
   const [picks,      setPicks]      = useState<Pick[]>([]);
   const [board,      setBoard]      = useState<LeaderEntry[]>([]);
@@ -233,7 +235,7 @@ export default function Picks1987() {
       });
       const j = await res.json().catch(() => null);
       if (!res.ok || j?.ok === false) {
-        Alert.alert("Seçim kaydedilemedi", hataMesaji(j?.error));
+        Alert.alert(t("pickSaveFailed"), hataMesaji(j?.error));
         setSubmitting(null);
         return;
       }
@@ -243,7 +245,7 @@ export default function Picks1987() {
       /* ⚠️ SESSIZ CATCH IDI: API hatasi bildiriliyordu ama AG hatasi degil.
        * Cevrimdisiyken kullanici secimini gonderiyor, hicbir sey olmuyor ve
        * hata da gormuyor — secimi kaydedildi saniyor. */
-      Alert.alert("Bağlantı hatası", String(e?.message || e));
+      Alert.alert(t("connError"), String(e?.message || e));
     }
     setSubmitting(null);
   };
@@ -258,10 +260,10 @@ export default function Picks1987() {
       {/* Tab bar */}
       <View style={s.tabs}>
         <TouchableOpacity style={[s.tab, tab === "picks" && s.tabOn]} onPress={() => setTab("picks")}>
-          <Text style={[s.tabTxt, tab === "picks" && s.tabTxtOn]}>Maçlar</Text>
+          <Text style={[s.tabTxt, tab === "picks" && s.tabTxtOn]}>{t("matches")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.tab, tab === "board" && s.tabOn]} onPress={() => setTab("board")}>
-          <Text style={[s.tabTxt, tab === "board" && s.tabTxtOn]}>1987 Sıralaması</Text>
+          <Text style={[s.tabTxt, tab === "board" && s.tabTxtOn]}>{t("ranking1987")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -272,8 +274,8 @@ export default function Picks1987() {
         >
           {picks.length === 0 && (
             <View style={s.empty}>
-              <Text style={s.emptyT}>Bu hafta maç bulunamadı</Text>
-              <Text style={s.emptyS}>Maçtan 24 saat önce burada görünür</Text>
+              <Text style={s.emptyT}>{t("noWeekMatches")}</Text>
+              <Text style={s.emptyS}>{t("visible24h")}</Text>
             </View>
           )}
 
@@ -307,7 +309,7 @@ export default function Picks1987() {
                       ? <Text style={s.score}>{pick.score.home}–{pick.score.away}</Text>
                       : <Text style={s.vs}>VS</Text>
                     }
-                    {pick.htScore && <Text style={s.ht}>(İY {pick.htScore.home}-{pick.htScore.away})</Text>}
+                    {pick.htScore && <Text style={s.ht}>({t("iyShort")} {pick.htScore.home}-{pick.htScore.away})</Text>}
                   </View>
                   <Text style={[s.team, { textAlign: "right" }]} numberOfLines={1}>{pick.away}</Text>
                 </View>
@@ -317,23 +319,23 @@ export default function Picks1987() {
                   hasPred ? (
                     <View style={[s.predSummary, correct === true ? s.correct : correct === false ? s.wrong : s.neutral]}>
                       <Text style={s.predSummaryTxt}>
-                        {correct === true ? "✓ Doğru" : correct === false ? "✗ Yanlış" : "—"}
+                        {correct === true ? t("correctMark") : correct === false ? t("wrongMark") : "—"}
                         {" · "}
-                        {pick.pred!.outcome === "H" ? "Ev Kazanır" : pick.pred!.outcome === "D" ? "Beraberlik" : "Dep Kazanır"}
-                        {pick.pred!.firstGoal ? ` · İG: ${pick.pred!.firstGoal === "H" ? pick.home.split(" ")[0] : pick.away.split(" ")[0]}` : ""}
+                        {pick.pred!.outcome === "H" ? t("homeWins") : pick.pred!.outcome === "D" ? t("drawLbl") : t("awayWins")}
+                        {pick.pred!.firstGoal ? ` · ${t("igShort")}: ${pick.pred!.firstGoal === "H" ? pick.home.split(" ")[0] : pick.away.split(" ")[0]}` : ""}
                       </Text>
                     </View>
                   ) : (
-                    <Text style={s.noPred}>Tahmin yapılmadı</Text>
+                    <Text style={s.noPred}>{t("noPredMade")}</Text>
                   )
                 ) : isOpen ? (
                   <>
                     {hasPred && !isExp && (
                       <View style={s.predSummary}>
                         <Text style={s.predSummaryTxt}>
-                          ✓ {pick.pred!.outcome === "H" ? "Ev" : pick.pred!.outcome === "D" ? "Ber." : "Dep"}
-                          {pick.pred!.firstGoal ? ` · İG: ${pick.pred!.firstGoal}` : ""}
-                          {pick.pred!.firstHalf ? ` · İY: ${pick.pred!.firstHalf}` : ""}
+                          ✓ {pick.pred!.outcome === "H" ? t("home") : pick.pred!.outcome === "D" ? t("drawAbbr") : t("awayAbbr")}
+                          {pick.pred!.firstGoal ? ` · ${t("igShort")}: ${pick.pred!.firstGoal}` : ""}
+                          {pick.pred!.firstHalf ? ` · ${t("iyShort")}: ${pick.pred!.firstHalf}` : ""}
                         </Text>
                       </View>
                     )}
@@ -342,7 +344,7 @@ export default function Picks1987() {
                       onPress={() => setExpanded(isExp ? null : pick.fixtureId)}
                     >
                       <Text style={[s.expandTxt, isExp && s.expandTxtOn]}>
-                        {isExp ? "Kapat" : hasPred ? "Güncelle" : "Tahmin Yap"}
+                        {isExp ? t("close") : hasPred ? t("update") : t("predict")}
                       </Text>
                     </TouchableOpacity>
 
@@ -357,7 +359,7 @@ export default function Picks1987() {
                     )}
                   </>
                 ) : (
-                  <Text style={s.notOpen}>Pencere {countdown(pick.minutesUntil)} sonra açılır</Text>
+                  <Text style={s.notOpen}>{t("windowOpens", { c: countdown(pick.minutesUntil) })}</Text>
                 )}
               </View>
             );
@@ -370,15 +372,15 @@ export default function Picks1987() {
           showsVerticalScrollIndicator={false}
         >
           <View style={s.boardHead}>
-            <Text style={s.boardTitle}>Bu Hafta 1987 Sıralaması</Text>
-            <Text style={s.boardSub}>Toplam {total1987.toLocaleString()} üye</Text>
+            <Text style={s.boardTitle}>{t("weekBoard1987")}</Text>
+            <Text style={s.boardSub}>{t("totalMembers", { n: total1987.toLocaleString() })}</Text>
           </View>
 
           {myRank && (
             <View style={s.myRankCard}>
-              <Text style={s.myRankLabel}>Senin Sıran</Text>
+              <Text style={s.myRankLabel}>{t("yourRank")}</Text>
               <Text style={s.myRankNum}>#{myRank.rank}</Text>
-              <Text style={s.myRankPts}>{myRank.points} puan · {myRank.matches} maç · {myRank.correct} doğru</Text>
+              <Text style={s.myRankPts}>{t("rankPtsRow", { p: myRank.points, m: myRank.matches, c: myRank.correct })}</Text>
             </View>
           )}
 
@@ -395,8 +397,8 @@ export default function Picks1987() {
 
           {board.length === 0 && (
             <View style={s.empty}>
-              <Text style={s.emptyT}>Henüz sıralama yok</Text>
-              <Text style={s.emptyS}>Bu hafta tahmin yapıldıkça dolacak</Text>
+              <Text style={s.emptyT}>{t("noRankYet")}</Text>
+              <Text style={s.emptyS}>{t("fillsAsPredicted")}</Text>
             </View>
           )}
           <View style={{ height: 32 }} />
