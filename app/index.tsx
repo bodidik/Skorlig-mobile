@@ -13,6 +13,7 @@ import { savePendingTeam, flushPendingTeam } from "../lib/pendingTeam";
 import { filterAndRankCountries } from "../lib/countrySort";
 import { FALLBACK_COUNTRIES, type CountryOpt } from "../lib/countriesFallback";
 import { t, useLang } from "../lib/i18n";
+import { ulkeAdi } from "../lib/ulkeler";
 
 /** `/api/stats/teams` yanıt şeması. */
 type TeamOpt = { team: string; flag: string };
@@ -162,7 +163,11 @@ export default function WelcomeScreen() {
   // Boş arama → Türkiye başta, sonrası tr-alfabetik.
   // Arama → Türkiye önce (varsa), sonra "eng" gibi baştan eşleşenler,
   // sonra ortada geçenler. `includes` tek başına bunu yapmıyordu.
-  const filteredCountries = filterAndRankCountries(allCountries, search);
+  /* ⚠️ SÜZGEÇ GÖRÜNEN ADDA ÇALIŞIR. Ad yerelleştirilip süzgeç ham adda
+   * kalsaydı kullanıcı gördüğünü yazınca sonuç alamazdı. */
+  const filteredCountries = filterAndRankCountries(
+    allCountries, search, (c) => ulkeAdi(c.country) || c.country
+  );
 
   const isLast = slide === SLIDES.length - 1;
 
@@ -411,7 +416,7 @@ export default function WelcomeScreen() {
                     >
                       {!!c.flag && <Text style={{ fontSize: 20 }}>{c.flag}</Text>}
                       <Text style={{ flex: 1, color: selected ? GOLD : "#cbd5e1", fontSize: 15, fontWeight: selected ? "700" : "400" }}>
-                        {c.country}
+                        {ulkeAdi(c.country)}
                       </Text>
                       {selected && <Text style={{ color: GOLD, fontSize: 16 }}>✓</Text>}
                     </TouchableOpacity>

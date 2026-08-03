@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
+import { ulkeAdi } from "../../lib/ulkeler";
 import {
   View,
   Text,
@@ -215,7 +216,7 @@ export default function ProfileUserScreen() {
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                 {profile?.country && (
                   <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: "#edf4ff", borderWidth: 1, borderColor: Colors.accent }}>
-                    <Text style={{ fontSize: 11, fontWeight: "600" }}>🌍 {profile.country}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: "600" }}>🌍 {ulkeAdi(profile.country)}</Text>
                   </View>
                 )}
                 {profile?.mainTeam && (

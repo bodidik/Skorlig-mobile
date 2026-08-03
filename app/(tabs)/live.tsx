@@ -27,6 +27,7 @@ import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { t, useLang } from "../../lib/i18n";
+import { ulkeAdi } from "../../lib/ulkeler";
 const t2 = t; // turnuva map(t) golgelemesi icin takma ad
 
 type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
@@ -2322,7 +2323,7 @@ export default function LiveScreen() {
                         <Text style={{ fontSize: 10, color: "#4ade80", fontWeight: "700", flex: 1 }} numberOfLines={1}>
                           {league.name}
                         </Text>
-                        <Text style={{ fontSize: 9, color: Colors.muted }}>{league.country}</Text>
+                        <Text style={{ fontSize: 9, color: Colors.muted }}>{ulkeAdi(league.country)}</Text>
                       </View>
                       {league.matches
                         .filter((m) => m.isLive || m.isHT)

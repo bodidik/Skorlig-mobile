@@ -10,6 +10,7 @@ import { auth } from "../lib/firebase";
  * kimliğe veriyor (bkz. api/routes/weekly-picks.cjs). */
 import { apiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
+import { ulkeAdi } from "../lib/ulkeler";
 
 const API = Constants.expoConfig?.extra?.apiBase ?? "https://skorlig87.onrender.com";
 
@@ -292,7 +293,7 @@ export default function Picks1987() {
               <View key={pick.fixtureId} style={[s.card, isFT && s.cardDone]}>
                 {/* Başlık */}
                 <View style={s.cardHead}>
-                  <Text style={s.cardLeague}>{pick.country} · {pick.league}</Text>
+                  <Text style={s.cardLeague}>{ulkeAdi(pick.country)} · {pick.league}</Text>
                   {isLive
                     ? <View style={s.livePill}><Text style={s.liveTxt}>● CANLI</Text></View>
                     : isFT

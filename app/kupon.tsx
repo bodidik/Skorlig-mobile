@@ -24,6 +24,7 @@ import Colors from "../constants/colors";
 import { apiJson } from "../lib/apiFetch";
 import hataMesaji from "../lib/hataMesaji";
 import { t, useLang } from "../lib/i18n";
+import { ulkeAdi } from "../lib/ulkeler";
 
 type Mac = {
   fixtureId: string;
@@ -185,7 +186,7 @@ export default function KuponEkrani() {
         const secim = secimler[k.id] || {};
         const dolu = k.fixtureIds.filter((f) => secim[f]).length;
         const acik = k.durum === "open";
-        const baslik = k.tur === "avrupa" ? t("kuponEurope") : t("kuponCountryLeague", { c: k.ulke });
+        const baslik = k.tur === "avrupa" ? t("kuponEurope") : t("kuponCountryLeague", { c: ulkeAdi(k.ulke) });
 
         return (
           <View key={k.id} style={{ marginTop: 20, borderRadius: 14, backgroundColor: Colors.dark, overflow: "hidden" }}>

@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
 import { apiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
+import { ulkeAdi } from "../lib/ulkeler";
 import { getPendingCountry } from "../lib/pendingCountry";
 import { isFirstRun } from "../lib/firstRun";
 
@@ -126,9 +127,12 @@ export default function CountryBackfillPrompt() {
     }
   }
 
+  /* ⚠️ SÜZGEÇ GÖRÜNEN ADDA. Ham adda arasaydı kullanıcı ekranda okuduğu
+   * adı yazınca "eşleşen ülke yok" görürdü. */
   const filtered = search.trim()
     ? countries.filter((c) =>
-        c.country.toLocaleLowerCase("tr").includes(search.trim().toLocaleLowerCase("tr"))
+        (ulkeAdi(c.country) || c.country).toLocaleLowerCase("tr")
+          .includes(search.trim().toLocaleLowerCase("tr"))
       )
     : countries;
 
@@ -176,7 +180,7 @@ export default function CountryBackfillPrompt() {
                   style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: "#0f172a" }}
                 >
                   {!!c.flag && <Text style={{ fontSize: 20 }}>{c.flag}</Text>}
-                  <Text style={{ flex: 1, color: "#cbd5e1", fontSize: 15 }}>{c.country}</Text>
+                  <Text style={{ flex: 1, color: "#cbd5e1", fontSize: 15 }}>{ulkeAdi(c.country)}</Text>
                   <Text style={{ color: "#475569", fontSize: 18 }}>›</Text>
                 </TouchableOpacity>
               )}

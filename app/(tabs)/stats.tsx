@@ -18,6 +18,7 @@ import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { withAdminHeaders } from "../../lib/adminToken";
 import { t, useLang } from "../../lib/i18n";
+import { ulkeAdi } from "../../lib/ulkeler";
 
 const DEFAULT_COMPETITION_ID = process.env.EXPO_PUBLIC_DEFAULT_COMPETITION_ID || "";
 
@@ -791,7 +792,7 @@ export default function StatsScreen() {
             <View style={{ gap: 6 }}>
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {([
-                  { key: "country" as ScopeKey, label: myCountry ? `🏠 ${myCountry}` : t("myCountryTab") },
+                  { key: "country" as ScopeKey, label: myCountry ? `🏠 ${ulkeAdi(myCountry)}` : t("myCountryTab") },
                   { key: "global" as ScopeKey, label: t("worldTab") },
                 ]).map((s) => {
                   const active = scope === s.key;

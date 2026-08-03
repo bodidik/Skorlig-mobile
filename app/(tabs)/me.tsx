@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
+import { ulkeAdi } from "../../lib/ulkeler";
 import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
 import Colors, { on } from "../../constants/colors";
@@ -1746,7 +1747,11 @@ export default function Me() {
                   backgroundColor: "#edf4ff", borderWidth: 1, borderColor: Colors.accent,
                 }}>
                   <Text style={{ fontWeight: "600", fontSize: 12 }}>
-                    {richCountries.find(c => c.code === profile.country)?.flag || "🌍"} {profile.country}
+                    {richCountries.find(c => c.code === profile.country)?.flag || "🌍"}{" "}
+                    {(() => {
+                      const bulunan = richCountries.find(c => c.code === profile.country);
+                      return bulunan ? ulkeAdi(bulunan.name) || bulunan.name : profile.country;
+                    })()}
                   </Text>
                 </View>
               )}

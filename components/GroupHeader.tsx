@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { t, useLang } from "../lib/i18n";
+import { ulkeAdi } from "../lib/ulkeler";
 
 /**
  * Maç listesi grup başlığı.
@@ -32,7 +33,7 @@ function baslikIcin(group: string, country?: string | null) {
   switch (group) {
     case "country":
       // Ülke adı varsa onu yaz: "Türkiye" başlığı "Ülkeniz"den daha net.
-      return { icon: "⭐", text: country?.trim() || t("yourCountryGrp"), color: GOLD };
+      return { icon: "⭐", text: ulkeAdi(country) || t("yourCountryGrp"), color: GOLD };
     case "global":
       return { icon: "🏆", text: t("cupsGrp"), color: "#818cf8" };
     case "big":
