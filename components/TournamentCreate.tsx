@@ -6,6 +6,7 @@ import {
 import QuickPickCard, { PickFixture } from "./QuickPickCard";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 
 type Props = {
   country?: string | null;
@@ -15,6 +16,7 @@ type Props = {
 };
 
 export default function TournamentCreate({ country, userId, onCreated, onClose }: Props) {
+  useLang(); // dil değişince yeniden çizilsin
   const [matches, setMatches] = useState<PickFixture[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [entryLC, setEntryLC] = useState("10");
@@ -44,13 +46,13 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
       const next = new Set(prev);
       if (next.has(fid)) next.delete(fid);
       else if (next.size < 6) next.add(fid);
-      else Alert.alert("Maksimum", "En fazla 6 maç seçebilirsin");
+      else Alert.alert(t("maxTitle"), t("max6"));
       return next;
     });
   }
 
   async function handleCreate() {
-    if (selected.size < 2) return Alert.alert("Minimum", "En az 2 maç seç");
+    if (selected.size < 2) return Alert.alert(t("minTitle"), t("min2"));
     const entry = Math.max(5, Math.min(100, Number(entryLC) || 10));
 
     setCreating(true);
@@ -73,7 +75,7 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
         setCreatedCode(json.tournament.code);
         onCreated?.(json.tournament.code);
       } else {
-        Alert.alert("Hata", json.error || "Oluşturulamadı");
+        Alert.alert(t("error"), json.error || t("createFailed2"));
       }
     } catch (e: any) {
       Alert.alert("Hata", e.message);
@@ -85,7 +87,7 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
     if (!createdCode) return;
     try {
       await Share.share({
-        message: `SkorLig turnuvama katıl! Kod: ${createdCode}`,
+        message: t("joinMyTour", { c: createdCode }),
       });
     } catch {}
   }
@@ -93,14 +95,14 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
   if (createdCode) {
     return (
       <View style={s.container}>
-        <Text style={s.title}>🏆 Turnuva Oluşturuldu!</Text>
+        <Text style={s.title}>{t("tourCreated")}</Text>
         <View style={s.codeBox}>
           <Text style={s.codeLabel}>Davet Kodu</Text>
           <Text style={s.code}>{createdCode}</Text>
         </View>
-        <Text style={s.hint}>Bu kodu arkadaşlarınla paylaş</Text>
+        <Text style={s.hint}>{t("shareCodeHint")}</Text>
         <TouchableOpacity style={s.shareBtn} onPress={shareCode}>
-          <Text style={s.shareBtnText}>Paylaş</Text>
+          <Text style={s.shareBtnText}>{t("shareLbl")}</Text>
         </TouchableOpacity>
         {onClose && (
           <TouchableOpacity style={s.closeBtn} onPress={onClose}>
@@ -115,22 +117,22 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
     return (
       <View style={s.loadingBox}>
         <ActivityIndicator color="#a3e635" />
-        <Text style={s.loadingText}>Maçlar yükleniyor...</Text>
+        <Text style={s.loadingText}>{t("loadingMatches")}</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={s.container}>
-      <Text style={s.title}>🏆 Turnuva Oluştur</Text>
-      <Text style={s.subtitle}>2-6 maç seç, giriş ücreti belirle, arkadaşlarını davet et</Text>
+      <Text style={s.title}>{t("createTourTitle")}</Text>
+      <Text style={s.subtitle}>{t("createTourSub")}</Text>
 
       <View style={s.inputRow}>
         <View style={s.inputGroup}>
-          <Text style={s.inputLabel}>İsim</Text>
+          <Text style={s.inputLabel}>{t("nameLbl")}</Text>
           <TextInput
             style={s.input}
-            placeholder="Turnuva adı"
+            placeholder={t("tourNamePh2")}
             placeholderTextColor="#475569"
             value={name}
             onChangeText={setName}
@@ -138,7 +140,7 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
           />
         </View>
         <View style={[s.inputGroup, { flex: 0.4 }]}>
-          <Text style={s.inputLabel}>Giriş (LC)</Text>
+          <Text style={s.inputLabel}>{t("entryLbl")}</Text>
           <TextInput
             style={s.input}
             placeholder="10"
@@ -152,7 +154,7 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
       </View>
 
       <Text style={s.matchHeader}>
-        Maç Seç ({selected.size}/6)
+        {t("pickMatchesN", { n: selected.size })}
       </Text>
 
       {matches.map(m => {
@@ -175,12 +177,12 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
       })}
 
       {matches.length === 0 && (
-        <Text style={s.emptyText}>Bugün maç yok</Text>
+        <Text style={s.emptyText}>{t("noMatchToday")}</Text>
       )}
 
       <View style={s.summary}>
         <Text style={s.summaryText}>
-          {selected.size} maç seçildi • Giriş: {Math.max(5, Number(entryLC) || 10)} LC
+          {t("selectedEntry", { n: selected.size, g: Math.max(5, Number(entryLC) || 10) })}
         </Text>
         <Text style={s.payoutHint}>
           1. → %60  •  2. → %25  •  3. → %15
@@ -194,7 +196,7 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
       >
         {creating
           ? <ActivityIndicator color="#000" />
-          : <Text style={s.createBtnText}>Turnuvayı Oluştur</Text>
+          : <Text style={s.createBtnText}>{t("createTour2")}</Text>
         }
       </TouchableOpacity>
     </ScrollView>

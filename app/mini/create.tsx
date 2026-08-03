@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors, { on } from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { t, useLang } from "../../lib/i18n";
 
 const MIN_FIXTURES = 2;
 const MAX_FIXTURES = 10;
@@ -40,6 +41,7 @@ type Fx = {
 };
 
 export default function MiniCreateScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const { userId: qUserId } = useLocalSearchParams<{ userId?: string }>();
   const userId = String(qUserId || "demo1").trim();
@@ -89,7 +91,7 @@ export default function MiniCreateScreen() {
       const next = new Set(prev);
       if (next.has(fid)) next.delete(fid);
       else if (next.size < MAX_FIXTURES) next.add(fid);
-      else Alert.alert("SkorLig", `En fazla ${MAX_FIXTURES} maç seçebilirsin.`);
+      else Alert.alert("SkorLig", t("maxNMatches", { n: MAX_FIXTURES }));
       return next;
     });
   }
@@ -101,7 +103,7 @@ export default function MiniCreateScreen() {
 
   async function create() {
     if (!canCreate) {
-      Alert.alert("SkorLig", `Turnuvaya bir isim ver ve ${MIN_FIXTURES}-${MAX_FIXTURES} maç seç (önerilen: 5).`);
+      Alert.alert("SkorLig", t("nameAndPick", { a: MIN_FIXTURES, b: MAX_FIXTURES }));
       return;
     }
     try {
@@ -126,12 +128,12 @@ export default function MiniCreateScreen() {
 
       if (r?.ok && r.tournament) {
         const msg = isPublic
-          ? `"${r.tournament.name}" kuruldu! 🎉\n\nHerkese Açık turnuva — "Turnuvalar" listesinde görünecek.\n\nKod: ${r.tournament.code}`
-          : `"${r.tournament.name}" kuruldu! 🎉\n\nSadece arkadaşlar — kodu gönder:\n${r.tournament.code}`;
+          ? t("createdPublic", { n: r.tournament.name, c: r.tournament.code })
+          : t("createdPrivate", { n: r.tournament.name, c: r.tournament.code });
         Alert.alert("SkorLig", msg);
         router.replace({ pathname: "/mini/[id]", params: { id: r.tournament.id, userId } });
       } else {
-        Alert.alert("Hata", r?.error || "Turnuva kurulamadı.");
+        Alert.alert(t("error"), r?.error || t("createFailed"));
       }
     } catch (e: any) {
       Alert.alert("Hata", String(e?.message || e));
@@ -149,56 +151,56 @@ export default function MiniCreateScreen() {
       <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>Mini Turnuva Kur</Text>
 
       <View style={{ padding: 12, backgroundColor: "#fff", borderRadius: 12, borderWidth: 1, borderColor: Colors.border, gap: 10 }}>
-        <Text style={{ fontWeight: "700" }}>Turnuva Adı</Text>
+        <Text style={{ fontWeight: "700" }}>{t("tourName")}</Text>
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="örn: Hafta Sonu Kupası"
+          placeholder={t("tourNamePh")}
           maxLength={60}
           style={{ borderWidth: 1, borderColor: Colors.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 }}
         />
 
         {/* Görünürlük toggle */}
-        <Text style={{ fontWeight: "700", marginTop: 4 }}>Görünürlük</Text>
+        <Text style={{ fontWeight: "700", marginTop: 4 }}>{t("visibility")}</Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity
             onPress={() => setIsPublic(false)}
             style={{ flex: 1, padding: 10, borderRadius: 10, borderWidth: 2, borderColor: !isPublic ? "#3b82f6" : Colors.border, backgroundColor: !isPublic ? "#eff6ff" : "#fff", alignItems: "center", gap: 2 }}
           >
             <Text style={{ fontSize: 18 }}>🔒</Text>
-            <Text style={{ fontWeight: "700", fontSize: 12, color: !isPublic ? "#1d4ed8" : Colors.muted }}>Sadece Arkadaşlar</Text>
-            <Text style={{ fontSize: 10, color: Colors.muted, textAlign: "center" }}>Koda sahip ya da davet edilenler katılır</Text>
+            <Text style={{ fontWeight: "700", fontSize: 12, color: !isPublic ? "#1d4ed8" : Colors.muted }}>{t("friendsOnly")}</Text>
+            <Text style={{ fontSize: 10, color: Colors.muted, textAlign: "center" }}>{t("friendsOnlyDesc")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setIsPublic(true)}
             style={{ flex: 1, padding: 10, borderRadius: 10, borderWidth: 2, borderColor: isPublic ? "#f59e0b" : Colors.border, backgroundColor: isPublic ? "#fffbeb" : "#fff", alignItems: "center", gap: 2 }}
           >
             <Text style={{ fontSize: 18 }}>🌍</Text>
-            <Text style={{ fontWeight: "700", fontSize: 12, color: isPublic ? "#d97706" : Colors.muted }}>Herkese Açık</Text>
-            <Text style={{ fontSize: 10, color: Colors.muted, textAlign: "center" }}>Turnuvalar listesinde görünür, max 2000 kişi</Text>
+            <Text style={{ fontWeight: "700", fontSize: 12, color: isPublic ? "#d97706" : Colors.muted }}>{t("publicLbl")}</Text>
+            <Text style={{ fontSize: 10, color: Colors.muted, textAlign: "center" }}>{t("publicDesc")}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ fontWeight: "700" }}>Maç Seç</Text>
+        <Text style={{ fontWeight: "700" }}>{t("pickMatches")}</Text>
         <Text style={{ color: selCount >= MIN_FIXTURES ? Colors.live : Colors.muted, fontSize: 12, fontWeight: "700" }}>
-          {selCount} / {MAX_FIXTURES} seçildi {selCount >= MIN_FIXTURES ? "✓" : `(en az ${MIN_FIXTURES})`}
+          {t("nSelected", { n: selCount, m: MAX_FIXTURES })}{selCount >= MIN_FIXTURES ? "✓" : t("atLeastN", { n: MIN_FIXTURES })}
         </Text>
       </View>
       <Text style={{ color: Colors.muted, fontSize: 11 }}>
-        Önümüzdeki 14 günün maçları. Önerilen turnuva boyutu: 5 maç.
+        {t("next14Days")}
       </Text>
 
       {loading && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <ActivityIndicator size="small" />
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>Maçlar yükleniyor...</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("loadingMatches")}</Text>
         </View>
       )}
       {!loading && fixtures.length === 0 && (
         <Text style={{ color: Colors.muted, fontSize: 12 }}>
-          Önümüzdeki günlerde seçilebilecek maç bulunamadı.
+          {t("noSelectable")}
         </Text>
       )}
 
@@ -245,7 +247,7 @@ export default function MiniCreateScreen() {
         }}
       >
         <Text style={{ textAlign: "center", color: on(canCreate ? Colors.accent : Colors.border), fontWeight: "800" }}>
-          {creating ? "Kuruluyor..." : "Turnuvayı Kur"}
+          {creating ? t("creating") : t("createTour")}
         </Text>
       </TouchableOpacity>
     </ScrollView>
