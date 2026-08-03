@@ -108,3 +108,54 @@ export function ulkeBayragi(ham?: string | null): string {
   const k = ulkeAnahtari(ham);
   return (k && BAYRAK.get(k)) || "⚽";
 }
+
+/**
+ * LİG ETİKETİ — "hangi 3. Lig?" sorusunu ortadan kaldırır.
+ *
+ * ⚠️ BULUNAN SORUN (2026-08-03, kullanıcı bildirimi + ölçüm): liste yalnızca
+ * lig ADINI yazıyordu ve lig adları ülkeden bağımsız olarak tekrar ediyor.
+ * Üretim fikstürlerinde ölçüldü (1944 maç, 298 lig+ülke çifti):
+ *     32 lig adı BİRDEN FAZLA ülkede geçiyor
+ *     "Premier Lig"  → 24 ülke
+ *     "1. Lig"       → 18 ülke
+ *     "2. Lig"       → 13 ülke
+ *     "Serie A"      → İtalya, Brezilya, Ekvador
+ *     "Championship" → İngiltere, İskoçya
+ * Yani ekranda "3. Lig" yazınca kullanıcı hangi ülkenin ligi olduğunu
+ * bilemiyordu.
+ *
+ * ÇÖZÜM: bayrak + ülke + lig. Ülke adı kullanıcının dilinde (`ulkeAdi`),
+ * yani tek kaynak korunuyor.
+ *
+ * ⚠️ TEKRAR ETMEZ: lig adı ülkeyi zaten içeriyorsa ("Türkiye Kupası")
+ * "Türkiye · Türkiye Kupası" yazmaz. Kıyaslama Türkçe küçük harfle yapılıyor —
+ * `"İ".toLowerCase()` tuzağı bu depoda daha önce ısırdı.
+ *
+ * @example ligEtiketi("3. Lig", "Türkiye")  → "🇹🇷 Türkiye · 3. Lig"
+ * @example ligEtiketi("Türkiye Kupası", "Türkiye") → "🇹🇷 Türkiye Kupası"
+ * @example ligEtiketi("Şampiyonlar Ligi", "Europe") → "🏆 Avrupa · Şampiyonlar Ligi"
+ * @example ligEtiketi("3. Lig", null) → "3. Lig"
+ */
+export function ligEtiketi(lig?: string | null, ulke?: string | null): string {
+  const l = String(lig || "").trim();
+  const anahtar = ulkeAnahtari(ulke);
+  const ad = anahtar ? ulkeAdi(ulke) : "";
+  const bayrak = anahtar ? ulkeBayragi(ulke) : "";
+
+  if (!l) return ad ? `${bayrak} ${ad}`.trim() : "";
+  if (!ad) return l;                       // ülke bilinmiyor: ham lig adı
+
+  const kucuk = (s: string) => s.toLocaleLowerCase("tr");
+  if (kucuk(l).includes(kucuk(ad))) return `${bayrak} ${l}`.trim();
+
+  return `${bayrak} ${ad} · ${l}`.trim();
+}
+
+/**
+ * Sıralama için lig anahtarı: aynı ülkenin ligleri bir arada kalsın.
+ * Etiketin kendisiyle sıralamak bayrak emojisi yüzünden tuhaf sıra üretirdi.
+ */
+export function ligSiraAnahtari(lig?: string | null, ulke?: string | null): string {
+  const ad = ulkeAnahtari(ulke) ? ulkeAdi(ulke) : "";
+  return `${ad} ${String(lig || "").trim()}`.toLocaleLowerCase("tr");
+}

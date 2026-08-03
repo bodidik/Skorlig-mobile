@@ -838,6 +838,12 @@ const strings = {
     cupsGrp:          "Avrupa & Dünya Kupaları",
     bigLeagues:       "Büyük Ligler",
     otherLeagues:     "Diğer Ligler",
+    // Sıralama seçici — lig adları ülkeden bağımsız tekrar ettiği için
+    // (üretimde "Premier Lig" 24 ülkede) kullanıcı kendi sırasını seçebilmeli.
+    sortBy:           "Sırala:",
+    sortSuggested:    "Önerilen",
+    sortByDate:       "Tarih",
+    sortByLeague:     "Lig",
     friendlies:       "Hazırlık Maçları",
     dayLoading:       "Günün maçları yükleniyor...",
     noMatchToday2:    "Bugün maç yok — yarın tekrar gel!",
@@ -2024,6 +2030,10 @@ const strings = {
     cupsGrp:          "European & World Cups",
     bigLeagues:       "Big Leagues",
     otherLeagues:     "Other Leagues",
+    sortBy:           "Sort:",
+    sortSuggested:    "Suggested",
+    sortByDate:       "Date",
+    sortByLeague:     "League",
     friendlies:       "Friendlies",
     dayLoading:       "Loading today's matches...",
     noMatchToday2:    "No matches today — come back tomorrow!",

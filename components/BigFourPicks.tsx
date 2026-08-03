@@ -12,6 +12,7 @@ import { auth } from "../lib/firebase";
 /* Jetonu otomatik ekler — sunucu kendi tahminini yalnızca doğrulanmış
  * kimliğe veriyor (bkz. api/routes/weekly-picks.cjs). */
 import { apiFetch } from "../lib/apiFetch";
+import { ligEtiketi } from "../lib/ulkeler";
 import { t, useLang } from "../lib/i18n";
 
 const API = Constants.expoConfig?.extra?.apiBase ?? "https://skorlig87.onrender.com";
@@ -24,6 +25,8 @@ interface Pick {
   away: string;
   kickoffISO: string;
   league: string;
+  /** Lig adları ülkeden bağımsız tekrar ediyor — etiket ülkeyi de göstermeli. */
+  country?: string | null;
   status: string;
   score: { home: number; away: number } | null;
   open: boolean;
@@ -138,7 +141,7 @@ export default function BigFourPicks() {
           <View key={pick.fixtureId} style={[s.card, isFT && s.cardDone]}>
             {/* Lig + Zaman */}
             <View style={s.cardTop}>
-              <Text style={s.league}>{pick.league}</Text>
+              <Text style={s.league}>{ligEtiketi(pick.league, pick.country)}</Text>
               {isLive
                 ? <View style={s.liveBadge}><Text style={s.liveText}>● CANLI</Text></View>
                 : isFT

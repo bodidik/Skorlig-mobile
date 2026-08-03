@@ -27,7 +27,7 @@ import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { t, useLang } from "../../lib/i18n";
-import { ulkeAdi } from "../../lib/ulkeler";
+import { ulkeAdi, ligEtiketi, ligSiraAnahtari } from "../../lib/ulkeler";
 const t2 = t; // turnuva map(t) golgelemesi icin takma ad
 
 type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
@@ -476,9 +476,12 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
               )}
             </View>
 
+            {/* ⚠️ LİG ADI TEK BAŞINA YETMİYOR: üretimde 32 lig adı birden fazla
+                ülkede geçiyor ("Premier Lig" 24 ülke, "1. Lig" 18 ülke).
+                Bayrak + ülke + lig — bkz. lib/ulkeler.ts ligEtiketi. */}
             <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }} numberOfLines={1}>
               {kickoffLabel(item)}
-              {item.league ? ` • ${item.league}` : ""}
+              {ligEtiketi(item.league, item.country) ? ` • ${ligEtiketi(item.league, item.country)}` : ""}
             </Text>
           </View>
 
@@ -642,6 +645,42 @@ export default function LiveScreen() {
   const [mode, setMode] = useState<Mode>(initialMode);
 
   const [items, setItems] = useState<Fx[]>([]);
+
+  /**
+   * SIRALAMA TERCİHİ.
+   *
+   * ⚠️ NEDEN VAR (kullanıcı bildirimi): liste sunucudan tek bir sırada
+   * geliyordu (öncelik) ve aradığı maçı bulmak için sayfalarca kaydırmak
+   * gerekiyordu. "Önerilen" varsayılan kalıyor — kendi ülkeni üstte gösteren
+   * sıra doğru bir varsayılan; ama kullanıcı tarihe ya da lige geçebilmeli.
+   *
+   * ⚠️ SUNUCU SIRASI YENİDEN YAZILMIYOR: "önerilen" seçiliyken liste
+   * sunucudan geldiği gibi kalır (lib/fixture-priority.cjs tek kaynak).
+   * Öteki iki seçenek yalnızca GÖSTERİM sırasını değiştirir, eleme yapmaz.
+   */
+  const [siralama, setSiralama] = useState<"onerilen" | "tarih" | "lig">("onerilen");
+
+  const gorunenListe = useMemo(() => {
+    if (siralama === "onerilen") return items;
+    const kopya = items.slice();
+    const ko = (x: Fx) => {
+      const t2 = Date.parse(String(x.kickoffISO || ""));
+      return Number.isFinite(t2) ? t2 : Number.MAX_SAFE_INTEGER;
+    };
+    if (siralama === "tarih") {
+      kopya.sort((a, b) => ko(a) - ko(b));
+    } else {
+      // Lige göre: aynı ülkenin ligleri bir arada, lig içinde saate göre.
+      kopya.sort((a, b) => {
+        const ka = ligSiraAnahtari(a.league, a.country);
+        const kb = ligSiraAnahtari(b.league, b.country);
+        if (ka !== kb) return ka < kb ? -1 : 1;
+        return ko(a) - ko(b);
+      });
+    }
+    return kopya;
+  }, [items, siralama]);
+
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -1363,7 +1402,7 @@ export default function LiveScreen() {
         ref={flatListRef}
         data={
           mode === "mine" || mode === "tournaments" || mode === "gs1987" ? []  // içerik ListHeaderComponent'te
-          : items
+          : gorunenListe
         }
         // ⚠️ `it.code` yedeği KALDIRILDI: ölü koddu. Turnuva/1987 modlarında
         // `data` zaten [] (içerik ListHeaderComponent'te), yani buraya hiçbir
@@ -1380,14 +1419,33 @@ export default function LiveScreen() {
           // (ülke → küresel → büyük lig → diğer → hazırlık). Grup değiştiği
           // ilk maçta başlık basılır. Eleme yok — kullanıcı aşağı kaydırarak
           // her maça ulaşır, başlıklar yalnızca nerede olduğunu söyler.
-          const grup = item.priorityGroup || null;
-          const oncekiGrup =
-            index > 0 ? (items[index - 1]?.priorityGroup || null) : null;
+          //
+          // ⚠️ BAŞLIK SIRALAMAYA BAĞLI. "Önerilen" dışında öncelik başlıkları
+          // YANILTICI olurdu: liste artık o sıraya göre dizili değil, aynı
+          // başlık defalarca tekrar ederdi. Tarihe göre sıralamada başlık yok;
+          // lige göre sıralamada başlık LİGİN KENDİSİ olur.
+          const oncekiItem = index > 0 ? gorunenListe[index - 1] : null;
+          const grup = siralama === "onerilen" ? (item.priorityGroup || null) : null;
+          const oncekiGrup = siralama === "onerilen" ? (oncekiItem?.priorityGroup || null) : null;
           const basligiGoster = !!grup && grup !== oncekiGrup;
+
+          const ligBasligi =
+            siralama === "lig" ? ligEtiketi(item.league, item.country) : "";
+          const oncekiLig =
+            siralama === "lig" && oncekiItem ? ligEtiketi(oncekiItem.league, oncekiItem.country) : "";
+          const ligBasligiGoster = !!ligBasligi && ligBasligi !== oncekiLig;
 
           return (
             <>
             {basligiGoster && <GroupHeader group={grup} country={userCountry} />}
+            {ligBasligiGoster && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 14, marginBottom: 8 }}>
+                <Text style={{ color: "#38bdf8", fontSize: 12, fontWeight: "900", letterSpacing: 0.4 }}>
+                  {ligBasligi}
+                </Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: "#38bdf833" }} />
+              </View>
+            )}
             <Item
               item={item}
               mode={mode}
@@ -1449,6 +1507,42 @@ export default function LiveScreen() {
             {/* ===== HIZLI OYNA ===== */}
             {mode === "open" && (
               <QuickPlaySection country={userCountry} userId={userId} />
+            )}
+
+            {/* ===== SIRALAMA SEÇİCİ =====
+                ⚠️ NEDEN VAR (kullanıcı bildirimi): tek sabit sıra vardı ve
+                aranan maçı bulmak için sayfalarca kaydırmak gerekiyordu.
+                "Önerilen" varsayılan kalıyor (kendi ülken üstte); ötekiler
+                yalnızca GÖSTERİM sırasını değiştirir, hiçbir maçı elemez. */}
+            {mode === "open" && gorunenListe.length > 1 && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <Text style={{ color: "#78716c", fontSize: 11, fontWeight: "700" }}>{t("sortBy")}</Text>
+                {([
+                  { k: "onerilen", l: t("sortSuggested") },
+                  { k: "tarih", l: t("sortByDate") },
+                  { k: "lig", l: t("sortByLeague") },
+                ] as const).map((s) => {
+                  const secili = siralama === s.k;
+                  return (
+                    <TouchableOpacity
+                      key={s.k}
+                      onPress={() => setSiralama(s.k)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: secili }}
+                      style={{
+                        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: secili ? Colors.accent : "#1e293b",
+                        backgroundColor: secili ? "#1d4ed822" : "#0a1120",
+                      }}
+                    >
+                      <Text style={{ color: secili ? "#60a5fa" : "#64748b", fontSize: 11, fontWeight: secili ? "800" : "600" }}>
+                        {s.l}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             )}
             {/* ===== KASA & PUAN ÇUBUĞU ===== */}
             {(lcBalance !== null || userPoints !== null) && (

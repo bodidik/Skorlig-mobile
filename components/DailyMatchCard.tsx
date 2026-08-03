@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { t, useLang } from "../lib/i18n";
+import { ligEtiketi } from "../lib/ulkeler";
 import { getApiBase } from "../lib/apiBase";
 import hataMesaji from "../lib/hataMesaji";
 import { getAuthHeaders } from "../lib/apiFetch";
@@ -113,7 +114,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
     <View style={s.card}>
       {/* Üst bilgi */}
       <View style={s.meta}>
-        <Text style={s.league}>{fixture.league ?? t("matchFallback")}</Text>
+        <Text style={s.league}>{ligEtiketi(fixture.league, fixture.country) || t("matchFallback")}</Text>
         {kickoff && <Text style={s.kickoff}>⏱ {kickoff}</Text>}
       </View>
 
