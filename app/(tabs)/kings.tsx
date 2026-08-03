@@ -111,6 +111,17 @@ export default function KingsScreen() {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [profilesLoaded, setProfilesLoaded] = useState(false);
 
+  /**
+   * SEZON ETİKETİ — tablo aylık sıfırlanıyor ve bu ekran bunu söylemiyordu.
+   *
+   * Aynı savunma stats.tsx'te VAR; oradaki not aynen şöyle: "sezon aylık,
+   * yani ayın 1'inde tablo SESSİZCE boşalıyor ve kullanıcı ne olduğunu
+   * anlamadan bir aylık emeğini kayıp sanıyor". Bu ekranın başlığı da
+   * "Sezon Liderleri" ama HANGİ sezon olduğu hiçbir yerde görünmüyordu —
+   * sunucu da göndermiyordu (bkz. routes/totals-read.cjs).
+   */
+  const [sezonEtiket, setSezonEtiket] = useState<string | null>(null);
+
   // Segment seçimi
   const [segment, setSegment] = useState<SegmentKey>("global");
 
@@ -148,6 +159,7 @@ export default function KingsScreen() {
 
       setRows(sorted);
       setUpdatedAt(j.updatedAt || null);
+      setSezonEtiket((j as any)?.seasonLabel || null);
     } catch {
       setRows([]);
       setUpdatedAt(null);
@@ -411,6 +423,15 @@ export default function KingsScreen() {
       <Text style={{ color: Colors.muted, fontSize: 12, marginBottom: 8 }}>
         {t("byTotalPoints")}
       </Text>
+
+      {/* Hangi sezona bakıldığı ve tablonun sıfırlanacağı görünür olmalı. */}
+      {sezonEtiket ? (
+        <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 8 }}>
+          {t("seasonOf", { s: sezonEtiket })}
+          {" · "}
+          {rows.length === 0 ? t("newSeasonReset") : t("seasonResets")}
+        </Text>
+      ) : null}
 
       {/* Güncelleme */}
       <View style={{ marginBottom: 12 }}>
