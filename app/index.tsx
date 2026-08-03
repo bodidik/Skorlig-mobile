@@ -12,6 +12,7 @@ import { savePendingCountry, flushPendingCountry } from "../lib/pendingCountry";
 import { savePendingTeam, flushPendingTeam } from "../lib/pendingTeam";
 import { filterAndRankCountries } from "../lib/countrySort";
 import { FALLBACK_COUNTRIES, type CountryOpt } from "../lib/countriesFallback";
+import { t, useLang } from "../lib/i18n";
 
 /** `/api/stats/teams` yanıt şeması. */
 type TeamOpt = { team: string; flag: string };
@@ -20,57 +21,23 @@ const GOLD = "#f59e0b";
 const BG   = "#020617";
 const CARD = "#0f172a";
 
-const SLIDES = [
-  {
-    icon: "⚽",
-    accent: GOLD,
-    title: "Maç Tahmin Ligi",
-    subtitle: "Dünyanın her liginden açık maçları seç",
-    bullets: [
-      "Skor, ilk gol, kırmızı kart, penaltı tahmin et",
-      "Az kişinin tuttuğunu bilirsen daha fazla puan",
-      "Her seçim isteğe bağlı — tek skor bile yeter",
-    ],
-  },
-  {
-    icon: "🪙",
-    accent: GOLD,
-    title: "LigCoin (LC) Sistemi",
-    subtitle: "Para değil, puan biriktirirsin",
-    bullets: [
-      "Her gün ücretsiz LC hakkı al",
-      "Maça girerken küçük bir giriş bedeli kesilir",
-      "Doğru tahminlerde giriş bedelin de geri döner",
-    ],
-  },
-  {
-    icon: "⚔️",
-    accent: "#ef4444",
-    title: "Düello Modu",
-    subtitle: "Bir maçta arkadaşına meydan oku",
-    bullets: [
-      "Tahmin ekranından Düello butonu ile başlat",
-      "Aynı maçta kim daha doğru tahmin eder?",
-      "Kazanan tüm havuzu alır",
-    ],
-  },
-  {
-    icon: "🏁",
-    accent: "#22c55e",
-    title: "Canlı Yarış",
-    subtitle: "Maç sırasında sıranı saniye saniye izle",
-    bullets: [
-      "Gol olunca puan tablosu canlı güncellenir",
-      "Kaçıncı sıraya düştüğünü anlık takip et",
-      "Maç biter bitmez LC ödülü hesabına geçer",
-    ],
-  },
+const getSlides = () => [
+  { icon: "⚽", accent: GOLD, title: t("onb1Title"), subtitle: t("onb1Sub"),
+    bullets: [t("onb1B1"), t("onb1B2"), t("onb1B3")] },
+  { icon: "🪙", accent: GOLD, title: t("onb2Title"), subtitle: t("onb2Sub"),
+    bullets: [t("onb2B1"), t("onb2B2"), t("onb2B3")] },
+  { icon: "⚔️", accent: "#ef4444", title: t("onb3Title"), subtitle: t("onb3Sub"),
+    bullets: [t("onb3B1"), t("onb3B2"), t("onb3B3")] },
+  { icon: "🏁", accent: "#22c55e", title: t("onb4Title"), subtitle: t("onb4Sub"),
+    bullets: [t("onb4B1"), t("onb4B2"), t("onb4B3")] },
 ];
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { width } = useWindowDimensions();
+  useLang(); // dil değişince ekran yeniden çizilsin
+  const SLIDES = getSlides();
 
   const [slide, setSlide]           = useState(0);
   const [country, setCountry]       = useState<string | null>(null);
@@ -299,15 +266,15 @@ export default function WelcomeScreen() {
                 <View style={{ flex: 1 }}>
                   {country ? (
                     <>
-                      <Text style={{ color: GOLD, fontWeight: "700", fontSize: 13 }}>Ülken: {country}</Text>
+                      <Text style={{ color: GOLD, fontWeight: "700", fontSize: 13 }}>{t("yourCountry", { c: country })}</Text>
                       <Text style={{ color: "#64748b", fontSize: 11 }}>
-                        {autoDetected ? "Otomatik seçildi — dokunup değiştirebilirsin" : "Dokunup değiştirebilirsin"}
+                        {autoDetected ? t("autoPicked") : t("tapToChange")}
                       </Text>
                     </>
                   ) : (
                     <>
-                      <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 13 }}>Ülkeni seç</Text>
-                      <Text style={{ color: "#64748b", fontSize: 11 }}>Sıralamalar ve maç listen buna göre kurulur</Text>
+                      <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 13 }}>{t("pickYourCountry")}</Text>
+                      <Text style={{ color: "#64748b", fontSize: 11 }}>{t("countryHelps")}</Text>
                     </>
                   )}
                 </View>
@@ -326,18 +293,16 @@ export default function WelcomeScreen() {
                 <View style={{ flex: 1 }}>
                   {team ? (
                     <>
-                      <Text style={{ color: GOLD, fontWeight: "700", fontSize: 13 }}>Takımın: {team}</Text>
-                      <Text style={{ color: "#64748b", fontSize: 11 }}>Dokunup değiştirebilirsin</Text>
+                      <Text style={{ color: GOLD, fontWeight: "700", fontSize: 13 }}>{t("yourTeam", { t: team })}</Text>
+                      <Text style={{ color: "#64748b", fontSize: 11 }}>{t("tapToChange")}</Text>
                     </>
                   ) : (
                     <>
                       <Text style={{ color: "#cbd5e1", fontWeight: "700", fontSize: 13 }}>
-                        Tuttuğun takım <Text style={{ color: "#475569", fontWeight: "400" }}>(isteğe bağlı)</Text>
+                        {t("teamOptionalTitle")} <Text style={{ color: "#475569", fontWeight: "400" }}>{t("optionalParen")}</Text>
                       </Text>
                       <Text style={{ color: "#64748b", fontSize: 11 }}>
-                        {allTeams.length === 0
-                          ? "Bu ülke için takım listesi yok"
-                          : "Aynı takımı tutanlar arasındaki sıralamanı açar"}
+                        {allTeams.length === 0 ? t("noTeamsForCountry") : t("teamOpens")}
                       </Text>
                     </>
                   )}
@@ -376,7 +341,7 @@ export default function WelcomeScreen() {
             {busy
               ? <ActivityIndicator color="#020617" />
               : <Text style={{ color: "#020617", fontWeight: "900", fontSize: 16 }}>
-                  {isLast ? "Hadi Başlayalım ⚽" : "Devam →"}
+                  {isLast ? t("letsStart") : t("continueBtn")}
                 </Text>
             }
           </TouchableOpacity>
@@ -386,7 +351,7 @@ export default function WelcomeScreen() {
             handleStart ülke yoksa seçiciyi açar. */}
         {!isLast && (
           <TouchableOpacity onPress={handleStart} style={{ alignItems: "center" }}>
-            <Text style={{ color: "#475569", fontSize: 13 }}>Geç</Text>
+            <Text style={{ color: "#475569", fontSize: 13 }}>{t("skip")}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -402,15 +367,15 @@ export default function WelcomeScreen() {
           <View style={{ backgroundColor: BG, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "80%", paddingTop: 16 }}>
             <View style={{ paddingHorizontal: 20, gap: 12, paddingBottom: 12 }}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={{ flex: 1, color: "#fff", fontSize: 18, fontWeight: "900" }}>Ülkeni seç</Text>
+                <Text style={{ flex: 1, color: "#fff", fontSize: 18, fontWeight: "900" }}>{t("pickYourCountry")}</Text>
                 <TouchableOpacity onPress={() => setPickerOpen(false)}>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Kapat</Text>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>{t("close")}</Text>
                 </TouchableOpacity>
               </View>
               <TextInput
                 value={search}
                 onChangeText={setSearch}
-                placeholder="Ülke ara..."
+                placeholder={t("searchCountryPh")}
                 placeholderTextColor="#475569"
                 style={{ backgroundColor: CARD, borderRadius: 10, borderWidth: 1, borderColor: "#1e293b", paddingHorizontal: 14, paddingVertical: 10, color: "#fff", fontSize: 15 }}
               />
@@ -423,8 +388,8 @@ export default function WelcomeScreen() {
                 kadar dönüyordu. */}
             {search.trim() && filteredCountries.length === 0 ? (
               <View style={{ padding: 32, alignItems: "center", gap: 6 }}>
-                <Text style={{ color: "#64748b", fontSize: 14 }}>Ülke bulunamadı</Text>
-                <Text style={{ color: "#475569", fontSize: 12 }}>Farklı bir arama deneyin</Text>
+                <Text style={{ color: "#64748b", fontSize: 14 }}>{t("countryNotFound")}</Text>
+                <Text style={{ color: "#475569", fontSize: 12 }}>{t("tryDifferent")}</Text>
               </View>
             ) : (
               <FlatList
@@ -454,7 +419,7 @@ export default function WelcomeScreen() {
                 }}
                 ListEmptyComponent={
                   <Text style={{ color: "#475569", fontSize: 13, textAlign: "center", paddingVertical: 24 }}>
-                    Eşleşen ülke yok
+                    {t("noCountryMatch")}
                   </Text>
                 }
               />
@@ -474,15 +439,15 @@ export default function WelcomeScreen() {
           <View style={{ backgroundColor: BG, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "80%", paddingTop: 16 }}>
             <View style={{ paddingHorizontal: 20, gap: 12, paddingBottom: 12 }}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={{ flex: 1, color: "#fff", fontSize: 18, fontWeight: "900" }}>Tuttuğun takım</Text>
+                <Text style={{ flex: 1, color: "#fff", fontSize: 18, fontWeight: "900" }}>{t("teamOptionalTitle")}</Text>
                 <TouchableOpacity onPress={() => setTeamPickerOpen(false)}>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Kapat</Text>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>{t("close")}</Text>
                 </TouchableOpacity>
               </View>
               <TextInput
                 value={teamSearch}
                 onChangeText={setTeamSearch}
-                placeholder="Takım ara..."
+                placeholder={t("searchTeam")}
                 placeholderTextColor="#475569"
                 style={{ backgroundColor: CARD, borderRadius: 10, borderWidth: 1, borderColor: "#1e293b", paddingHorizontal: 14, paddingVertical: 10, color: "#fff", fontSize: 15 }}
               />
@@ -501,7 +466,7 @@ export default function WelcomeScreen() {
                     onPress={() => { setTeam(null); setTeamSearch(""); setTeamPickerOpen(false); }}
                     style={{ paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: "#0f172a" }}
                   >
-                    <Text style={{ color: "#64748b", fontSize: 14 }}>Seçimi kaldır</Text>
+                    <Text style={{ color: "#64748b", fontSize: 14 }}>{t("removeSelection")}</Text>
                   </TouchableOpacity>
                 ) : null
               }
@@ -522,7 +487,7 @@ export default function WelcomeScreen() {
               }}
               ListEmptyComponent={
                 <Text style={{ color: "#475569", fontSize: 13, textAlign: "center", paddingVertical: 24 }}>
-                  Eşleşen takım yok
+                  {t("noTeamMatch")}
                 </Text>
               }
             />

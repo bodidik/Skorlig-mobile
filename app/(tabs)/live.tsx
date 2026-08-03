@@ -27,6 +27,7 @@ import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { t, useLang } from "../../lib/i18n";
+const t2 = t; // turnuva map(t) golgelemesi icin takma ad
 
 type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
 
@@ -258,20 +259,20 @@ function buildPredChips(pred: MyPredItem["pred"]): { label: string; value: strin
   const oc = String(pred.outcome || "").toUpperCase();
   if (oc) {
     const c = oc === "H" ? "#3b82f6" : oc === "D" ? "#f59e0b" : "#ef4444";
-    chips.push({ label: "Sonuç", value: oc === "H" ? "Ev" : oc === "D" ? "Beraberlik" : "Deplasman", color: c });
+    chips.push({ label: t("resultLbl"), value: oc === "H" ? t("home") : oc === "D" ? t("draw") : t("away"), color: c });
   }
   if (pred.home != null && pred.away != null)
-    chips.push({ label: "Skor", value: `${pred.home}–${pred.away}`, color: "#a3e635" });
+    chips.push({ label: t("scoreLbl"), value: `${pred.home}–${pred.away}`, color: "#a3e635" });
   if (pred.firstGoal)
-    chips.push({ label: "İlk Gol", value: pred.firstGoal === "H" ? "Ev" : "Deplasman", color: "#22d3ee" });
+    chips.push({ label: t("firstGoalLbl"), value: pred.firstGoal === "H" ? t("home") : t("away"), color: "#22d3ee" });
   if (pred.firstHalf) {
     const fh = String(pred.firstHalf).toUpperCase();
-    chips.push({ label: "İlk Yarı", value: fh === "H" ? "Ev" : fh === "D" ? "Beraberlik" : "Deplasman", color: "#a78bfa" });
+    chips.push({ label: t("firstHalfLbl"), value: fh === "H" ? t("home") : fh === "D" ? t("draw") : t("away"), color: "#a78bfa" });
   }
   if (pred.redAny != null)
-    chips.push({ label: "🟥 Kırmızı", value: pred.redAny ? (pred.redSide === "H" ? "Ev" : pred.redSide === "A" ? "Deplasman" : "Var") : "Yok", color: pred.redAny ? "#ef4444" : "#64748b" });
+    chips.push({ label: "🟥 " + t("redLbl"), value: pred.redAny ? (pred.redSide === "H" ? t("home") : pred.redSide === "A" ? t("away") : t("varLbl")) : t("yokLbl"), color: pred.redAny ? "#ef4444" : "#64748b" });
   if (pred.penaltyAny != null)
-    chips.push({ label: "⚽ Penaltı", value: pred.penaltyAny ? (pred.penaltySide === "H" ? "Ev" : pred.penaltySide === "A" ? "Deplasman" : "Var") : "Yok", color: pred.penaltyAny ? "#f59e0b" : "#64748b" });
+    chips.push({ label: "⚽ " + t("penalty"), value: pred.penaltyAny ? (pred.penaltySide === "H" ? t("home") : pred.penaltySide === "A" ? t("away") : t("varLbl")) : t("yokLbl"), color: pred.penaltyAny ? "#f59e0b" : "#64748b" });
   return chips;
 }
 
@@ -281,9 +282,9 @@ function buildSettleChips(detail: any): { label: string; pts: number }[] {
   if (!detail) return [];
   const defs: [string, string][] = [
     ["outcome", "MS"],
-    ["exact", "Skor"],
-    ["firstGoal", "İG"],
-    ["firstHalf", "İY"],
+    ["exact", t("scoreLbl")],
+    ["firstGoal", t("igShort")],
+    ["firstHalf", t("iyShort")],
     ["redAny", "🟥"],
     ["penaltyAny", "⚽P"],
   ];
@@ -314,7 +315,7 @@ const SettleSummaryStrip: React.FC<{ points: number; detail: any }> = ({ points,
         backgroundColor: total >= 0 ? "#14532d55" : "#7f1d1d44",
       }}>
         <Text style={{ color: total >= 0 ? posColor : negColor, fontWeight: "900", fontSize: 12 }}>
-          {total > 0 ? "+" : ""}{Math.round(total * 100) / 100} puan
+          {total > 0 ? "+" : ""}{Math.round(total * 100) / 100} {t("points")}
         </Text>
       </View>
       {chips.map((c) => (
@@ -366,7 +367,7 @@ async function fetchWithTimeout(input: RequestInfo, init?: RequestInit, timeoutM
 
 function normalizeApiError(j: any): string {
   const code = String(j?.error || j?.code || "").trim();
-  if (!code) return String(j?.detail || "İşlem başarısız");
+  if (!code) return String(j?.detail || t("opFailed"));
 
   if (code === "STATE_NOT_FOUND") return "STATE_NOT_FOUND: Maç state dosyası yok. (Server restart sonrası düzeliyor olabilir.)";
   if (code === "NOT_FINISHED") return "NOT_FINISHED: Maç FT değil. Önce FT gir.";
@@ -410,10 +411,10 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
   const showPredLine = mode === "open";
   const predText =
     hasPred === true
-      ? "Bu maça tahminin var."
+      ? t("havePred")
       : hasPred === false
-      ? "Henüz bu maçta tahminin yok."
-      : "Tahmin durumu yükleniyor...";
+      ? t("noPredYet")
+      : t("predStatusLoading");
   const predColor = hasPred === true ? Colors.accent : Colors.muted;
 
   return (
@@ -469,7 +470,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
                     borderColor: "#22c55e66",
                   }}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: "800", color: "#4ade80" }}>TAHMİN</Text>
+                  <Text style={{ fontSize: 10, fontWeight: "800", color: "#4ade80" }}>{t("predBadge")}</Text>
                 </View>
               )}
             </View>
@@ -493,7 +494,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
                   marginBottom: 6,
                 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: "800", color: "#4ade80" }}>✓ Tahmin</Text>
+                <Text style={{ fontSize: 10, fontWeight: "800", color: "#4ade80" }}>{t("predBadge2")}</Text>
               </View>
             )}
 
@@ -515,7 +516,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
 
         {waitingResult && (
           <View style={{ marginTop: 6 }}>
-            <Text style={{ color: Colors.muted, fontSize: 11 }}>Sonuç girilmesi bekleniyor.</Text>
+            <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("waitingResult")}</Text>
           </View>
         )}
 
@@ -528,13 +529,13 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
         <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
           <View style={{ flex: 1 }}>
             {isLive ? (
-              <Text style={{ color: Colors.live, fontSize: 11 }}>● Canlı</Text>
+              <Text style={{ color: Colors.live, fontSize: 11 }}>{t("liveDot")}</Text>
             ) : isFinished ? (
-              <Text style={{ color: Colors.muted, fontSize: 11 }}>Maç bitti</Text>
+              <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("matchOver")}</Text>
             ) : mode === "open" || canPredictByLocalRule ? (
-              <Text style={{ color: "#4ade80", fontSize: 11 }}>Tahmin yapabilirsin</Text>
+              <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("canPredict")}</Text>
             ) : (
-              <Text style={{ color: Colors.muted, fontSize: 11 }}>Tahmin henüz açılmadı</Text>
+              <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("notOpenYet")}</Text>
             )}
           </View>
 
@@ -551,7 +552,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: Colors.onAccent, fontWeight: "700", fontSize: 12 }}>⚽ Tahmin</Text>
+                <Text style={{ color: Colors.onAccent, fontWeight: "700", fontSize: 12 }}>{t("predictBtn")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => onDuel(item)}
@@ -586,7 +587,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
               }}
             >
               <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
-                {isLive ? "🔥 Canlı Sıralama" : isFinished ? "🏁 Maç Sıralaması" : "🏁 Yarışı Takip Et"}
+                {isLive ? t("liveRanking") : isFinished ? t("matchRanking") : t("followRace")}
               </Text>
             </TouchableOpacity>
           )}
@@ -763,10 +764,10 @@ export default function LiveScreen() {
       if (j?.ok) {
         setIs1987Member(true);
       } else {
-        setGs1987Error(j?.error === "WRONG_CODE" ? "Kod yanlış. Facebook grubundaki kodu dene." : hataMesaji(j?.error));
+        setGs1987Error(j?.error === "WRONG_CODE" ? t("wrongCode1987") : hataMesaji(j?.error));
       }
     } catch (e: any) {
-      setGs1987Error(e.message || "Bağlantı hatası");
+      setGs1987Error(e.message || t("connError"));
     }
     setGs1987Busy(false);
   };
@@ -1022,10 +1023,10 @@ export default function LiveScreen() {
       if (j?.ok) {
         await loadMyTournaments();
       } else {
-        Alert.alert("Hata", j?.error || "Katılınamadı");
+        Alert.alert(t("error"), j?.error || t("joinFailed"));
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setJoinBusy(null);
     }
@@ -1156,10 +1157,10 @@ export default function LiveScreen() {
   };
 
   const cancelPred = (fixtureId: string) => {
-    Alert.alert("Tahmini İptal Et", "Bu maçtaki tahminini silmek istiyor musun?", [
-      { text: "Vazgeç", style: "cancel" },
+    Alert.alert(t("cancelPredTitle"), t("cancelPredMsg2"), [
+      { text: t("dismiss"), style: "cancel" },
       {
-        text: "Sil", style: "destructive",
+        text: t("delete2"), style: "destructive",
         onPress: async () => {
           try {
             const r = await apiFetch("/api/pred/cancel", {
@@ -1169,9 +1170,9 @@ export default function LiveScreen() {
             });
             const j = await r.json();
             if (j?.ok) await loadMyPreds();
-            else Alert.alert("Hata", j?.error || "Silinemedi");
+            else Alert.alert(t("error"), j?.error || "Silinemedi");
           } catch (e: any) {
-            Alert.alert("Hata", String(e?.message || e));
+            Alert.alert(t("error"), String(e?.message || e));
           }
         },
       },
@@ -1435,10 +1436,10 @@ export default function LiveScreen() {
                 <Text style={{ fontSize: 18 }}>🌍</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: "#f59e0b", fontWeight: "800", fontSize: 13 }}>
-                    Ülkenizde şu an maç yok
+                    {t("noCountryMatches")}
                   </Text>
                   <Text style={{ color: "#a8a29e", fontSize: 11, marginTop: 2 }}>
-                    Dünyadan maçlar gösteriliyor — hepsini oynayabilirsiniz.
+                    {t("worldShown")}
                   </Text>
                 </View>
               </View>
@@ -1581,25 +1582,25 @@ export default function LiveScreen() {
                 alignSelf: "flex-start",
               }}
             >
-              <Text style={{ fontSize: 13, color: "#22c55e", fontWeight: "700" }}>🔴 Canlı Sonuçlar</Text>
+              <Text style={{ fontSize: 13, color: "#22c55e", fontWeight: "700" }}>{t("liveScoresBtn")}</Text>
             </TouchableOpacity>
 
             {predLoading && (
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
-                Tahmin işaretleri güncelleniyor...
+                {t("predMarksUpdating")}
               </Text>
             )}
 
             {error && (
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
-                {adminMode ? `Hata: ${error}` : hataMesaji(error, "Maçlar yüklenemedi — aşağı çekerek yenileyin")}
+                {adminMode ? `Hata: ${error}` : hataMesaji(error, t("matchesLoadFailed"))}
               </Text>
             )}
 
             {/* ===== TAHMİNLERİM İÇERİĞİ ===== */}
             {mode === "mine" && (
               <View style={{ gap: 8, marginTop: 4 }}>
-                {myPredsLoading && <Text style={{ color: Colors.muted, fontSize: 12 }}>Yükleniyor...</Text>}
+                {myPredsLoading && <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("loading")}</Text>}
                 {/* Boş durum ALTTA, ListEmptyComponent içinde (eylem düğmeli).
                     Burada ikinci bir "henüz tahmin yok" metni göstermek,
                     aşağıdaki kartla birlikte iki kez tekrar demekti. */}
@@ -1668,7 +1669,7 @@ export default function LiveScreen() {
                       style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10, borderTopWidth: 1, borderTopColor: Colors.border, marginTop: 4 }}
                     >
                       <Text style={{ color: Colors.muted, fontSize: 12, fontWeight: "700" }}>
-                        🗂 Eski Tahminler ({myPreds.old.length})
+                        {t("oldPreds", { n: myPreds.old.length })}
                       </Text>
                       <Text style={{ color: Colors.muted, fontSize: 11 }}>{showOldPreds ? "▲" : "▼"}</Text>
                     </TouchableOpacity>
@@ -1725,24 +1726,24 @@ export default function LiveScreen() {
                     onPress={() => setShowCreateTournament(true)}
                     style={{ flex: 1, backgroundColor: "#a3e635", borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
                   >
-                    <Text style={{ color: "#0f172a", fontWeight: "900", fontSize: 14 }}>🏆 Turnuva Oluştur</Text>
+                    <Text style={{ color: "#0f172a", fontWeight: "900", fontSize: 14 }}>{t("createTournament")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setShowJoinTournament(true)}
                     style={{ flex: 1, backgroundColor: "#1e293b", borderRadius: 12, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "#334155" }}
                   >
-                    <Text style={{ color: "#f1f5f9", fontWeight: "900", fontSize: 14 }}>🎟️ Koda Katıl</Text>
+                    <Text style={{ color: "#f1f5f9", fontWeight: "900", fontSize: 14 }}>{t("joinByCode")}</Text>
                   </TouchableOpacity>
                 </View>
 
                 {(myTournamentsLoading || publicLoading) && (
-                  <Text style={{ color: Colors.muted, fontSize: 12 }}>Yükleniyor...</Text>
+                  <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("loading")}</Text>
                 )}
 
                 {/* Katıldığım turnuvalar */}
                 {myTournaments.length > 0 && (
                   <>
-                    <Text style={{ color: Colors.muted, fontSize: 11, fontWeight: "700", letterSpacing: 1 }}>KATILDIKLARIM</Text>
+                    <Text style={{ color: Colors.muted, fontSize: 11, fontWeight: "700", letterSpacing: 1 }}>{t("joinedOnes")}</Text>
                     {myTournaments.map((t) => (
                       <TouchableOpacity
                         key={t.id}
@@ -1753,8 +1754,8 @@ export default function LiveScreen() {
                           <View style={{ flex: 1 }}>
                             <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 13 }} numberOfLines={1}>{t.name}</Text>
                             <Text style={{ color: "#64748b", fontSize: 10, marginTop: 2 }}>
-                              {t.memberCount} katılımcı  •  {(t.fixtures || []).length} maç
-                              {t.finishedAt ? "  •  Bitti" : ""}
+                              {t2("participantsMatches", { p: t.memberCount, m: (t.fixtures || []).length })}
+                              {t.finishedAt ? t2("finishedSuffix") : ""}
                             </Text>
                           </View>
                           {t.finishedAt ? (
@@ -1780,7 +1781,7 @@ export default function LiveScreen() {
                 {/* Açık (herkese açık) turnuvalar */}
                 {publicTournaments.filter((t) => !myTournaments.find((m) => m.id === t.id)).length > 0 && (
                   <>
-                    <Text style={{ color: Colors.muted, fontSize: 11, fontWeight: "700", letterSpacing: 1, marginTop: 6 }}>AÇIK TURNUVALAR</Text>
+                    <Text style={{ color: Colors.muted, fontSize: 11, fontWeight: "700", letterSpacing: 1, marginTop: 6 }}>{t("openTournaments")}</Text>
                     {publicTournaments
                       .filter((t) => !myTournaments.find((m) => m.id === t.id))
                       .map((t) => (
@@ -1792,7 +1793,7 @@ export default function LiveScreen() {
                             <View style={{ flex: 1 }}>
                               <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 13 }} numberOfLines={1}>{t.name}</Text>
                               <Text style={{ color: "#64748b", fontSize: 10, marginTop: 2 }}>
-                                {t.memberCount} katılımcı  •  {t.fixtureCount || (t.fixtures || []).length} maç
+                                {t2("participantsMatches", { p: t.memberCount, m: t.fixtureCount || (t.fixtures || []).length })}
                               </Text>
                               {(t.fixtures || []).slice(0, 2).map((f: any) => (
                                 <Text key={f.fixtureId} style={{ color: "#475569", fontSize: 10, marginTop: 1 }} numberOfLines={1}>
@@ -1806,7 +1807,7 @@ export default function LiveScreen() {
                               style={{ backgroundColor: "#f59e0b", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 }}
                             >
                               <Text style={{ color: "#000", fontWeight: "900", fontSize: 12 }}>
-                                {joinBusy === t.code ? "..." : "Katıl"}
+                                {joinBusy === t.code ? "..." : t2("join")}
                               </Text>
                             </TouchableOpacity>
                           </View>
@@ -1816,7 +1817,7 @@ export default function LiveScreen() {
                 )}
 
                 {!myTournamentsLoading && !publicLoading && myTournaments.length === 0 && publicTournaments.length === 0 && (
-                  <Text style={{ color: Colors.muted, fontSize: 13 }}>Henüz açık turnuva yok.</Text>
+                  <Text style={{ color: Colors.muted, fontSize: 13 }}>{t("noOpenTournament")}</Text>
                 )}
               </View>
             )}
@@ -1833,11 +1834,11 @@ export default function LiveScreen() {
                   <View style={{ alignItems: "center", paddingVertical: 32, paddingHorizontal: 24 }}>
                     <Text style={{ fontSize: 48, marginBottom: 12 }}>🔒</Text>
                     <Text style={{ fontSize: 18, fontWeight: "900", color: "#E8102A", marginBottom: 6, textAlign: "center" }}>
-                      1987 Galatasaray'ı Unutamayanlar
+                      {t("gs1987Title")}
                     </Text>
                     <Text style={{ fontSize: 13, color: Colors.muted, textAlign: "center", marginBottom: 16, lineHeight: 20 }}>
-                      Bu alana sadece 1987GS Facebook grubu üyeleri girebilir.{"\n"}
-                      Gruba özel kodu girerek erişim sağla.
+                      {t("gs1987GateA")}{"\n"}
+                      {t("gs1987GateB")}
                     </Text>
 
                     {isAnonymous && (
@@ -1847,7 +1848,7 @@ export default function LiveScreen() {
                       >
                         <Text style={{ fontSize: 12 }}>💡</Text>
                         <Text style={{ flex: 1, fontSize: 12, color: "#4ade80", lineHeight: 18 }}>
-                          Google ile giriş yaparsan bir daha kod girmene gerek kalmaz.
+                          {t("googleNoCode")}
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -1856,7 +1857,7 @@ export default function LiveScreen() {
                       <TextInput
                         value={gs1987Code}
                         onChangeText={(t) => { setGs1987Code(t); setGs1987Error(null); }}
-                        placeholder="1987GS grubuna özel kod"
+                        placeholder={t("gs1987CodePh")}
                         placeholderTextColor="#555"
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -1893,7 +1894,7 @@ export default function LiveScreen() {
                       >
                         {gs1987Busy
                           ? <ActivityIndicator color="#fff" size="small" />
-                          : <Text style={{ color: "#fff", fontWeight: "900", fontSize: 15 }}>Giriş Yap →</Text>
+                          : <Text style={{ color: "#fff", fontWeight: "900", fontSize: 15 }}>{t("loginBtn")}</Text>
                         }
                       </TouchableOpacity>
                     </View>
@@ -2133,7 +2134,7 @@ export default function LiveScreen() {
                         "FT + settle2",
                         "Önce FT kaydedilecek, sonra settle2 çalıştırılacak.",
                         [
-                          { text: "Vazgeç", style: "cancel" },
+                          { text: t("dismiss"), style: "cancel" },
                           { text: "Devam", style: "default", onPress: () => adminSaveState({ alsoSettle2: true }) },
                         ]
                       )
@@ -2280,7 +2281,7 @@ export default function LiveScreen() {
             <View style={{ paddingVertical: 40, alignItems: "center" }}>
               <ActivityIndicator size="small" color={Colors.live} />
               <Text style={{ marginTop: 8, color: Colors.muted, fontSize: 12 }}>
-                {mode === "schedule" ? "Maçlar yükleniyor..." : "Açık maçlar yükleniyor..."}
+                {mode === "schedule" ? t("loadingMatches") : t("loadingOpen")}
               </Text>
             </View>
           ) : mode === "open" ? (
@@ -2291,10 +2292,10 @@ export default function LiveScreen() {
               <View style={{ alignItems: "center", paddingVertical: 16, gap: 6 }}>
                 <Text style={{ fontSize: 28 }}>⏳</Text>
                 <Text style={{ color: "#e2e8f0", fontWeight: "800", fontSize: 15 }}>
-                  Şu an açık tahmin yok
+                  {t("noOpenPreds")}
                 </Text>
                 <Text style={{ color: Colors.muted, fontSize: 12, textAlign: "center" }}>
-                  Yaklaşan maçlar önümüzdeki saatlerde açılacak
+                  {t("upcomingOpen")}
                 </Text>
               </View>
 
@@ -2309,9 +2310,9 @@ export default function LiveScreen() {
                 <View style={{ gap: 2 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
                     <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.live }} />
-                    <Text style={{ color: Colors.live, fontWeight: "800", fontSize: 12, letterSpacing: 0.5 }}>DÜNYADA ŞU AN</Text>
+                    <Text style={{ color: Colors.live, fontWeight: "800", fontSize: 12, letterSpacing: 0.5 }}>{t("worldNow")}</Text>
                     <TouchableOpacity onPress={() => router.push("/livescores")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Text style={{ color: Colors.muted, fontSize: 11 }}>Tümünü gör →</Text>
+                      <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("seeAll")}</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -2361,9 +2362,9 @@ export default function LiveScreen() {
                 <View style={{ gap: 2 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
                     <Text style={{ fontSize: 14 }}>📅</Text>
-                    <Text style={{ color: "#f59e0b", fontWeight: "800", fontSize: 12, letterSpacing: 0.5 }}>YAKINDA AÇILACAK</Text>
+                    <Text style={{ color: "#f59e0b", fontWeight: "800", fontSize: 12, letterSpacing: 0.5 }}>{t("soonOpen")}</Text>
                     <TouchableOpacity onPress={() => setMode("schedule")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Text style={{ color: Colors.muted, fontSize: 11 }}>Tam liste →</Text>
+                      <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("fullList")}</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -2375,7 +2376,7 @@ export default function LiveScreen() {
                     for (const fx of emptyUpcoming) {
                       const ms = kickoffMs(fx);
                       const diffH = ms ? (ms - nowMs) / 3600000 : null;
-                      let label = "Yakında";
+                      let label = t("soon");
                       if (diffH !== null) {
                         const d = new Date(ms!);
                         const dd = d.getDate().toString().padStart(2, "0");
@@ -2396,8 +2397,8 @@ export default function LiveScreen() {
                           const ms = kickoffMs(fx);
                           const diffH = ms ? Math.max(0, (ms - nowMs) / 3600000) : null;
                           const opensIn = diffH !== null && diffH > PREDICT_OPEN_AHEAD_HOURS
-                            ? `${Math.round(diffH - PREDICT_OPEN_AHEAD_HOURS)}s sonra açılır`
-                            : "yakında açılacak";
+                            ? t("opensInH", { h: Math.round(diffH - PREDICT_OPEN_AHEAD_HOURS) })
+                            : t("opensSoon");
                           const timeStr = formatTimeTR(fx.kickoffISO ?? null);
                           return (
                             <View
@@ -2434,9 +2435,9 @@ export default function LiveScreen() {
 
               {!emptyStateLoading && emptyLiveLeagues.length === 0 && emptyUpcoming.length === 0 && (
                 <View style={{ alignItems: "center", paddingVertical: 12 }}>
-                  <Text style={{ color: Colors.muted, fontSize: 12 }}>Yakında maç bilgisi yüklenemedi.</Text>
+                  <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("upcomingLoadFailed")}</Text>
                   <TouchableOpacity onPress={() => loadEmptyState()} style={{ marginTop: 10 }}>
-                    <Text style={{ color: Colors.primary, fontSize: 12, fontWeight: "700" }}>Tekrar dene</Text>
+                    <Text style={{ color: Colors.primary, fontSize: 12, fontWeight: "700" }}>{t("retry")}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -2474,31 +2475,31 @@ export default function LiveScreen() {
               const bos =
                 mode === "mine"
                   ? {
-                      baslik: "Henüz tahmin yapmadın",
-                      alt: "Yaklaşan maçlardan birini seç, kazananı tahmin et. Skor girmek zorunlu değil.",
-                      cta: "Maçlara göz at",
+                      baslik: t("emptyMineTitle"),
+                      alt: t("emptyMineAlt"),
+                      cta: t("emptyMineCta"),
                       git: () => setMode("schedule"),
                     }
                   : mode === "tournaments"
                   ? {
-                      baslik: "Henüz bir turnuvada değilsin",
-                      alt: "Arkadaşlarınla küçük bir turnuva kur; aynı maçlara tahmin yapıp kendi aranızda yarışın.",
-                      cta: "Turnuva kur",
+                      baslik: t("emptyTourTitle"),
+                      alt: t("emptyTourAlt"),
+                      cta: t("emptyTourCta"),
                       git: () => router.push({ pathname: "/mini/create", params: { userId } } as any),
                     }
                   : mode === "gs1987"
                   ? {
-                      baslik: "Bu haftalık maç yok",
-                      alt: "1987 seçimleri maç haftası başlayınca burada listelenir.",
-                      cta: "Tüm maçlara bak",
+                      baslik: t("emptyGsTitle"),
+                      alt: t("emptyGsAlt"),
+                      cta: t("emptyGsCta"),
                       git: () => setMode("schedule"),
                     }
                   : {
                       // Buraya yalnızca "schedule" modu düşer: "open" modu
                       // yukarıda kendi dalında ele alınıyor.
-                      baslik: "Programda maç görünmüyor",
-                      alt: "Seçtiğin ülke ve liglere göre yaklaşan maç bulunamadı. Aşağı çekerek yenileyebilirsin.",
-                      cta: "Yenile",
+                      baslik: t("emptySchedTitle"),
+                      alt: t("emptySchedAlt"),
+                      cta: t("refresh"),
                       git: () => onRefresh(),
                     };
 
