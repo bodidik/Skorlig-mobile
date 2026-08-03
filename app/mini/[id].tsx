@@ -13,6 +13,8 @@ import * as Clipboard from "expo-clipboard";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { t, useLang } from "../../lib/i18n";
+const t2 = t; // `t` degiskeni (turnuva) golgelemesi icin takma ad
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -66,6 +68,7 @@ type BoardResp = {
 type FriendRow = { userId: string; name?: string | null; flag?: string | null };
 
 export default function MiniBoardScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const { id: qId, userId: qUserId } = useLocalSearchParams<{ id?: string; userId?: string }>();
   const id = String(qId || "").trim();
@@ -116,15 +119,15 @@ export default function MiniBoardScreen() {
         body: JSON.stringify({ userId, id, friendUserId }),
       }).then((x) => x.json());
       if (r?.ok) {
-        Alert.alert("SkorLig", r.already ? "Zaten turnuvada." : `${friendUserId} turnuvaya eklendi! 🎉`);
+        Alert.alert("SkorLig", r.already ? t2("alreadyInTour") : t2("addedToTour", { u: friendUserId }));
         load();
       } else {
         const msg =
           r?.error === "NOT_FRIENDS"
-            ? "Bu kullanıcı arkadaş listende değil."
+            ? t2("notInFriends")
             : r?.error === "TOURNAMENT_FULL"
-            ? "Turnuva dolu."
-            : r?.error || "Davet başarısız.";
+            ? t2("tourFull")
+            : r?.error || t2("inviteFailed2");
         Alert.alert("SkorLig", msg);
       }
     } catch (e: any) {
@@ -138,7 +141,7 @@ export default function MiniBoardScreen() {
     const code = data?.tournament?.code;
     if (!code) return;
     await Clipboard.setStringAsync(code);
-    Alert.alert("SkorLig", `Kod kopyalandı: ${code}\nArkadaşlarına gönder!`);
+    Alert.alert("SkorLig", t2("codeCopied", { c: code }));
   }
 
   const t = data?.tournament;
@@ -165,12 +168,12 @@ export default function MiniBoardScreen() {
       {loading && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <ActivityIndicator size="small" />
-          <Text style={{ color: Colors.muted }}>Yükleniyor...</Text>
+          <Text style={{ color: Colors.muted }}>{t2("loading")}</Text>
         </View>
       )}
 
       {!loading && !data?.ok && (
-        <Text style={{ color: "#f97316" }}>Turnuva yüklenemedi: {data?.error || "?"}</Text>
+        <Text style={{ color: "#f97316" }}>{t2("tourLoadFailed", { e: data?.error || "?" })}</Text>
       )}
 
       {!loading && data?.ok && t && (
@@ -194,22 +197,22 @@ export default function MiniBoardScreen() {
                 <>
                   <Text style={{ fontSize: 24 }}>🏆</Text>
                   <Text style={{ fontWeight: "900", color: "#92400e", fontSize: 16, textAlign: "center" }}>
-                    {(t.winners || []).length > 1 ? "Ortak Şampiyonlar: " : "Şampiyon: "}
+                    {(t.winners || []).length > 1 ? t2("coChampions") : t2("champion")}
                     {(t.winners || []).join(", ")}
                   </Text>
                   {!!t.rewardLc && (
                     <Text style={{ color: "#b45309", fontSize: 12, fontWeight: "700" }}>
-                      Ödül: +{t.rewardLc} LC 💰
+                      {t2("rewardRow", { n: t.rewardLc })}
                     </Text>
                   )}
                 </>
               ) : (
                 <Text style={{ color: "#92400e", fontSize: 13, fontWeight: "600" }}>
-                  Turnuva bitti — kimse puan alamadığı için şampiyon yok.
+                  {t2("noChampion")}
                 </Text>
               )}
               <Text style={{ color: "#b45309", fontSize: 10 }}>
-                Bitiş: {String(t.finishedAt).slice(0, 16).replace("T", " ")}
+                {t2("finishRow", { d: String(t.finishedAt).slice(0, 16).replace("T", " ") })}
               </Text>
             </View>
           )}
@@ -229,12 +232,12 @@ export default function MiniBoardScreen() {
             }}
           >
             <View>
-              <Text style={{ color: Colors.muted, fontSize: 11 }}>Katılım kodu (dokun, kopyala)</Text>
+              <Text style={{ color: Colors.muted, fontSize: 11 }}>{t2("joinCode")}</Text>
               <Text style={{ color: "#a5b4fc", fontSize: 22, fontWeight: "900", letterSpacing: 4 }}>{t.code}</Text>
             </View>
             <Text style={{ color: Colors.muted, fontSize: 11 }}>
-              {t.memberCount} katılımcı{"\n"}
-              {data.settledCount}/{(data.fixtures || []).length} maç bitti
+              {t2("nParticipants", { n: t.memberCount })}{"\n"}
+              {t2("nMatchesDone", { a: data.settledCount, b: (data.fixtures || []).length })}
             </Text>
           </TouchableOpacity>
 
@@ -255,9 +258,9 @@ export default function MiniBoardScreen() {
                   gap: 8,
                 }}
               >
-                <Text style={{ fontWeight: "700" }}>Arkadaşlarını Davet Et</Text>
+                <Text style={{ fontWeight: "700" }}>{t2("inviteFriends")}</Text>
                 <Text style={{ color: Colors.muted, fontSize: 11 }}>
-                  Arkadaşın koda gerek kalmadan doğrudan turnuvaya eklenir.
+                  {t2("inviteDirect")}
                 </Text>
                 {invitable.map((f) => (
                   <View
@@ -302,9 +305,9 @@ export default function MiniBoardScreen() {
                 </Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>Benim Sıram</Text>
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>{t2("myRankLbl")}</Text>
                 <Text style={{ color: Colors.muted, fontSize: 11 }}>
-                  {data.totalMembers} katılımcı arasında {data.myRank}. sıra
+                  {t2("rankAmong", { n: data.totalMembers, r: data.myRank })}
                 </Text>
               </View>
               <Text style={{ color: "#a3e635", fontWeight: "900", fontSize: 18 }}>{data.myRow.points} p</Text>
@@ -320,7 +323,7 @@ export default function MiniBoardScreen() {
                 style={{ flex: 1, paddingVertical: 7, borderRadius: 999, backgroundColor: boardTab === tab ? Colors.accent : "transparent", alignItems: "center" }}
               >
                 <Text style={{ color: boardTab === tab ? "#000" : Colors.muted, fontWeight: "700", fontSize: 12 }}>
-                  {tab === "top50" ? `🏆 İlk 50` : `👥 Arkadaşlar (${(data.friendsInBoard || []).length})`}
+                  {tab === "top50" ? t2("top50Tab") : t2("friendsTab", { n: (data.friendsInBoard || []).length })}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -331,7 +334,7 @@ export default function MiniBoardScreen() {
             const rows = boardTab === "friends" ? (data.friendsInBoard || []) : (data.board || []);
             if (rows.length === 0) return (
               <Text style={{ color: Colors.muted, fontSize: 12, textAlign: "center", paddingVertical: 12 }}>
-                {boardTab === "friends" ? "Arkadaşın bu turnuvada yok." : "Henüz katılımcı yok."}
+                {boardTab === "friends" ? t2("noFriendInTour") : t2("noParticipants")}
               </Text>
             );
             return rows.map((row) => {
@@ -367,12 +370,12 @@ export default function MiniBoardScreen() {
           })()}
           {boardTab === "top50" && (data.totalMembers ?? 0) > 50 && (
             <Text style={{ color: Colors.muted, fontSize: 11, textAlign: "center" }}>
-              İlk 50 gösteriliyor • Toplam {data.totalMembers} katılımcı
+              {t2("top50Shown", { n: data.totalMembers })}
             </Text>
           )}
 
           {/* Maçlar */}
-          <Text style={{ fontWeight: "700", marginTop: 4 }}>Turnuva Maçları</Text>
+          <Text style={{ fontWeight: "700", marginTop: 4 }}>{t2("tourMatches")}</Text>
           {(data.fixtures || []).map((f) => {
             const ko = f.kickoffISO ? new Date(f.kickoffISO) : null;
             const upcoming = ko && ko.getTime() > Date.now();
@@ -409,7 +412,7 @@ export default function MiniBoardScreen() {
                   {ko
                     ? ` · ${ko.toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
                     : ""}
-                  {upcoming ? " · tahmin için dokun" : f.settled ? " · puanlandı ✓" : ""}
+                  {upcoming ? t2("tapToPredict") : f.settled ? t2("scored") : ""}
                 </Text>
               </TouchableOpacity>
             );
