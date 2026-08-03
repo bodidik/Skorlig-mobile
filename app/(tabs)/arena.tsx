@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase, resetApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { ligEtiketi } from "../../lib/ulkeler";
 import { t, useLang } from "../../lib/i18n";
 import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
@@ -32,6 +33,8 @@ type MatchArena = {
   home: string;
   away: string;
   league: string | null;
+  /** Lig adlari ulkeden bagimsiz tekrar ediyor — etiket ulkeyi de gostermeli. */
+  country?: string | null;
   kickoffISO: string | null;
   openCount: number;
   minStake: number;
@@ -235,9 +238,13 @@ function MatchCard({ match, userId, myName, lcBalance, onAccepted, onError, onOp
           flexDirection: "row", alignItems: "center",
         }}>
           <View style={{ flex: 1 }}>
-            {match.league ? (
-              <Text style={{ color: "#334155", fontSize: 9, fontWeight: "700", letterSpacing: 1.5, marginBottom: 3 }}>
-                {match.league.toUpperCase()}
+            {ligEtiketi(match.league, match.country) ? (
+              /* ⚠️ toUpperCase KALDIRILDI: bayrak + Türkçe ülke adı büyük
+                 harfe çevrilince bozuluyor ("İ" tuzağı) ve etiket okunmaz
+                 hâle geliyor. Ayırt ediciliği ülke sağlıyor, kapitalizasyon
+                 değil. */
+              <Text style={{ color: "#334155", fontSize: 9, fontWeight: "700", letterSpacing: 1.2, marginBottom: 3 }}>
+                {ligEtiketi(match.league, match.country)}
               </Text>
             ) : null}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
