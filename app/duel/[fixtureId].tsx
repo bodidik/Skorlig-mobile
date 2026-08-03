@@ -7,6 +7,7 @@ import { useLocalSearchParams } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase, resetApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { t, useLang } from "../../lib/i18n";
 import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
 
@@ -132,7 +133,7 @@ function Seat({ name, uid, points, isWinner, settled, tied, empty, onSit, sittin
             borderStyle: "dashed", padding: 16, alignItems: "center", gap: 6, width: "100%",
           }}>
             <Text style={{ fontSize: 26, opacity: 0.3 }}>💺</Text>
-            <Text style={{ color: "#334155", fontSize: 11 }}>Boş</Text>
+            <Text style={{ color: "#334155", fontSize: 11 }}>{t("emptySeat")}</Text>
           </View>
         )}
       </View>
@@ -246,11 +247,11 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel, houseCutPct }:
                 : duel.status === "voided" ? "#94a3b8"
                 : "#475569",
             }}>
-              {duel.status === "open" ? "AÇIK"
-                : duel.status === "active" ? "SÜRÜYOR"
-                : duel.status === "settled" ? (tied ? "BERABERE" : iWon ? "KAZANDIN" : "KAYBETTİN")
-                : duel.status === "voided" ? "İADE EDİLDİ"
-                : "İPTAL"}
+              {duel.status === "open" ? t("stOpen")
+                : duel.status === "active" ? t("stActive")
+                : duel.status === "settled" ? (tied ? t("stTied") : iWon ? t("stWon") : t("stLost"))
+                : duel.status === "voided" ? t("stVoided")
+                : t("stCancelled")}
             </Text>
           </View>
         </View>
@@ -299,10 +300,10 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel, houseCutPct }:
             color: tied ? "#94a3b8" : iWon ? "#4ade80" : "#f87171",
           }}>
             {tied
-              ? "🤝 Berabere — LC'ler iade edildi"
+              ? t("tiedRefund")
               : iWon
-              ? `🏆 Kazandın! +${duel.winAmount ?? kazanc(duel.pot)} LC`
-              : `❌ Kaybettin — ${duel.stake} LC`}
+              ? t("wonMsg", { n: duel.winAmount ?? kazanc(duel.pot) })
+              : t("lostMsg", { n: duel.stake })}
           </Text>
         </View>
       )}
@@ -316,7 +317,7 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel, houseCutPct }:
             borderWidth: 1, borderColor: "#ef444433", paddingVertical: 8, alignItems: "center",
           }}
         >
-          <Text style={{ color: "#ef4444", fontSize: 11 }}>Geri Çek — {duel.stake} LC iade edilir</Text>
+          <Text style={{ color: "#ef4444", fontSize: 11 }}>{t("withdrawRow", { n: duel.stake })}</Text>
         </TouchableOpacity>
       )}
     </Animated.View>
@@ -326,6 +327,7 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel, houseCutPct }:
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function DuelScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const { fixtureId, home: qHome, away: qAway, league: qLeague, kickoffISO: qKickoff } =
     useLocalSearchParams<{ fixtureId?:string; home?:string; away?:string; league?:string; kickoffISO?:string }>();
 
@@ -392,7 +394,7 @@ export default function DuelScreen() {
       if (mj?.ok) setMyDuels(mj.items || []);
       loadBalance(userId);
     } catch (e: any) {
-      showToast(String(e?.message || "Yükleme hatası"), false);
+      showToast(String(e?.message || t("loadError")), false);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -423,14 +425,14 @@ export default function DuelScreen() {
       const j = await r.json();
       if (!j?.ok) {
         showToast(j?.error === "LC_NOT_ENOUGH"
-          ? `Yetersiz LC (${j.lc ?? "?"}/${j.needed ?? selectedStake})`
-          : j?.error || "Hata", false);
+          ? t("insufficientLc2", { a: j.lc ?? "?", b: j.needed ?? selectedStake })
+          : j?.error || t("error"), false);
         return;
       }
-      showToast(`⚔️ ${selectedStake} LC'lik koltuğun hazır — rakip bekleniyor!`);
+      showToast(t("seatReady", { n: selectedStake }));
       loadAll();
     } catch (e: any) {
-      showToast(String(e?.message || "Hata"), false);
+      showToast(String(e?.message || t("error")), false);
     } finally {
       setCreating(false);
     }
@@ -438,7 +440,7 @@ export default function DuelScreen() {
 
   async function acceptDuel(duel: Duel) {
     if (lcBalance !== null && lcBalance < duel.stake) {
-      showToast(`Yetersiz LC — ${duel.stake} LC gerekiyor`, false);
+      showToast(t("needLc", { n: duel.stake }), false);
       return;
     }
     const r = await apiFetch("/api/duels/accept", {
@@ -448,21 +450,21 @@ export default function DuelScreen() {
     });
     const j = await r.json();
     if (!j?.ok) {
-      showToast(j?.error || "Kabul edilemedi", false);
+      showToast(j?.error || t("acceptFailed"), false);
       return;
     }
     /* Sunucu winAmount göndermediyse aynı kuralla hesapla — oran SUNUCUDAN
      * (bkz. houseCutPct notu). Bu, ilk taramamda kaçırdığım DÖRDÜNCÜ yerdi. */
     const prize = duel.winAmount ?? Math.round(duel.pot * (1 - houseCutPct) * 10) / 10;
-    showToast(`Düello başladı! 🏆 Kazanan ${prize} LC alır`);
+    showToast(t("duelStarted", { n: prize }));
     loadAll();
   }
 
   async function cancelDuel(duel: Duel) {
-    Alert.alert("Geri Çek?", `${duel.stake} LC iade edilecek.`, [
-      { text: "İptal", style: "cancel" },
+    Alert.alert(t("withdrawTitle"), t("withdrawMsg", { n: duel.stake }), [
+      { text: t("cancel"), style: "cancel" },
       {
-        text: "Evet, geri çek", style: "destructive",
+        text: t("withdrawYes"), style: "destructive",
         onPress: async () => {
           const r = await apiFetch("/api/duels/cancel", {
             method: "POST",
@@ -524,7 +526,7 @@ export default function DuelScreen() {
             }}>
               <Text style={{ color: "#fbbf24", fontSize: 12 }}>🪙</Text>
               <Text style={{ color: "#fbbf24", fontWeight: "700", fontSize: 12 }}>
-                Bakiyen: {lcBalance} LC
+                {t("yourBalance", { n: lcBalance })}
               </Text>
             </View>
           )}
@@ -550,10 +552,10 @@ export default function DuelScreen() {
         }}>
           <View style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#0a1628" }}>
             <Text style={{ color: "#93c5fd", fontWeight: "800", fontSize: 14 }}>
-              ⚔️  Yeni Meydan Okuma
+              {t("newChallenge")}
             </Text>
             <Text style={{ color: "#334155", fontSize: 11, marginTop: 2 }}>
-              Koltuğa otur, rakip bulsun seni
+              {t("sitHelp")}
             </Text>
           </View>
 
@@ -593,11 +595,11 @@ export default function DuelScreen() {
               </View>
               <View style={{ width: 1, backgroundColor: "#1e293b" }} />
               <View style={{ flex: 1, backgroundColor: "#0f172a", padding: 12, alignItems: "center" }}>
-                <Text style={{ color: "#475569", fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>KAZANIRSAN</Text>
+                <Text style={{ color: "#475569", fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>{t("ifYouWin")}</Text>
                 <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 22, marginTop: 2 }}>
                   {Math.round(selectedStake * 2 * (1 - houseCutPct) * 10) / 10} LC
                 </Text>
-                <Text style={{ color: "#334155", fontSize: 9, marginTop: 1 }}>%{Math.round(houseCutPct * 100)} kasa payı düşüldü</Text>
+                <Text style={{ color: "#334155", fontSize: 9, marginTop: 1 }}>{t("houseCutRow", { n: Math.round(houseCutPct * 100) })}</Text>
               </View>
             </View>
 
@@ -610,7 +612,7 @@ export default function DuelScreen() {
               }}>
                 <Text style={{ fontSize: 26 }}>{playerAvatar(myDisplayName)}</Text>
                 <Text style={{ color: "#93c5fd", fontWeight: "700", fontSize: 12 }} numberOfLines={1}>
-                  {myDisplayName || "Sen"}
+                  {myDisplayName || t("you")}
                 </Text>
               </View>
 
@@ -623,7 +625,7 @@ export default function DuelScreen() {
                 padding: 12, alignItems: "center", gap: 4,
               }}>
                 <Text style={{ fontSize: 26, opacity: 0.25 }}>💺</Text>
-                <Text style={{ color: "#334155", fontSize: 11 }}>Rakip bekleniyor</Text>
+                <Text style={{ color: "#334155", fontSize: 11 }}>{t("waitingOpponent")}</Text>
               </View>
             </View>
 
@@ -633,12 +635,10 @@ export default function DuelScreen() {
                 backgroundColor: "#0b1220", padding: 12, gap: 4,
               }}>
                 <Text style={{ color: "#e2e8f0", fontSize: 13, fontWeight: "800" }}>
-                  Bu maç düelloya kapalı
+                  {t("duelClosedTitle")}
                 </Text>
                 <Text style={{ color: "#64748b", fontSize: 11, lineHeight: 16 }}>
-                  Sonuç büyük ölçüde belli olduğu için düello açılmıyor. Sürprizi
-                  tek maç tahmininde oynayabilirsin — düşük ihtimalli sonuç daha
-                  çok LC getirir.
+                  {t("duelClosedMsg")}
                 </Text>
               </View>
             ) : (
@@ -658,8 +658,8 @@ export default function DuelScreen() {
               ) : (
                 <Text style={{ fontWeight: "900", fontSize: 15, color: !canAfford ? "#334155" : "#0f172a" }}>
                   {!canAfford
-                    ? `Yetersiz LC (${lcBalance}/${selectedStake})`
-                    : `⚔️  ${selectedStake} LC ile Koltuğa Otur`}
+                    ? t("insufficientLc2", { a: lcBalance, b: selectedStake })
+                    : t("sitDown", { n: selectedStake })}
                 </Text>
               )}
             </TouchableOpacity>
@@ -671,12 +671,12 @@ export default function DuelScreen() {
         {loading ? (
           <View style={{ paddingVertical: 32, alignItems: "center", gap: 8 }}>
             <ActivityIndicator color="#3b82f6" size="large" />
-            <Text style={{ color: "#334155", fontSize: 12 }}>Arena yükleniyor...</Text>
+            <Text style={{ color: "#334155", fontSize: 12 }}>{t("arenaLoading")}</Text>
           </View>
         ) : openDuels.length > 0 ? (
           <View style={{ gap: 10 }}>
             <Text style={{ color: "#334155", fontSize: 10, fontWeight: "700", letterSpacing: 2, paddingHorizontal: 2 }}>
-              AÇIK KOLTUКLAR ({openDuels.length})
+              {t("openSeats", { n: openDuels.length })}
             </Text>
             {openDuels.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
@@ -690,9 +690,9 @@ export default function DuelScreen() {
             backgroundColor: "#07101f",
           }}>
             <Text style={{ fontSize: 32 }}>🏟️</Text>
-            <Text style={{ color: "#475569", fontSize: 14, fontWeight: "700" }}>Arena boş</Text>
+            <Text style={{ color: "#475569", fontSize: 14, fontWeight: "700" }}>{t("arenaEmpty")}</Text>
             <Text style={{ color: "#334155", fontSize: 12, textAlign: "center", lineHeight: 18 }}>
-              Bu maç için henüz kimse koltuğa oturmadı.{"\n"}İlk meydan okumayı sen başlat!
+              {t("arenaEmptyA")}{"\n"}{t("arenaEmptyB")}
             </Text>
           </View>
         )}
@@ -701,7 +701,7 @@ export default function DuelScreen() {
         {myActive.length > 0 && (
           <View style={{ gap: 10 }}>
             <Text style={{ color: "#334155", fontSize: 10, fontWeight: "700", letterSpacing: 2, paddingHorizontal: 2 }}>
-              AKTİF DUELLOLARlM ({myActive.length})
+              {t("myActiveDuels", { n: myActive.length })}
             </Text>
             {myActive.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
@@ -714,7 +714,7 @@ export default function DuelScreen() {
         {mySettled.length > 0 && (
           <View style={{ gap: 10 }}>
             <Text style={{ color: "#334155", fontSize: 10, fontWeight: "700", letterSpacing: 2, paddingHorizontal: 2 }}>
-              GEÇMİŞ DUELLOLAR
+              {t("pastDuels")}
             </Text>
             {mySettled.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
