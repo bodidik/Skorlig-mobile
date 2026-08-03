@@ -14,6 +14,7 @@ import Constants from "expo-constants";
 import Colors, { on } from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -105,6 +106,7 @@ type WalletSummary = {
 };
 
 export default function MyStatusScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const {
     fixtureId: qFx,
@@ -293,7 +295,7 @@ export default function MyStatusScreen() {
 
   const loadAll = useCallback(async () => {
     if (!fixtureId) {
-      Alert.alert("SkorLig", "FixtureId parametresi eksik görünüyor.");
+      Alert.alert("SkorLig", t("missingFixture"));
       return;
     }
     setLoading(true);
@@ -323,7 +325,7 @@ export default function MyStatusScreen() {
   // Tahmin ekranına geçiş
   const goToPredict = useCallback(() => {
     if (!fixtureId) {
-      Alert.alert("SkorLig", "Fixture bilgisi bulunamadı.");
+      Alert.alert("SkorLig", t("fixtureNotFound"));
       return;
     }
     router.push({
@@ -336,7 +338,7 @@ export default function MyStatusScreen() {
   const verifyCode = useCallback(async () => {
     const code = codeInput.trim();
     if (!code) {
-      Alert.alert("SkorLig", "Lütfen geçerli bir 1987 kodu gir.");
+      Alert.alert("SkorLig", t("enterValid1987"));
       return;
     }
     try {
@@ -348,14 +350,14 @@ export default function MyStatusScreen() {
       });
       const j: Auth1987VerifyResponse = await r.json();
       if (!r.ok || !j?.ok) {
-        Alert.alert("SkorLig", j?.error || "Kod doğrulanamadı.");
+        Alert.alert("SkorLig", j?.error || t("codeVerifyFailed"));
         return;
       }
       setCodeInput("");
       setIs1987(true);
-      Alert.alert("SkorLig", "1987GS erişimin açıldı.");
+      Alert.alert("SkorLig", t("access1987Opened"));
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setVerifyingCode(false);
     }
@@ -365,15 +367,15 @@ export default function MyStatusScreen() {
 
   function labelForOutcome(o?: string | null) {
     const v = String(o || "").toUpperCase();
-    if (v === "H") return "Ev kazanır";
-    if (v === "A") return "Dep kazanır";
-    if (v === "D") return "Berabere";
+    if (v === "H") return t("homeWins");
+    if (v === "A") return t("awayWins");
+    if (v === "D") return t("drawLbl");
     return "-";
   }
 
   function sideLabel(s?: "H" | "A" | null) {
-    if (s === "H") return "Ev";
-    if (s === "A") return "Dep";
+    if (s === "H") return t("home");
+    if (s === "A") return t("awayAbbr");
     return "-";
   }
 
@@ -428,7 +430,7 @@ export default function MyStatusScreen() {
             }}
           >
             {name}
-            {isMe ? " (ben)" : ""}
+            {isMe ? t("me2") : ""}
             {isBot ? " 🤖" : ""}
           </Text>
           {!!row.tag && (
@@ -458,38 +460,38 @@ export default function MyStatusScreen() {
           onPress={() => { if (router.canGoBack()) router.back(); else router.replace("/(tabs)/live" as any); }}
           style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: Colors.border }}
         >
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
         </TouchableOpacity>
         <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900, flex: 1 }}>
-          Maç Durumum
+          {t("myMatchStatus")}
         </Text>
         <TouchableOpacity
           onPress={() => router.replace("/(tabs)/live" as any)}
           style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: Colors.border }}
         >
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>🏠 Ana</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("homeBtn")}</Text>
         </TouchableOpacity>
       </View>
 
       <Text style={{ color: Colors.muted, fontSize: 12, marginBottom: 4 }}>
-        Fixture: {fixtureId || "-"} · Kullanıcı: {userId}
+        {t("fixtureUserRow", { f: fixtureId || "-", u: userId })}
       </Text>
 
       {predFlagLoading ? (
         <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 8 }}>
-          Bu maç için tahmin durumun kontrol ediliyor...
+          {t("checkingPred")}
         </Text>
       ) : hasPredFlag === true ? (
         <Text style={{ color: Colors.accent, fontSize: 11, marginBottom: 8 }}>
-          Bu maç için kayıtlı bir tahminin var.
+          {t("havePred2")}
         </Text>
       ) : hasPredFlag === false ? (
         <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 8 }}>
-          Bu maç için henüz tahmin yapmamış görünüyorsun.
+          {t("noPredThis")}
         </Text>
       ) : (
         <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 8 }}>
-          Tahmin durumu şu an net değil (bağlantı hatası olabilir).
+          {t("predUnclear")}
         </Text>
       )}
 
@@ -512,7 +514,7 @@ export default function MyStatusScreen() {
           <>
             <ActivityIndicator size="small" />
             <Text style={{ color: Colors.muted, fontSize: 11, flex: 1 }}>
-              LC cüzdanın yükleniyor...
+              {t("walletLoading2")}
             </Text>
           </>
         ) : wallet ? (
@@ -521,8 +523,7 @@ export default function MyStatusScreen() {
               {wallet.user?.balance ?? 0} LC
             </Text>
             <Text style={{ color: Colors.muted, fontSize: 11, flex: 1 }} numberOfLines={2}>
-              Maç girişi: {wallet.pricing?.matchEntryCost ?? 0} LC · Günlük hak:{" "}
-              {wallet.daily?.amount ?? 0} LC
+              {t("entryDaily", { e: wallet.pricing?.matchEntryCost ?? 0, d: wallet.daily?.amount ?? 0 })}
             </Text>
             <TouchableOpacity
               onPress={() => router.push({ pathname: "/me", params: { userId } })}
@@ -534,13 +535,13 @@ export default function MyStatusScreen() {
               }}
             >
               <Text style={{ fontSize: 11, fontWeight: "700", color: Colors.slate900 }}>
-                Cüzdan
+                {t("walletBtn")}
               </Text>
             </TouchableOpacity>
           </>
         ) : (
           <Text style={{ color: Colors.muted, fontSize: 11, flex: 1 }}>
-            LC cüzdan bilgisi alınamadı. Profil ekranından tekrar deneyebilirsin.
+            {t("walletInfoFailed")}
           </Text>
         )}
       </View>
@@ -549,7 +550,7 @@ export default function MyStatusScreen() {
         <View style={{ marginTop: 32, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator />
           <Text style={{ marginTop: 8, color: Colors.muted, fontSize: 12 }}>
-            Yükleniyor...
+            {t("loading")}
           </Text>
         </View>
       ) : (
@@ -569,19 +570,19 @@ export default function MyStatusScreen() {
             <Text style={{ fontWeight: "700" }}>Benim tahminim</Text>
             {myPred ? (
               <>
-                <Text style={{ color: Colors.muted, fontSize: 12 }}>Skor: {myScoreText}</Text>
+                <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("scoreRow", { s: myScoreText })}</Text>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  Maç sonucu: {myOutcomeText}
+                  {t("outcomeRow", { o: myOutcomeText })}
                 </Text>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  İlk gol: {sideLabel(myPred.firstGoal as any)}
+                  {t("firstGoalRow", { s: sideLabel(myPred.firstGoal as any) })}
                 </Text>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  İlk yarı: {labelForOutcome(myPred.firstHalf)}
+                  {t("firstHalfRow", { o: labelForOutcome(myPred.firstHalf) })}
                 </Text>
 
                 <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 6 }}>
-                  Gönderim zamanı: {myPred.at || "—"}
+                  {t("sentAtRow", { d: myPred.at || "—" })}
                 </Text>
 
                 <TouchableOpacity
@@ -601,14 +602,14 @@ export default function MyStatusScreen() {
                       fontSize: 13,
                     }}
                   >
-                    Tahminimi güncelle
+                    {t("updateMyPred")}
                   </Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
                 <Text style={{ color: Colors.muted, fontSize: 12, marginBottom: 6 }}>
-                  Bu maç için kayıtlı tahmin bulunamadı.
+                  {t("noSavedPred")}
                 </Text>
                 <TouchableOpacity
                   onPress={goToPredict}
@@ -627,7 +628,7 @@ export default function MyStatusScreen() {
                       fontSize: 13,
                     }}
                   >
-                    Bu maç için tahmin yap
+                    {t("makePredFor")}
                   </Text>
                 </TouchableOpacity>
               </>
@@ -654,10 +655,10 @@ export default function MyStatusScreen() {
               }}
             >
               <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
-                Maç Bazlı Mikro Tablo
+                {t("microBoard")}
               </Text>
               <Text style={{ color: Colors.muted, fontSize: 10 }}>
-                Güncelleme: {boardUpdatedAt || "-"}
+                {t("updatedRow", { d: boardUpdatedAt || "-" })}
               </Text>
             </View>
 

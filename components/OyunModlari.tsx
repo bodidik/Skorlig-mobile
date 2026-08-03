@@ -33,6 +33,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import Colors from "../constants/colors";
+import { t, useLang } from "../lib/i18n";
 
 export type OyunModlariProps = {
   /** Maç girişi bedeli (LC) — cüzdan özetindeki `pricing.matchEntryCost`. */
@@ -61,6 +62,7 @@ export default function OyunModlari({
   is1987,
   onMod,
 }: OyunModlariProps) {
+  useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
 
   const bedelMetni = (n?: number | null) =>
@@ -70,8 +72,8 @@ export default function OyunModlari({
     {
       key: "tek",
       ikon: "⚽",
-      ad: "Tek Maç",
-      aciklama: "Skoru tahmin et, tuttursan puan",
+      ad: t("modeSingle"),
+      aciklama: t("modeSingleDesc"),
       bedel: bedelMetni(macBedeli),
       renk: "#22c55e",
       bas: () => router.push("/(tabs)/predict" as any),
@@ -79,8 +81,8 @@ export default function OyunModlari({
     {
       key: "kupon",
       ikon: "🎟️",
-      ad: "Haftalık Kupon",
-      aciklama: "Haftanın maçları tek kuponda",
+      ad: t("weeklyKupon"),
+      aciklama: t("modeKuponDesc"),
       bedel: bedelMetni(kuponBedeli),
       renk: "#22d3ee",
       bas: () => router.push("/kupon" as any),
@@ -88,29 +90,29 @@ export default function OyunModlari({
     {
       key: "duello",
       ikon: "⚔️",
-      ad: "Düello",
-      aciklama: "Birebir bahis, kazanan alır",
-      bedel: "bahsi sen seç",
+      ad: t("modeDuel"),
+      aciklama: t("modeDuelDesc"),
+      bedel: t("youPickStake"),
       renk: "#f59e0b",
       bas: () => router.push("/(tabs)/arena" as any),
     },
     {
       key: "havuz",
       ikon: "💰",
-      ad: "Maç Havuzu",
+      ad: t("matchPool"),
       // ⚠️ Havuz maça özel: rota fixtureId istiyor. Kullanıcıyı maç listesine
       // yollayıp nereden açacağını SÖYLÜYORUZ — sessiz bir düğmeden iyidir.
-      aciklama: "Maç kartından aç · doğru bilenler paylaşır",
-      bedel: "bahsi sen seç",
+      aciklama: t("modePoolDesc"),
+      bedel: t("youPickStake"),
       renk: "#a78bfa",
       bas: () => onMod?.("open"),
     },
     {
       key: "mini",
       ikon: "🏅",
-      ad: "Mini Turnuva",
-      aciklama: "Arkadaşlarınla özel tablo",
-      bedel: "ücretsiz",
+      ad: t("modeMini"),
+      aciklama: t("modeMiniDesc"),
+      bedel: t("freeLbl"),
       renk: "#38bdf8",
       bas: () => router.push("/mini/create" as any),
     },
@@ -118,8 +120,8 @@ export default function OyunModlari({
       key: "gs1987",
       ikon: "🔴",
       ad: "1987GS",
-      aciklama: "Gruba özel haftalık seçimler",
-      bedel: is1987 ? "üyelere açık" : "kod gerekir",
+      aciklama: t("modeGsDesc"),
+      bedel: is1987 ? t("membersOpen") : t("codeNeeded"),
       renk: "#f87171",
       // Üye ise ekran içi mod; değilse doğrulama ekranı (o gerçek bir rota).
       bas: () => (is1987 ? onMod?.("gs1987") : router.push("/gs1987-verify" as any)),
@@ -129,10 +131,10 @@ export default function OyunModlari({
   return (
     <View style={{ marginBottom: 14 }}>
       <Text style={{ color: Colors.text, fontSize: 14, fontWeight: "800", marginBottom: 2 }}>
-        Ne oynamak istersin?
+        {t("whatToPlay")}
       </Text>
       <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 10 }}>
-        Altı mod, tek cüzdan — hepsi aynı LC'yi kullanır
+        {t("sixModes")}
       </Text>
 
       <ScrollView
