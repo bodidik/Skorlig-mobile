@@ -11,6 +11,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -62,6 +63,7 @@ type WeekSummary = {
 const REWARD_MEDALS = ["🥇", "🥈", "🥉"];
 
 export default function TrLeagueScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const { userId: qUserId } = useLocalSearchParams<{ userId?: string }>();
   const userId = String(qUserId || "demo1").trim();
@@ -120,10 +122,10 @@ export default function TrLeagueScreen() {
   }, [loadWeek]);
 
   const statusLabel: Record<string, string> = {
-    upcoming: "Yaklaşan",
-    live: "Bu hafta",
-    pending: "Sonuç bekleniyor",
-    settled: "Bitti",
+    upcoming: t("stUpcoming"),
+    live: t("stThisWeek"),
+    pending: t("stPending"),
+    settled: t("stDone"),
   };
 
   return (
@@ -145,9 +147,9 @@ export default function TrLeagueScreen() {
         <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
       </TouchableOpacity>
 
-      <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>🇹🇷 Türkiye Tahmin Ligi</Text>
+      <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>{t("trLeagueTitle")}</Text>
       <Text style={{ color: Colors.muted, fontSize: 12 }}>
-        Süper Lig'e paralel haftalık tahmin ligi. Doğru bilirsen puan, yanlışta ceza. Her hafta ilk 3'e LC ödülü
+        {t("trLeagueIntro")}
         {rewards.length ? ` (${rewards.join(" / ")} LC)` : ""}.
       </Text>
       {squad.length > 0 && (
@@ -169,7 +171,7 @@ export default function TrLeagueScreen() {
             }}
           >
             <Text style={{ fontSize: 12, fontWeight: "600", color: !selectedWeek ? "#fff" : Colors.slate900 }}>
-              Güncel
+              {t("currentLbl")}
             </Text>
           </TouchableOpacity>
           {weeks.map((w) => {
@@ -199,7 +201,7 @@ export default function TrLeagueScreen() {
       {loading && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
           <ActivityIndicator size="small" />
-          <Text style={{ color: Colors.muted }}>Yükleniyor...</Text>
+          <Text style={{ color: Colors.muted }}>{t("loading")}</Text>
         </View>
       )}
 
@@ -230,24 +232,24 @@ export default function TrLeagueScreen() {
             >
               <Text style={{ fontSize: 22 }}>🏆</Text>
               <Text style={{ fontWeight: "900", color: "#92400e", fontSize: 15, textAlign: "center" }}>
-                Haftanın Şampiyonu: {(data.finalized.winners || []).join(", ")}
+                {t("weekChampion", { w: (data.finalized.winners || []).join(", ") })}
               </Text>
             </View>
           )}
 
           {data.fixtureCount === 0 ? (
             <Text style={{ color: Colors.muted, fontSize: 13, marginTop: 8 }}>
-              Bu hafta için henüz maç yok. Süper Lig sezonu başlayınca kadro takımlarının maçları burada belirir.
+              {t("noWeekMatchesTr")}
             </Text>
           ) : (
             <>
               {/* Sıralama */}
               <Text style={{ fontWeight: "700", marginTop: 4 }}>
-                Haftalık Sıralama · {data.settledCount}/{data.fixtureCount} maç işlendi
+                {t("weeklyRankRow", { a: data.settledCount, b: data.fixtureCount })}
               </Text>
               {(data.board || []).length === 0 && (
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  Henüz puan yok. Bu haftanın maçlarına tahmin gir!
+                  {t("noPointsYet")}
                 </Text>
               )}
               {(data.board || []).map((row, ix) => {
@@ -285,12 +287,12 @@ export default function TrLeagueScreen() {
 
               {data.myRank && (
                 <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
-                  Senin sıran: {data.myRank.rank}. · {data.myRank.points} puan
+                  {t("yourRankRow", { r: data.myRank.rank, p: data.myRank.points })}
                 </Text>
               )}
 
               {/* Maçlar */}
-              <Text style={{ fontWeight: "700", marginTop: 8 }}>Bu Haftanın Maçları</Text>
+              <Text style={{ fontWeight: "700", marginTop: 8 }}>{t("thisWeekMatches")}</Text>
               {(data.fixtures || []).map((f) => {
                 const ko = f.kickoffISO ? new Date(f.kickoffISO) : null;
                 const upcoming = ko && ko.getTime() > Date.now();
@@ -326,7 +328,7 @@ export default function TrLeagueScreen() {
                       {ko
                         ? ko.toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
                         : ""}
-                      {upcoming ? " · tahmin için dokun" : f.settled ? " · puanlandı ✓" : ""}
+                      {upcoming ? t("tapToPredict") : f.settled ? t("scored") : ""}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -337,7 +339,7 @@ export default function TrLeagueScreen() {
       )}
 
       {!loading && !data?.ok && (
-        <Text style={{ color: "#f97316", marginTop: 8 }}>Lig yüklenemedi: {data?.error || "?"}</Text>
+        <Text style={{ color: "#f97316", marginTop: 8 }}>{t("leagueLoadFailed", { e: data?.error || "?" })}</Text>
       )}
     </ScrollView>
   );

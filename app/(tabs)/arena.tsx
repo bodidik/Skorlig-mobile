@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase, resetApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { t, useLang } from "../../lib/i18n";
 import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
 import { usePolling } from "../../hooks/usePolling";
@@ -74,8 +75,8 @@ function kickoffLabel(iso: string | null): string {
     const d = new Date(iso);
     const now = new Date();
     const diff = d.getTime() - now.getTime();
-    if (diff < 0) return "Başladı";
-    if (diff < 3600000) return `${Math.round(diff / 60000)} dk`;
+    if (diff < 0) return t("started");
+    if (diff < 3600000) return t("nMin", { n: Math.round(diff / 60000) });
     return d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
   } catch { return ""; }
 }
@@ -111,7 +112,7 @@ function MiniDuelRow({ duel, userId, myName, lcBalance, onAccepted, onError }: {
   const creatorLabel = duel.creatorName || shortId(duel.creatorId);
 
   async function sit() {
-    if (!canAfford) { onError(`Bu duello için ${duel.stake} LC gerekiyor`); return; }
+    if (!canAfford) { onError(t("needLcForDuel", { n: duel.stake })); return; }
     setSitting(true);
     try {
       const r = await apiFetch("/api/duels/accept", {
@@ -125,7 +126,7 @@ function MiniDuelRow({ duel, userId, myName, lcBalance, onAccepted, onError }: {
           setAccepted(true); // başkası kapmış
           onAccepted(duel.id);
         } else {
-          onError(j?.error || "Kabul edilemedi");
+          onError(j?.error || t("acceptFailed"));
         }
         return;
       }
@@ -259,7 +260,7 @@ function MatchCard({ match, userId, myName, lcBalance, onAccepted, onError, onOp
             }}>
               <Text style={{ fontSize: 10 }}>⚔️</Text>
               <Text style={{ color: "#60a5fa", fontWeight: "800", fontSize: 11 }}>
-                {remainingCount} açık
+                {t("nOpen", { n: remainingCount })}
               </Text>
             </View>
             <Text style={{ color: "#334155", fontSize: 9 }}>{stakeRange}</Text>
@@ -290,19 +291,19 @@ function MatchCard({ match, userId, myName, lcBalance, onAccepted, onError, onOp
               }}
             >
               <Text style={{ color: "#475569", fontSize: 11 }}>
-                +{remainingCount - visible.length} daha · Tümünü gör →
+                {t("moreSeeAll", { n: remainingCount - visible.length })}
               </Text>
             </TouchableOpacity>
           )}
         </View>
       ) : remainingCount === 0 ? (
         <View style={{ padding: 12, alignItems: "center" }}>
-          <Text style={{ color: "#1e293b", fontSize: 11 }}>Tüm koltuкlar doldu</Text>
+          <Text style={{ color: "#1e293b", fontSize: 11 }}>{t("allSeatsFull")}</Text>
         </View>
       ) : (
         <TouchableOpacity onPress={() => onOpenFull(match)} style={{ padding: 12, alignItems: "center" }}>
           <Text style={{ color: "#475569", fontSize: 11 }}>
-            {remainingCount} açık koltuk · Görüntüle →
+            {t("nOpenSeats", { n: remainingCount })}
           </Text>
         </TouchableOpacity>
       )}
@@ -315,6 +316,7 @@ function MatchCard({ match, userId, myName, lcBalance, onAccepted, onError, onOp
 const POLL_MS = 15_000;
 
 export default function ArenaScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const userId = useUserId();
   const myName = auth.currentUser?.displayName || null;
@@ -350,7 +352,7 @@ export default function ArenaScreen() {
       if (j?.ok) setMatches(j.matches || []);
       loadBalance();
     } catch (e: any) {
-      if (!silent) showToast(String(e?.message || "Yükleme hatası"), false);
+      if (!silent) showToast(String(e?.message || t("loadError")), false);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -374,7 +376,7 @@ export default function ArenaScreen() {
   }, []);
 
   function handleAccepted(duelId: string) {
-    showToast("Düello başladı! 🏆 Tahminini yap");
+    showToast(t("duelStarted2"));
     // silently refresh to catch other changes
     setTimeout(() => loadArena(true), 500);
   }
@@ -401,7 +403,7 @@ export default function ArenaScreen() {
         flexDirection: "row", alignItems: "center", justifyContent: "space-between",
       }}>
         <View>
-          <Text style={{ color: "#f1f5f9", fontWeight: "900", fontSize: 20 }}>⚔️ Duello Arenası</Text>
+          <Text style={{ color: "#f1f5f9", fontWeight: "900", fontSize: 20 }}>{t("duelArena")}</Text>
           <Text style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
             Otur, rakip bulsun seni
           </Text>
@@ -451,7 +453,7 @@ export default function ArenaScreen() {
         {loading ? (
           <View style={{ paddingVertical: 60, alignItems: "center", gap: 10 }}>
             <ActivityIndicator color="#3b82f6" size="large" />
-            <Text style={{ color: "#64748b", fontSize: 12 }}>Arena yükleniyor...</Text>
+            <Text style={{ color: "#64748b", fontSize: 12 }}>{t("arenaLoading")}</Text>
           </View>
         ) : matches.length === 0 ? (
           <View style={{
@@ -460,9 +462,9 @@ export default function ArenaScreen() {
             backgroundColor: "#07101f",
           }}>
             <Text style={{ fontSize: 40 }}>🏟️</Text>
-            <Text style={{ color: "#94a3b8", fontSize: 15, fontWeight: "700" }}>Arena şu an boş</Text>
+            <Text style={{ color: "#94a3b8", fontSize: 15, fontWeight: "700" }}>{t("arenaEmptyNow")}</Text>
             <Text style={{ color: "#64748b", fontSize: 12, textAlign: "center", lineHeight: 18 }}>
-              Bir maça tahmin yap, koltuğa otur;{"\n"}rakip gelince duello başlasın.
+              {t("arenaEmptyHelp1")}{"\n"}{t("arenaEmptyHelp2")}
             </Text>
             <TouchableOpacity
               onPress={() => router.push({ pathname: "/(tabs)/live", params: { tab: "open" } })}
@@ -474,13 +476,13 @@ export default function ArenaScreen() {
               }}
             >
               <Text style={{ fontSize: 14 }}>⚽</Text>
-              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>Maçlara git, tahmin yap</Text>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>{t("goMatchesPredict")}</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
             <Text style={{ color: "#334155", fontSize: 9, fontWeight: "700", letterSpacing: 2, paddingHorizontal: 2 }}>
-              {matches.length} MAÇ — {matches.reduce((s, m) => s + m.openCount, 0)} AÇIK KOLTUK
+              {t("nMatchSeats", { m: matches.length, k: matches.reduce((s, m) => s + m.openCount, 0) })}
             </Text>
             {matches.map(m => (
               <MatchCard

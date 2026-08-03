@@ -13,6 +13,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { t, useLang } from "../../lib/i18n";
+const t2 = t; // map(t) golgelemesi icin takma ad
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -39,6 +41,7 @@ type MiniT = {
 };
 
 export default function MiniTournamentsScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const { userId: qUserId } = useLocalSearchParams<{ userId?: string }>();
   const userId = String(qUserId || "demo1").trim();
@@ -68,7 +71,7 @@ export default function MiniTournamentsScreen() {
   async function join() {
     const code = joinCode.trim().toUpperCase();
     if (!code) {
-      Alert.alert("SkorLig", "Önce arkadaşının paylaştığı turnuva kodunu yaz.");
+      Alert.alert("SkorLig", t("writeCodeFirst"));
       return;
     }
     try {
@@ -79,20 +82,20 @@ export default function MiniTournamentsScreen() {
         body: JSON.stringify({ userId, code }),
       }).then((x) => x.json());
       if (r?.ok) {
-        Alert.alert("SkorLig", r.already ? "Zaten bu turnuvadasın." : `"${r.tournament?.name}" turnuvasına katıldın! 🎉`);
+        Alert.alert("SkorLig", r.already ? t("alreadyInThisTour") : t("joinedTour", { n: r.tournament?.name }));
         setJoinCode("");
         load();
       } else {
         const msg =
           r?.error === "TOURNAMENT_NOT_FOUND"
-            ? "Bu kodla bir turnuva bulunamadı."
+            ? t("codeNotFound")
             : r?.error === "TOURNAMENT_FULL"
-            ? "Turnuva dolu."
-            : r?.error || "Katılım başarısız.";
+            ? t("tourFull")
+            : r?.error || t("joinFailed3");
         Alert.alert("SkorLig", msg);
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      Alert.alert(t("error"), String(e?.message || e));
     } finally {
       setJoining(false);
     }
@@ -114,19 +117,19 @@ export default function MiniTournamentsScreen() {
       contentContainerStyle={{ padding: 16, gap: 12 }}
     >
       <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 4 }}>
-        <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+        <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
       </TouchableOpacity>
 
-      <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>Mini Turnuvalar</Text>
+      <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>{t("miniToursTitle")}</Text>
       <Text style={{ color: Colors.muted, fontSize: 12 }}>
-        Birkaç maç seç, turnuva kur, kodu arkadaşlarına gönder. En çok tahmin puanı toplayan kazanır.
+        {t("miniIntro")}
       </Text>
 
       <TouchableOpacity
         onPress={() => router.push({ pathname: "/mini/create", params: { userId } })}
         style={{ padding: 12, backgroundColor: Colors.accent, borderRadius: 12 }}
       >
-        <Text style={{ textAlign: "center", color: Colors.onAccent, fontWeight: "800" }}>+ Yeni Mini Turnuva Kur</Text>
+        <Text style={{ textAlign: "center", color: Colors.onAccent, fontWeight: "800" }}>{t("newMiniTour")}</Text>
       </TouchableOpacity>
 
       {/* Kodla katıl */}
@@ -140,12 +143,12 @@ export default function MiniTournamentsScreen() {
           gap: 8,
         }}
       >
-        <Text style={{ fontWeight: "700" }}>Kodla Katıl</Text>
+        <Text style={{ fontWeight: "700" }}>{t("joinWithCode")}</Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TextInput
             value={joinCode}
             onChangeText={setJoinCode}
-            placeholder="örn: A3K7ZP"
+            placeholder={t("codePh3")}
             autoCapitalize="characters"
             autoCorrect={false}
             maxLength={8}
@@ -170,22 +173,22 @@ export default function MiniTournamentsScreen() {
               backgroundColor: joining ? Colors.border : Colors.live,
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>{joining ? "..." : "Katıl"}</Text>
+            <Text style={{ color: "#fff", fontWeight: "700" }}>{joining ? "..." : t("join")}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Turnuvalarım */}
-      <Text style={{ fontWeight: "700", marginTop: 4 }}>Turnuvalarım</Text>
+      <Text style={{ fontWeight: "700", marginTop: 4 }}>{t("myTours")}</Text>
       {loading && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <ActivityIndicator size="small" />
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>Yükleniyor...</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("loading")}</Text>
         </View>
       )}
       {!loading && items.length === 0 && (
         <Text style={{ color: Colors.muted, fontSize: 12 }}>
-          Henüz bir mini turnuvan yok. Yukarıdan kur ya da arkadaşının koduyla katıl.
+          {t("noMiniYet")}
         </Text>
       )}
       {items.map((t) => (
@@ -207,8 +210,8 @@ export default function MiniTournamentsScreen() {
             <Text style={{ color: "#a5b4fc", fontSize: 11, fontWeight: "700" }}>{t.code}</Text>
           </View>
           <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
-            {t.fixtures?.length || 0} maç · {t.memberCount} katılımcı
-            {t.ownerId === userId ? " · 👑 kurucu" : ""}
+            {t2("tourRow", { m: t.fixtures?.length || 0, k: t.memberCount })}
+            {t.ownerId === userId ? t2("founderSuffix") : ""}
           </Text>
         </TouchableOpacity>
       ))}

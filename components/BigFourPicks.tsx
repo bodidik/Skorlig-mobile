@@ -12,6 +12,7 @@ import { auth } from "../lib/firebase";
 /* Jetonu otomatik ekler — sunucu kendi tahminini yalnızca doğrulanmış
  * kimliğe veriyor (bkz. api/routes/weekly-picks.cjs). */
 import { apiFetch } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 
 const API = Constants.expoConfig?.extra?.apiBase ?? "https://skorlig87.onrender.com";
 
@@ -33,11 +34,11 @@ interface Pick {
 }
 
 function countdown(minutesUntil: number): string {
-  if (minutesUntil <= 0) return "Başladı";
-  if (minutesUntil < 60) return `${minutesUntil} dk`;
+  if (minutesUntil <= 0) return t("started");
+  if (minutesUntil < 60) return t("nMin", { n: minutesUntil });
   const h = Math.floor(minutesUntil / 60);
   const m = minutesUntil % 60;
-  return m > 0 ? `${h} sa ${m} dk` : `${h} saat`;
+  return m > 0 ? t("hMin", { h, m }) : t("nHours", { h });
 }
 
 function teamShort(name: string): string {
@@ -57,6 +58,7 @@ function teamColor(name: string): string {
 }
 
 export default function BigFourPicks() {
+  useLang(); // dil değişince yeniden çizilsin
   const [picks, setPicks] = useState<Pick[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -112,8 +114,8 @@ export default function BigFourPicks() {
   if (error)   return <Text style={s.err}>{error}</Text>;
   if (!picks.length) return (
     <View style={s.empty}>
-      <Text style={s.emptyTitle}>Bu Hafta Maç Yok</Text>
-      <Text style={s.emptySub}>Büyük dörtlü maçları 24 saat önce burada görünür</Text>
+      <Text style={s.emptyTitle}>{t("b4Empty")}</Text>
+      <Text style={s.emptySub}>{t("b4EmptySub")}</Text>
     </View>
   );
 
@@ -123,8 +125,8 @@ export default function BigFourPicks() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPicks(); }} tintColor="#E8102A" />}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={s.header}>Büyük Dörtlü</Text>
-      <Text style={s.sub}>Ücretsiz tahmin — sadece 1987 üyeleri</Text>
+      <Text style={s.header}>{t("bigFour")}</Text>
+      <Text style={s.sub}>{t("b4Sub")}</Text>
 
       {picks.map(pick => {
         const isFT   = pick.status === "FT";
@@ -175,12 +177,12 @@ export default function BigFourPicks() {
                 {pick.pred && (
                   <View style={[s.resultBadge, correct ? s.correct : s.wrong]}>
                     <Text style={s.resultText}>
-                      {correct ? "✓ Doğru" : "✗ Yanlış"} · Tahminin: {pick.pred.outcome === "H" ? "Ev" : pick.pred.outcome === "D" ? "Beraberlik" : "Deplasman"}
+                      {correct ? t("correctMark") : t("wrongMark")} · {t("yourPredShort", { o: pick.pred.outcome === "H" ? t("home") : pick.pred.outcome === "D" ? t("draw") : t("away") })}
                     </Text>
                   </View>
                 )}
                 {!pick.pred && (
-                  <Text style={s.noPred}>Tahmin yapılmadı</Text>
+                  <Text style={s.noPred}>{t("noPredMade")}</Text>
                 )}
               </View>
             ) : pick.open ? (
@@ -206,7 +208,7 @@ export default function BigFourPicks() {
                 })}
               </View>
             ) : (
-              <Text style={s.notOpen}>Tahmin {countdown(pick.minutesUntil)} sonra açılır</Text>
+              <Text style={s.notOpen}>{t("predOpensIn", { c: countdown(pick.minutesUntil) })}</Text>
             )}
           </View>
         );
