@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { getApiBase } from "../lib/apiBase";
 import { hataMesaji } from "../lib/hataMesaji";
 import { t, useLang } from "../lib/i18n";
+import { ulkeAdi, ulkeBayragi } from "../lib/ulkeler";
 import BackBar from "../components/BackBar";
 import Colors, { on } from "../constants/colors";
 import { usePolling } from "../hooks/usePolling";
@@ -54,70 +55,10 @@ type ApiResponse = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const COUNTRY_EMOJI: Record<string, string> = {
-  "Turkey": "🇹🇷",    "Türkiye": "🇹🇷",
-  "England": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",  "İngiltere": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-  "Spain": "🇪🇸",     "İspanya": "🇪🇸",
-  "Germany": "🇩🇪",   "Almanya": "🇩🇪",
-  "France": "🇫🇷",    "Fransa": "🇫🇷",
-  "Italy": "🇮🇹",     "İtalya": "🇮🇹",
-  "Netherlands": "🇳🇱","Hollanda": "🇳🇱",
-  "Portugal": "🇵🇹",  "Portekiz": "🇵🇹",
-  "Belgium": "🇧🇪",   "Belçika": "🇧🇪",
-  "Scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿","İskoçya": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-  "Europe": "🏆",     "Avrupa": "🏆",
-  "World": "🌍",      "Dünya": "🌍",
-  "Brazil": "🇧🇷",    "Brezilya": "🇧🇷",
-  "Argentina": "🇦🇷", "Arjantin": "🇦🇷",
-  "USA": "🇺🇸",       "ABD": "🇺🇸", "United States": "🇺🇸",
-  "Mexico": "🇲🇽",    "Meksika": "🇲🇽",
-  "Russia": "🇷🇺",    "Rusya": "🇷🇺",
-  "South Korea": "🇰🇷","Güney Kore": "🇰🇷",
-  "Japan": "🇯🇵",     "Japonya": "🇯🇵",
-  "China": "🇨🇳",     "Çin": "🇨🇳",
-  "Greece": "🇬🇷",    "Yunanistan": "🇬🇷",
-  "Croatia": "🇭🇷",   "Hırvatistan": "🇭🇷",
-  "Serbia": "🇷🇸",    "Sırbistan": "🇷🇸",
-  "Ukraine": "🇺🇦",   "Ukrayna": "🇺🇦",
-  "Poland": "🇵🇱",    "Polonya": "🇵🇱",
-  "Austria": "🇦🇹",   "Avusturya": "🇦🇹",
-  "Switzerland": "🇨🇭","İsviçre": "🇨🇭",
-  "Sweden": "🇸🇪",    "İsveç": "🇸🇪",
-  "Denmark": "🇩🇰",   "Danimarka": "🇩🇰",
-  "Norway": "🇳🇴",    "Norveç": "🇳🇴",
-  "Romania": "🇷🇴",   "Romanya": "🇷🇴",
-  "Hungary": "🇭🇺",   "Macaristan": "🇭🇺",
-  "Morocco": "🇲🇦",   "Fas": "🇲🇦",
-  "Egypt": "🇪🇬",     "Mısır": "🇪🇬",
-  "Saudi Arabia": "🇸🇦","Suudi Arabistan": "🇸🇦",
-  "Algeria": "🇩🇿",   "Cezayir": "🇩🇿",
-  "Nigeria": "🇳🇬",   "Nijerya": "🇳🇬",
-  "Colombia": "🇨🇴",  "Kolombiya": "🇨🇴",
-  "Chile": "🇨🇱",
-  "Iran": "🇮🇷",      "İran": "🇮🇷",
-  "Qatar": "🇶🇦",     "Katar": "🇶🇦",
-  "Israel": "🇮🇱",    "İsrail": "🇮🇱",
-  "Australia": "🇦🇺", "Avustralya": "🇦🇺",
-  "Czechia": "🇨🇿",   "Czech Republic": "🇨🇿",
-  "Finland": "🇫🇮",   "Finlandiya": "🇫🇮",
-  "Bulgaria": "🇧🇬",  "Bulgaristan": "🇧🇬",
-  "Ecuador": "🇪🇨",   "Ekvador": "🇪🇨",
-  "Bolivia": "🇧🇴",   "Bolivya": "🇧🇴",
-  "Paraguay": "🇵🇾",
-  "Estonia": "🇪🇪",   "Estonya": "🇪🇪",
-  "Canada": "🇨🇦",    "Kanada": "🇨🇦",
-  "Uzbekistan": "🇺🇿","Özbekistan": "🇺🇿",
-  "New Zealand": "🇳🇿","Yeni Zelanda": "🇳🇿",
-  "Mozambique": "🇲🇿", "Mozambik": "🇲🇿",
-  "Ireland": "🇮🇪",   "İrlanda": "🇮🇪",
-  "Northern Ireland": "🇬🇧",
-  "South America": "🌎","Güney Amerika": "🌎",
-  "Asia": "🌏",        "Asya": "🌏",
-};
-
-function flag(country: string) {
-  return COUNTRY_EMOJI[country] ?? "⚽";
-}
+/* ⚠️ ÜLKE ADI + BAYRAK ARTIK lib/ulkeler.ts TE. Buradaki harita hem
+ * bayrak arama tablosu hem de fiilen tek "çeviri" kaynağıydı; ekran ülke
+ * adını HAM basıyordu. Ayrıntı için o dosyanın başındaki nota bak. */
+const flag = ulkeBayragi;
 
 function liveCount(l: League) {
   return l.matches.filter((m) => m.isLive || m.isHT).length;
@@ -333,7 +274,7 @@ function LeagueSection({
           <Text style={{ fontSize: 13, fontWeight: "800", color: "#e2e8f0" }} numberOfLines={1}>
             {league.name}
           </Text>
-          <Text style={{ fontSize: 10, color: "#475569" }}>{league.country}</Text>
+          <Text style={{ fontSize: 10, color: "#475569" }}>{ulkeAdi(league.country)}</Text>
         </View>
         {live > 0 && (
           <View style={{ backgroundColor: Colors.live, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2, marginRight: 8 }}>
@@ -615,7 +556,7 @@ export default function LiveScoresScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 12 }}>{flag(c)}</Text>
-                  <Text style={{ color: active ? Colors.onAccent : "#94a3b8", fontWeight: active ? "700" : "400", fontSize: 11 }}>{c}</Text>
+                  <Text style={{ color: active ? Colors.onAccent : "#94a3b8", fontWeight: active ? "700" : "400", fontSize: 11 }}>{ulkeAdi(c)}</Text>
                   {liveCnt > 0 && (
                     <View style={{ backgroundColor: Colors.live, borderRadius: 5, paddingHorizontal: 4, paddingVertical: 1 }}>
                       <Text style={{ color: "#fff", fontSize: 8, fontWeight: "900" }}>{liveCnt}</Text>
@@ -639,7 +580,7 @@ export default function LiveScoresScreen() {
             <Text style={{ fontSize: 16 }}>{flag(selectedCountry)}</Text>
             <View style={{ flex: 1 }}>
               <Text style={{ color: "#64748b", fontSize: 11, fontWeight: "600" }}>
-                {t("noMatchInCountry", { c: selectedCountry })}
+                {t("noMatchInCountry", { c: ulkeAdi(selectedCountry) })}
               </Text>
               <Text style={{ color: "#22c55e", fontSize: 10, marginTop: 1 }}>
                 {t("worldHighlights")}
