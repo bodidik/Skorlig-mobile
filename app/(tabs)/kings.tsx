@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
+import { t, useLang } from "../../lib/i18n";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useUserId } from "../../lib/useUserId";
 import Colors from "../../constants/colors";
@@ -81,6 +82,7 @@ async function apiFetch(path: string, init?: RequestInit) {
 }
 
 export default function KingsScreen() {
+  useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const { userId: qUser } = useLocalSearchParams<{ userId?: string }>();
 
@@ -350,7 +352,7 @@ export default function KingsScreen() {
 
   const segmentLabel = (s: SegmentKey) => {
     if (s === "global") return "Global";
-    if (s === "team") return "Benim Takımım";
+    if (s === "team") return t("myTeamSeg");
     return "1987GS";
   };
 
@@ -399,21 +401,21 @@ export default function KingsScreen() {
             marginRight: 8,
           }}
         >
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
         </TouchableOpacity>
         <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>
-          Sezon Liderleri
+          {t("seasonLeaders")}
         </Text>
       </View>
 
       <Text style={{ color: Colors.muted, fontSize: 12, marginBottom: 8 }}>
-        Toplam puanlara göre sıralama.
+        {t("byTotalPoints")}
       </Text>
 
       {/* Güncelleme */}
       <View style={{ marginBottom: 12 }}>
         <Text style={{ color: Colors.muted, fontSize: 11 }}>
-          Güncel: {updatedAt ? formatDate(updatedAt) : "-"}
+          {t("currentAt", { d: updatedAt ? formatDate(updatedAt) : "-" })}
         </Text>
       </View>
 
@@ -421,7 +423,7 @@ export default function KingsScreen() {
         <View style={{ marginTop: 24, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator />
           <Text style={{ marginTop: 8, color: Colors.muted, fontSize: 12 }}>
-            Yükleniyor...
+            {t("loading")}
           </Text>
         </View>
       ) : (
@@ -438,43 +440,42 @@ export default function KingsScreen() {
               gap: 6,
             }}
           >
-            <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>Benim sezon durumum (global)</Text>
+            <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>{t("mySeasonGlobal")}</Text>
             {myRowGlobal ? (
               <>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  Sıra: #{myRowGlobal.rank}
+                  {t("rankHash", { r: myRowGlobal.rank })}
                 </Text>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  Toplam puan: {Math.round(myRowGlobal.totalPoints)} p
+                  {t("totalPts", { n: Math.round(myRowGlobal.totalPoints) })} p
                 </Text>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  Oynanan maç: {myRowGlobal.matches}
+                  {t("playedMatches", { n: myRowGlobal.matches })}
                 </Text>
                 <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
-                  Son güncelleme:{" "}
-                  {myRowGlobal.lastAt ? formatDate(myRowGlobal.lastAt) : "-"}
+                  {t("lastUpdate", { d: myRowGlobal.lastAt ? formatDate(myRowGlobal.lastAt) : "-" })}
                 </Text>
               </>
             ) : (
               <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                Bu kullanıcı için sezon verisi yok.
+                {t("noSeasonData")}
               </Text>
             )}
 
             {myMainTeam && (
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 6 }}>
-                Ana takımın: {myMainTeam}
+                {t("yourMainTeam", { t: myMainTeam })}
               </Text>
             )}
 
             {/* Global tahmin sayısı */}
             {predCountLoading ? (
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
-                Tahmin yaptığın maç sayısı yükleniyor...
+                {t("predCountLoading")}
               </Text>
             ) : predCount !== null ? (
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
-                Toplam tahmin yaptığın maç sayısı: {predCount}
+                {t("predCountInfo", { n: predCount })}
               </Text>
             ) : null}
           </View>
@@ -543,18 +544,15 @@ export default function KingsScreen() {
                   fontSize: 13,
                 }}
               >
-                {segment === "team"
-                  ? "Benim takım içi sıram"
-                  : "1987GS içindeki sıram"}
+                {segment === "team" ? t("myTeamRankT") : t("my1987Rank")}
               </Text>
               {myRowInSegment ? (
                 <Text style={{ color: Colors.slate900, fontSize: 12 }}>
-                  Sıra: #{myRowInSegment.rank} · Puan:{" "}
-                  {Math.round(myRowInSegment.totalPoints)} p
+                  {t("rankPtsShort", { r: myRowInSegment.rank, p: Math.round(myRowInSegment.totalPoints) })}
                 </Text>
               ) : (
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  Bu segmentte (henüz) sıralaman yok.
+                  {t("noSegmentRank")}
                 </Text>
               )}
 
@@ -569,7 +567,7 @@ export default function KingsScreen() {
                       fontWeight: "700",
                     }}
                   >
-                    🏆 Tebrikler! 1987GS sezon kupası sende.
+                    {t("cup1987Congrats")}
                   </Text>
                 )}
             </View>
@@ -593,14 +591,10 @@ export default function KingsScreen() {
               }}
             >
               <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
-                {segment === "global"
-                  ? "Global sezon tablosu"
-                  : segment === "team"
-                  ? "Takım içi sezon tablosu"
-                  : "1987GS sezon tablosu"}
+                {segment === "global" ? t("globalSeasonTable") : segment === "team" ? t("teamSeasonTable") : t("gs1987SeasonTable")}
               </Text>
               <Text style={{ color: Colors.muted, fontSize: 10 }}>
-                Toplam oyuncu: {filteredRows.length}
+                {t("totalPlayers", { n: filteredRows.length })}
               </Text>
             </View>
 
@@ -631,7 +625,7 @@ export default function KingsScreen() {
                       fontSize: 14,
                     }}
                   >
-                    1987GS Şampiyonu
+                    {t("champ1987")}
                   </Text>
                   <Text
                     style={{
@@ -641,7 +635,7 @@ export default function KingsScreen() {
                     }}
                   >
                     {champion1987.userId} · {Math.round(champion1987.totalPoints)} p ·{" "}
-                    {champion1987.matches} maç
+                    {t("nMatches", { n: champion1987.matches })}
                   </Text>
                 </View>
               </View>
@@ -705,7 +699,7 @@ export default function KingsScreen() {
                             marginTop: 2,
                           }}
                         >
-                          Maç: {row.matches} · Ceza {row.totalPenalty ?? 0}
+                          {t("matchPenalty2", { m: row.matches, c: row.totalPenalty ?? 0 })}
                         </Text>
                       </View>
 
@@ -736,7 +730,7 @@ export default function KingsScreen() {
                     }}
                   >
                     <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12.5 }}>
-                      Daha fazla göster ({filteredRows.length - gosterilecek} kaldı)
+                      {t("showMore", { n: filteredRows.length - gosterilecek })}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -744,7 +738,7 @@ export default function KingsScreen() {
             )}
 
             <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 8 }}>
-              Bu tablo, tüm maçlar için settle2 üzerinden hesaplanan sezon puanlarını gösterir.
+              {t("settle2Note")}
             </Text>
           </View>
         </>
