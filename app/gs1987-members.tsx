@@ -15,7 +15,6 @@ import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
 type Member = {
   userId: string;
   label?: string | null;
-  lastCode?: string | null;
   sinceAt?: string | null;
   lastVerifiedAt?: string | null;
   active?: boolean | null;
@@ -188,18 +187,6 @@ export default function Gs1987MembersScreen() {
                   {m.userId}
                   {m.label ? ` · ${m.label}` : ""}
                 </Text>
-
-                {!!m.lastCode && (
-                  <Text
-                    style={{
-                      color: Colors.muted,
-                      fontSize: 11,
-                      marginTop: 2,
-                    }}
-                  >
-                    Son kod: {m.lastCode}
-                  </Text>
-                )}
 
                 <Text
                   style={{
