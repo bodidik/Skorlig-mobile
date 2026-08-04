@@ -1322,7 +1322,19 @@ export default function LiveScreen() {
         return;
       }
 
-      const j2 = await apiJson(`/api/rt/settle2?fixtureId=${encodeURIComponent(selectedFid)}`, { method: "POST" });
+      /**
+       * ⚠️ YÖNETİCİ BAŞLIĞI BURADA DA ŞART — bir üstteki çağrıya eklenmişti,
+       * buna eklenmemişti. `/api/rt/settle2` muhafızı ara katman değil, gövdenin
+       * içinde: `isInternalCaller(req)` ya loopback ya da geçerli `x-admin-token`
+       * istiyor (lib/internal-caller.cjs). Mobil istemci hiçbir zaman loopback
+       * olmadığına göre jeton tek yol; `apiJson` ise yalnızca `x-auth-token` /
+       * `x-user-id` ekliyor. Yani "FT + settle2" seçeneği her seferinde 401
+       * UNAUTHORIZED alıyor, FT yazılıyor ama ödeme hiç tetiklenmiyordu.
+       */
+      const j2 = await apiJson(`/api/rt/settle2?fixtureId=${encodeURIComponent(selectedFid)}`, {
+        method: "POST",
+        headers: await withAdminHeaders({ "Content-Type": "application/json" }),
+      });
       if (!j2?.ok) {
         setAdmMsg(t("ftSettleFailed", { e: normalizeApiError(j2) }));
         await onRefresh();
