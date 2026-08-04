@@ -8,6 +8,7 @@ import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
 import { sharePrediction } from "../../lib/share";
 import { t, useLang } from "../../lib/i18n";
+import { TIER_KEYS } from "../../components/StreakBar";
 
 type Outcome = "H" | "D" | "A" | null;
 type Side = "H" | "A" | null;
@@ -1043,7 +1044,7 @@ useEffect(() => {
               </Text>
               {streak.currentTier && (
                 <View style={{ backgroundColor: "#f59e0b33", borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 }}>
-                  <Text style={{ color: "#fbbf24", fontSize: 9, fontWeight: "800" }}>{streak.currentTier.label}</Text>
+                  <Text style={{ color: "#fbbf24", fontSize: 9, fontWeight: "800" }}>{t(TIER_KEYS[streak.currentTier.label] ?? "streakSeries")}</Text>
                 </View>
               )}
             </View>

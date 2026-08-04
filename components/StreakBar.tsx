@@ -12,25 +12,35 @@ type Props = {
   currentTier: Tier;
 };
 
+export const TIER_KEYS: Record<string, string> = {
+  "Isınıyor": "streakWarmup",
+  "Ateşte": "streakOnFire",
+  "Durdurulamıyor": "streakUnstoppable",
+};
 const TIERS = [
-  { threshold: 5, label: "Isınıyor", emoji: "🔥" },
-  { threshold: 10, label: "Ateşte", emoji: "🔥🔥" },
-  { threshold: 20, label: "Durdurulamıyor", emoji: "💥" },
+  { threshold: 5, labelKey: "streakWarmup", emoji: "🔥" },
+  { threshold: 10, labelKey: "streakOnFire", emoji: "🔥🔥" },
+  { threshold: 20, labelKey: "streakUnstoppable", emoji: "💥" },
 ];
 
 export default function StreakBar({ seriesCumOdds, seriesCount, activeSeries, bestSeries, currentTier }: Props) {
   useLang(); // dil değişince yeniden çizilsin
   if (!activeSeries && seriesCount === 0 && bestSeries === 0) return null;
 
-  const nextTier = TIERS.find(t => t.threshold > seriesCumOdds) || TIERS[TIERS.length - 1];
+  const nextTier = TIERS.find(ti => ti.threshold > seriesCumOdds) || TIERS[TIERS.length - 1];
   const progress = nextTier ? Math.min(1, seriesCumOdds / nextTier.threshold) : 1;
+
+  const tierI18nKey = currentTier?.label ? TIER_KEYS[currentTier.label] ?? "streakSeries" : "streakSeries";
+  const tierEmoji = currentTier?.label
+    ? TIERS.find(ti => ti.labelKey === TIER_KEYS[currentTier.label])?.emoji ?? ""
+    : "";
 
   return (
     <View style={s.container}>
       <View style={s.row}>
         <Text style={s.label}>
           {activeSeries && seriesCount > 0
-            ? `${currentTier?.label ?? "Seri"} ${currentTier ? TIERS.find(t => t.label === currentTier.label)?.emoji ?? "" : ""}`
+            ? `${t(tierI18nKey)} ${tierEmoji}`
             : t("newStreak")
           }
         </Text>
@@ -44,8 +54,8 @@ export default function StreakBar({ seriesCumOdds, seriesCount, activeSeries, be
       </View>
 
       <View style={s.row}>
-        <Text style={s.hint}>Sonraki: {nextTier?.label} ({nextTier?.threshold}x)</Text>
-        {bestSeries > 0 && <Text style={s.best}>En iyi: {bestSeries.toFixed(1)}x</Text>}
+        <Text style={s.hint}>{t("streakNext", { label: t(nextTier?.labelKey ?? "streakWarmup"), threshold: String(nextTier?.threshold ?? 5) })}</Text>
+        {bestSeries > 0 && <Text style={s.best}>{t("streakBest", { x: bestSeries.toFixed(1) })}</Text>}
       </View>
     </View>
   );
