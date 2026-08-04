@@ -78,7 +78,8 @@ export default function FriendsBoardScreen() {
         [];
 
       setRows(arr);
-    } catch {
+    } catch (e) {
+      console.error("[friends/board] load failed:", e);
       setRows([]);
     } finally {
       setLoading(false);
@@ -152,7 +153,7 @@ export default function FriendsBoardScreen() {
     >
       {/* Geri butonu */}
       <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 4 }}>
-        <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+        <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
       </TouchableOpacity>
 
       <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>
@@ -209,7 +210,7 @@ export default function FriendsBoardScreen() {
               >
                 <Text style={{ color: "#fff", fontWeight: "600" }}>
                   {ix + 1}. {name}
-                  {isMe ? " (ben)" : ""}
+                  {isMe ? t("me2") : ""}
                 </Text>
                 <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
                   @{uid || "-"}
@@ -219,7 +220,7 @@ export default function FriendsBoardScreen() {
               {/* Sağ: puan + arkadaş ekle */}
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={{ color: "#a3e635", fontWeight: "700", fontSize: 14 }}>
-                  {pts} puan
+                  {t("nPts", { n: String(pts) })}
                 </Text>
 
                 {!isMe && !!uid && (

@@ -78,7 +78,7 @@ export default function Board2Screen() {
     >
       {/* Geri */}
       <TouchableOpacity onPress={() => router.back()}>
-        <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+        <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
       </TouchableOpacity>
 
       {/* Başlık */}
@@ -89,7 +89,7 @@ export default function Board2Screen() {
           color: Colors.slate900,
         }}
       >
-        Liderlik Tablosu
+        {t("leaderboardTitle")}
       </Text>
 
       {/* Liste */}
