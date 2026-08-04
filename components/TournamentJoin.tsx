@@ -3,8 +3,7 @@ import {
   View, Text, TouchableOpacity, TextInput, Alert,
   ActivityIndicator, StyleSheet,
 } from "react-native";
-import { getApiBase } from "../lib/apiBase";
-import { getAuthHeaders } from "../lib/apiFetch";
+import { apiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 
 type Props = {
@@ -23,11 +22,9 @@ export default function TournamentJoin({ userId, onJoined, onClose }: Props) {
     if (c.length < 4) return Alert.alert(t("error"), t("enterValidCode"));
     setBusy(true);
     try {
-      const base = await getApiBase();
-      const authH = await getAuthHeaders();
-      const r = await fetch(`${base}/api/tournaments/join`, {
+      const r = await apiFetch(`/api/tournaments/join`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...authH },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: c }),
       });
       const json = await r.json();

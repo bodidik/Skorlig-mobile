@@ -4,8 +4,7 @@ import {
   ActivityIndicator, StyleSheet, ScrollView, Share,
 } from "react-native";
 import QuickPickCard, { PickFixture } from "./QuickPickCard";
-import { getApiBase } from "../lib/apiBase";
-import { getAuthHeaders } from "../lib/apiFetch";
+import { apiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 
 type Props = {
@@ -29,9 +28,8 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
     let cancelled = false;
     async function load() {
       try {
-        const base = await getApiBase();
         const qs = country ? `?country=${encodeURIComponent(country)}&limit=8` : "?limit=8";
-        const r = await fetch(`${base}/api/daily-picks/singles${qs}`);
+        const r = await apiFetch(`/api/daily-picks/singles${qs}`);
         const json = await r.json();
         if (!cancelled && json.ok) setMatches(json.picks || []);
       } catch {}
@@ -57,17 +55,15 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
 
     setCreating(true);
     try {
-      const base = await getApiBase();
-      const authH = await getAuthHeaders();
       const fixtureIds = Array.from(selected);
       const fixtures = matches.filter(m => selected.has(m.fixtureId)).map(m => ({
         fixtureId: m.fixtureId, home: m.home, away: m.away,
         kickoffISO: m.kickoffISO, league: m.league,
       }));
 
-      const r = await fetch(`${base}/api/tournaments/create`, {
+      const r = await apiFetch(`/api/tournaments/create`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...authH },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name || "Turnuva", entryLC: entry, fixtureIds, fixtures }),
       });
       const json = await r.json();

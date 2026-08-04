@@ -6,9 +6,8 @@ import {
 import { useRouter } from "expo-router";
 import { t, useLang } from "../lib/i18n";
 import { ligEtiketi } from "../lib/ulkeler";
-import { getApiBase } from "../lib/apiBase";
 import hataMesaji from "../lib/hataMesaji";
-import { getAuthHeaders } from "../lib/apiFetch";
+import { apiFetch } from "../lib/apiFetch";
 
 type Fixture = {
   fixtureId: string;
@@ -45,9 +44,8 @@ export default function DailyMatchCard({ country, userId }: Props) {
     let cancelled = false;
     async function load() {
       try {
-        const base = await getApiBase();
         const qs = country ? `?country=${encodeURIComponent(country)}` : "";
-        const r = await fetch(`${base}/api/live/daily-featured${qs}`);
+        const r = await apiFetch(`/api/live/daily-featured${qs}`);
         const json = await r.json();
         if (!cancelled && json.ok && json.fixture) setFixture(json.fixture);
       } catch {}
@@ -62,15 +60,13 @@ export default function DailyMatchCard({ country, userId }: Props) {
     setSelected(outcome);
     setBusy(true);
     try {
-      const base = await getApiBase();
-      const authH = await getAuthHeaders();
       // ⚠️ YANIT KONTROL EDILIYOR. Eskiden `await fetch(...)` sonrasi dogrudan
       // "kaydedildi" gosteriliyordu: sunucu "bakiyen yetmiyor" / "mac basladi"
       // / "zaten tahmin ettin" dese bile kullanici tahminini kaydettigini
       // saniyordu. Para yolunda sessiz basarisizlik.
-      const res = await fetch(`${base}/api/pred/submit`, {
+      const res = await apiFetch(`/api/pred/submit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...authH },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fixtureId: fixture.fixtureId,
           outcome: OUTCOMES.find(o => o.key === outcome)?.api ?? outcome,

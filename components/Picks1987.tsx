@@ -3,7 +3,6 @@ import {
   View, Text, TouchableOpacity, ActivityIndicator,
   StyleSheet, ScrollView, RefreshControl, Switch, Alert,
 } from "react-native";
-import Constants from "expo-constants";
 import hataMesaji from "../lib/hataMesaji";
 import { auth } from "../lib/firebase";
 /* Jetonu otomatik ekler — sunucu kendi tahminini yalnızca doğrulanmış
@@ -12,7 +11,8 @@ import { apiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 import { ulkeAdi } from "../lib/ulkeler";
 
-const API = Constants.expoConfig?.extra?.apiBase ?? "https://skorlig87.onrender.com";
+/* ⚠️ Kendi sabit kodlanmis API tabani vardi; lib/apiBase'in LAN/dev
+ * cozumlemesinden habersizdi. Tabani artik paylasilan apiFetch belirliyor. */
 
 type Outcome = "H" | "D" | "A";
 
@@ -206,7 +206,7 @@ export default function Picks1987() {
 
   const fetchBoard = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/weekly-picks/leaderboard?limit=50${uid ? `&userId=${uid}` : ""}`);
+      const res = await apiFetch(`/api/weekly-picks/leaderboard?limit=50${uid ? `&userId=${uid}` : ""}`);
       const j   = await res.json();
       if (j.ok) {
         setBoard(j.items ?? []);
@@ -225,13 +225,20 @@ export default function Picks1987() {
     if (!draft?.outcome) return;
     setSubmitting(pick.fixtureId);
     try {
-      const token = await auth.currentUser?.getIdToken();
       // ⚠️ Yanit okunmuyordu: reddedilen bir gonderimde de ekran
       // "kaydedildi" gibi davraniyordu. Yenileme gercegi ortaya cikariyor
       // ama kullanici NEDEN kaydolmadigini ogrenemiyordu.
-      const res = await fetch(`${API}/api/weekly-picks/predict`, {
+      /**
+       * ⚠️ KIMLIK YANLIS BASLIKTAYDI. Ham `fetch` jetonu
+       * `Authorization: Bearer` ile gonderiyordu; sunucudaki `verifyToken`
+       * YALNIZCA `x-auth-token` okuyor. Yani bu uc her cagrida 401 donuyordu
+       * ve yukaridaki "yanit okunmuyordu" duzeltmesi bu yuzden hep
+       * "kaydedilemedi" gosteriyordu — asil sebep gonderimin kendisiydi.
+       * BigFourPicks.tsx'te de ayni kopya vardi.
+       */
+      const res = await apiFetch(`/api/weekly-picks/predict`, {
         method:  "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ fixtureId: pick.fixtureId, ...draft }),
       });
       const j = await res.json().catch(() => null);

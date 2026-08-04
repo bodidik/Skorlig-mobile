@@ -4,9 +4,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { t, useLang } from "../lib/i18n";
-import { getApiBase } from "../lib/apiBase";
 import hataMesaji from "../lib/hataMesaji";
-import { getAuthHeaders } from "../lib/apiFetch";
+import { apiFetch } from "../lib/apiFetch";
 
 type Fixture = {
   fixtureId: string;
@@ -42,15 +41,13 @@ function MatchCard({ fx, onDone }: { fx: Fixture; onDone: () => void }) {
     setSelected(outcomeKey);
     setBusy(true);
     try {
-      const base = await getApiBase();
-      const authH = await getAuthHeaders();
       // ⚠️ YANIT KONTROL EDILIYOR. Eskiden `await fetch(...)` sonrasi dogrudan
       // "kaydedildi" gosteriliyordu: sunucu "bakiyen yetmiyor" / "mac basladi"
       // / "zaten tahmin ettin" dese bile kullanici tahminini kaydettigini
       // saniyordu. Para yolunda sessiz basarisizlik.
-      const res = await fetch(`${base}/api/pred/submit`, {
+      const res = await apiFetch(`/api/pred/submit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...authH },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fixtureId: fx.fixtureId, outcome: apiVal, type: "result" }),
       });
       const j = await res.json().catch(() => null);
@@ -134,9 +131,8 @@ export default function DailyMenuStrip({ country }: Props) {
     let cancelled = false;
     async function load() {
       try {
-        const base = await getApiBase();
         const qs = country ? `?country=${encodeURIComponent(country)}` : "";
-        const r = await fetch(`${base}/api/live/daily-menu${qs}`);
+        const r = await apiFetch(`/api/live/daily-menu${qs}`);
         const json = await r.json();
         if (!cancelled && json.ok) setFixtures(json.fixtures || []);
       } catch {}
