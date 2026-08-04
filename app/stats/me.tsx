@@ -28,24 +28,35 @@ async function apiFetch(path: string, init?: RequestInit) {
   return sharedApiFetch(p, init as any);
 }
 
-type RecentItem = {
+/**
+ * ⚠️ BU EKRAN VAR OLMAYAN BİR API'YE GÖRE YAZILMIŞTI.
+ *
+ * `/api/stats/user` çağırıp `j.flag`, `j.team`, `j.total`, `j.items`
+ * okuyordu; bu DÖRT alanın hiçbiri hiçbir dönüş yolunda yoktu. Sonuç:
+ * başlıkta yalnız ham userId, "Genel Puan" HERKESE sabit 0, "Son oynananlar"
+ * kalıcı boş — ve HATA GÖSTERİLMİYOR, çünkü tek koruma `if (!j?.ok) throw`
+ * ve `ok` her zaman true.
+ *
+ * Aynı ucu kardeş ekran (`competition-kings.tsx:182`) doğru okuyor, yani uç
+ * değil bu ekran yanlıştı. Artık üç gerçek sözleşmeden besleniyor:
+ *
+ *   /api/stats/user   → season.total          (genel puan)
+ *   /api/users/profile→ profile.mainTeam/flag (başlık)
+ *   /api/pred/my      → current[] + old[]     (son tahminler)
+ */
+type PredRow = {
   fixtureId: string;
-  home?: number | null;
-  away?: number | null;
-  outcome?: string | null;
-  firstGoal?: string | null;
-  firstHalf?: string | null;
-  live?: any;
-};
-
-type MeResponse = {
-  ok: boolean;
-  userId?: string;
-  flag?: string | null;
-  team?: string | null;
-  total?: number;
-  items?: RecentItem[];
-  error?: string;
+  home?: string | null;        // TAKIM ADI (skor değil)
+  away?: string | null;
+  status?: string | null;
+  score?: { home: number; away: number } | null;
+  pred?: {
+    outcome?: string | null;
+    home?: number | null;      // TAHMİN edilen skor
+    away?: number | null;
+    firstGoal?: string | null;
+    firstHalf?: string | null;
+  } | null;
 };
 
 export default function StatsMeScreen() {
@@ -60,24 +71,40 @@ export default function StatsMeScreen() {
   const [flag, setFlag] = useState<string>("");
   const [team, setTeam] = useState<string>("");
   const [total, setTotal] = useState<number>(0);
-  const [items, setItems] = useState<RecentItem[]>([]);
+  const [items, setItems] = useState<PredRow[]>([]);
 
   const load = useCallback(async () => {
+    const u = encodeURIComponent(userId);
     try {
       setLoading(true);
 
-      // Not: endpoint backend'de farklıysa sadece burayı değiştiririz.
-      const r = await apiFetch(`/api/stats/user?userId=${encodeURIComponent(userId)}`);
-      const j: MeResponse = await r.json();
+      /* Üç uç paralel: biri yavaşsa diğerleri beklemesin. `allSettled` —
+       * birinin düşmesi tüm ekranı boşaltmasın (eskiden tek uç vardı ve o da
+       * yanlış alanları veriyordu, yani ekran her hâlükârda boştu). */
+      const [sonuc, profil, tahmin] = await Promise.allSettled([
+        apiFetch(`/api/stats/user?userId=${u}`).then((r) => r.json()),
+        apiFetch(`/api/users/profile?userId=${u}`).then((r) => r.json()),
+        apiFetch(`/api/pred/my?userId=${u}`).then((r) => r.json()),
+      ]);
 
-      if (!j?.ok) {
-        throw new Error(j?.error || "STATS_ME_FAILED");
+      const s = sonuc.status === "fulfilled" ? sonuc.value : null;
+      const p = profil.status === "fulfilled" ? profil.value : null;
+      const tp = tahmin.status === "fulfilled" ? tahmin.value : null;
+
+      if (!s?.ok && !p?.ok && !tp?.ok) {
+        throw new Error(s?.error || p?.error || tp?.error || "STATS_ME_FAILED");
       }
 
-      setFlag(String(j.flag || ""));
-      setTeam(String(j.team || ""));
-      setTotal(Number(j.total || 0));
-      setItems(Array.isArray(j.items) ? j.items : []);
+      // Genel puan: season.total (eskiden okunan `j.total` hiç yoktu).
+      setTotal(Number(s?.season?.total || 0));
+
+      setFlag(String(p?.profile?.flag || ""));
+      setTeam(String(p?.profile?.mainTeam || ""));
+
+      // Son tahminler: current (güncel) + old (eski), sunucunun sırasıyla.
+      const cur = Array.isArray(tp?.current) ? tp.current : [];
+      const esk = Array.isArray(tp?.old) ? tp.old : [];
+      setItems([...cur, ...esk].slice(0, 50));
     } catch (e: any) {
       setFlag("");
       setTeam("");
@@ -128,7 +155,7 @@ export default function StatsMeScreen() {
             padding: 12,
           }}
         >
-          <Text style={{ fontSize: 16, fontWeight: "700", color: "#e2e8f0" }}>Genel Puan</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: "#e2e8f0" }}>{t("overallScore")}</Text>
 
           {loading ? (
             <View style={{ marginTop: 10, alignItems: "center" }}>
@@ -168,19 +195,22 @@ export default function StatsMeScreen() {
                   borderColor: Colors.border,
                 }}
               >
+                {/* Takım adları satırın KENDİSİNDE (eskiden iç içe `live`
+                    nesnesinde aranıyordu — öyle bir alan hiç yoktu). */}
                 <Text style={{ fontWeight: "600", color: "#e2e8f0" }}>
-                  {it.live?.home || "Ev"} – {it.live?.away || "Dep"}
+                  {it.home || "Ev"} – {it.away || "Dep"}
                 </Text>
+                {/* Tahmin edilen skor `pred` altında; satır kökündeki
+                    home/away TAKIM ADI. İkisini karıştırmak eski hataydı. */}
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  Tahmin: {it.home}-{it.away}
-                  {it.outcome ? ` (${it.outcome})` : ""}
-                  {it.firstGoal ? ` • FG:${it.firstGoal}` : ""}
-                  {it.firstHalf ? ` • 1Y:${it.firstHalf}` : ""}
+                  {t("predLbl")}: {it.pred?.home ?? "-"}-{it.pred?.away ?? "-"}
+                  {it.pred?.outcome ? ` (${it.pred.outcome})` : ""}
+                  {it.pred?.firstGoal ? ` • FG:${it.pred.firstGoal}` : ""}
+                  {it.pred?.firstHalf ? ` • 1Y:${it.pred.firstHalf}` : ""}
                 </Text>
-                {it.live ? (
+                {it.score ? (
                   <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                    {t("liveRow", { s: it.live.status })} • {it.live.minute}' • {it.live.score.home}-
-                    {it.live.score.away}
+                    {t("liveRow", { s: it.status || "-" })} • {it.score.home}-{it.score.away}
                   </Text>
                 ) : null}
               </View>
