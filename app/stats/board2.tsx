@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { t, useLang } from "../../lib/i18n";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -32,6 +33,7 @@ type BoardRow = {
 };
 
 export default function Board2Screen() {
+  useLang();
   const router = useRouter();
 
   const [items, setItems] = useState<BoardRow[]>([]);
@@ -101,7 +103,7 @@ export default function Board2Screen() {
       >
         {items.length === 0 ? (
           <Text style={{ padding: 12, color: loadError ? Colors.danger : Colors.muted }}>
-            {loadError ? "Tablo yüklenemedi. Aşağı çekerek tekrar deneyin." : "Kayıt bulunamadı."}
+            {loadError ? t("tableLoadError") : t("noRecordsFound")}
           </Text>
         ) : (
           items.slice(0, 100).map((x, idx) => (
