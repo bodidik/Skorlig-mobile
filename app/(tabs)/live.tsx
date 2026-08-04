@@ -1388,7 +1388,12 @@ export default function LiveScreen() {
         return;
       }
 
-      const cnt = Array.isArray(j.leaderboard) ? j.leaderboard.length : 0;
+      // ⚠️ `j.leaderboard` HİÇ VAR OLMADI: uç `count`/`items` döndürüyor
+      // (pred.cjs match-board). `ok` true olduğu için hata da görünmüyordu —
+      // yönetici satır sayısını HER ZAMAN 0 okuyup "tablo boş" sanıyordu.
+      // Boş ekrandan kötü: bildirim BAŞARI deyip YANLIŞ sayı veriyordu.
+      // Doğru adı kardeş ekran zaten kullanıyor: mystatus.tsx `j.items`.
+      const cnt = typeof j.count === "number" ? j.count : (Array.isArray(j.items) ? j.items.length : 0);
       const sc = j.finalScore ? `${j.finalScore.home} - ${j.finalScore.away}` : "-";
       setAdmMsg(t("boardOkRow", { s: sc, n: cnt }));
     } finally {
