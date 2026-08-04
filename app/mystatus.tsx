@@ -53,7 +53,7 @@ type PredRecord = {
 type MatchBoardRow = {
   userId: string;
   label?: string | null;
-  tag?: string | null; // örn: "bot", "ben", "1987 üyesi"
+  tag?: string | null;
   points?: number | null;
   isBot?: boolean | null;
   rank?: number | null;
@@ -567,7 +567,7 @@ export default function MyStatusScreen() {
               gap: 6,
             }}
           >
-            <Text style={{ fontWeight: "700" }}>Benim tahminim</Text>
+            <Text style={{ fontWeight: "700" }}>{t("myPredTitle")}</Text>
             {myPred ? (
               <>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("scoreRow", { s: myScoreText })}</Text>
@@ -720,13 +720,13 @@ export default function MyStatusScreen() {
             </View>
 
             <Text style={{ color: Colors.muted, fontSize: 10, marginBottom: 4 }}>
-              Şu an:{" "}
-              {segment === "1987" && is1987 ? "1987 üyeleri + tüm botlar" : "Tüm oyuncular ve botlar"}
+              {t("segmentNow")}{" "}
+              {segment === "1987" && is1987 ? t("segmentInfo1987") : t("segmentInfoAll")}
             </Text>
 
             {boardRows.length === 0 ? (
               <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 4 }}>
-                Bu maç için henüz puanlanmış tahmin yok.
+                {t("noScoredPredYet")}
               </Text>
             ) : (
               <View style={{ marginTop: 4 }}>
@@ -737,9 +737,7 @@ export default function MyStatusScreen() {
             )}
 
             <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 8 }}>
-              Not: Tablo hem senin hem de botların maç bazlı puanlarını gösterir. Skoru bilmesen bile yan
-              tahminlerden gelen puanlar yansır. 1987 segmentinde yalnızca 1987 alanındaki gerçek kullanıcılar ve tüm
-              botlar listelenir.
+              {t("microBoardNote")}
             </Text>
           </View>
 
@@ -754,22 +752,22 @@ export default function MyStatusScreen() {
               gap: 8,
             }}
           >
-            <Text style={{ fontWeight: "700" }}>1987GS Erişimi</Text>
+            <Text style={{ fontWeight: "700" }}>{t("access1987Title")}</Text>
 
             <Text style={{ color: Colors.muted, fontSize: 12 }}>
               {checking1987
-                ? "Durum kontrol ediliyor..."
+                ? t("status1987Checking")
                 : is1987 === true
-                ? "Bu kullanıcı 1987GS alanına erişebilir."
+                ? t("status1987Yes")
                 : is1987 === false
-                ? "Bu kullanıcı henüz 1987GS alanına tanımlı görünmüyor."
-                : "1987GS durumu şu an belirlenemedi."}
+                ? t("status1987No")
+                : t("status1987Unknown")}
             </Text>
 
             {is1987 !== true && (
               <>
                 <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
-                  1987 üyelik kodun / QR kodun varsa buraya girerek hesabına tanımlayabilirsin:
+                  {t("hint1987Code")}
                 </Text>
                 <TextInput
                   value={codeInput}
@@ -798,15 +796,14 @@ export default function MyStatusScreen() {
                   }}
                 >
                   <Text style={{ textAlign: "center", color: on(verifyingCode ? Colors.muted : Colors.primary), fontWeight: "700", fontSize: 14 }}>
-                    {verifyingCode ? "Doğrulanıyor..." : "1987 Kodunu Kullan"}
+                    {verifyingCode ? t("verifying1987") : t("use1987Code")}
                   </Text>
                 </TouchableOpacity>
               </>
             )}
 
             <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 6 }}>
-              Not: Kod bir kez doğrulandığında profilin 1987GS olarak işaretlenir; sonraki girişlerinde otomatik
-              tanınırsın.
+              {t("note1987Verified")}
             </Text>
           </View>
         </>
