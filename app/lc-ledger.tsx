@@ -148,7 +148,8 @@ export default function LcLedgerScreen() {
       } else {
         setWallet(null);
       }
-    } catch {
+    } catch (e) {
+      console.error("[lc-ledger] wallet load failed:", e);
       setWallet(null);
     } finally {
       setWalletLoading(false);
@@ -168,7 +169,8 @@ export default function LcLedgerScreen() {
       } else {
         setItems([]);
       }
-    } catch {
+    } catch (e) {
+      console.error("[lc-ledger] ledger load failed:", e);
       setItems([]);
     } finally {
       setLoading(false);

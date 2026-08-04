@@ -399,7 +399,8 @@ export default function PredictScreen() {
       } else {
         setWallet(null);
       }
-    } catch {
+    } catch (e) {
+      console.error("[predict] wallet load failed:", e);
       setWallet(null);
     } finally {
       setWalletLoading(false);

@@ -90,8 +90,9 @@ export default function PoolScreen() {
         // reddediyor, arayüzün aksini ima etmesi kullanıcıyı yanıltırdı.
         if (j.myBet?.side) setSecilenTaraf(j.myBet.side);
       }
-    } catch {
-      // Sessiz: yenileme başarısızsa eldeki veri durur.
+    } catch (e) {
+      console.error("[pool] load failed:", e);
+      if (!pool) Alert.alert("SkorLig", t("noConnection"));
     } finally {
       setYukleniyor(false);
       setYenileniyor(false);
