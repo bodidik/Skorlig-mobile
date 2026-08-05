@@ -14,6 +14,7 @@ import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
+import { puanYaz } from "../../lib/lcBicim";
 const t2 = t; // `t` degiskeni (turnuva) golgelemesi icin takma ad
 
 /**
@@ -310,7 +311,7 @@ export default function MiniBoardScreen() {
                   {t2("rankAmong", { n: data.totalMembers, r: data.myRank })}
                 </Text>
               </View>
-              <Text style={{ color: "#a3e635", fontWeight: "900", fontSize: 18 }}>{data.myRow.points} p</Text>
+              <Text style={{ color: "#a3e635", fontWeight: "900", fontSize: 18 }}>{puanYaz(data.myRow.points)} p</Text>
             </View>
           )}
 
@@ -362,7 +363,7 @@ export default function MiniBoardScreen() {
                     {row.userId}{isMe ? " 👤" : ""}
                   </Text>
                   <Text style={{ color: "#a3e635", fontWeight: "800" }}>
-                    {row.points} p
+                    {puanYaz(row.points)} p
                   </Text>
                 </View>
               );

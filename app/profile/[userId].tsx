@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
+import { puanYaz } from "../../lib/lcBicim";
 import { ulkeAdi } from "../../lib/ulkeler";
 import {
   View,
@@ -150,7 +151,14 @@ export default function ProfileUserScreen() {
   const wr = useMemo(() => winRate(history), [history]);
   const streak = useMemo(() => currentStreak(history), [history]);
   const best = useMemo(() => bestStreak(history), [history]);
-  const totalPts = useMemo(() => history.reduce((s, i) => s + (i.points ?? 0), 0) || (profile?.totals ?? 0), [history, profile]);
+  /* ⚠️ TOPLAM YUVARLANIR: kesirli puanlar toplandıkça kayan nokta artığı
+   * birikiyor (üretim verisinde 160 satırın 84'ü artık taşıyor). Burada 15
+   * satır toplanıyor, yani en kötü senaryo. Değer bir bileşene sayı olarak
+   * geçtiği için biçimlendirme değil, SAYININ KENDİSİ temizleniyor. */
+  const totalPts = useMemo(() => {
+    const ham = history.reduce((s, i) => s + (i.points ?? 0), 0) || (profile?.totals ?? 0);
+    return Number(Number(ham).toFixed(2));
+  }, [history, profile]);
   const predCount = totalsMatches ?? history.length;
 
   const outcomeBreakdown = useMemo(() => {
@@ -363,7 +371,7 @@ export default function ProfileUserScreen() {
                       alignItems: "center", justifyContent: "center",
                     }}>
                       <Text style={{ fontWeight: "900", fontSize: 15, color: pointColor(pts) }}>
-                        {pts > 0 ? `+${pts}` : String(pts)}
+                        {pts > 0 ? `+${puanYaz(pts)}` : puanYaz(pts)}
                       </Text>
                     </View>
                   </View>

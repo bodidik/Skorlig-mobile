@@ -9,6 +9,7 @@ import { auth } from "../lib/firebase";
  * kimliğe veriyor (bkz. api/routes/weekly-picks.cjs). */
 import { apiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
+import { puanYaz } from "../lib/lcBicim";
 import { ulkeAdi } from "../lib/ulkeler";
 
 /* ⚠️ Kendi sabit kodlanmis API tabani vardi; lib/apiBase'in LAN/dev
@@ -397,7 +398,7 @@ export default function Picks1987() {
               <Text style={s.boardRank}>#{row.rank}</Text>
               <Text style={s.boardUser} numberOfLines={1}>{row.userId}</Text>
               <View style={{ alignItems: "flex-end" }}>
-                <Text style={s.boardPts}>{row.points} p</Text>
+                <Text style={s.boardPts}>{puanYaz(row.points)} p</Text>
                 <Text style={s.boardMatches}>{row.correct}/{row.matches}</Text>
               </View>
             </View>

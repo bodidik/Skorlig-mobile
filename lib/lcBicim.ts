@@ -41,3 +41,30 @@ export function lcYaz(n: number | null | undefined): string {
   /* İki basamak, sonra sondaki sıfırlar atılıyor: 38.00 → 38, 1.90 → 1.9 */
   return String(Number(x.toFixed(2)));
 }
+
+/**
+ * Puan gösterimi — aynı gürültü sorunu, DAHA AĞIR HÂLİ.
+ *
+ * ⚠️ ÜRETİM VERİSİNDE ÖLÇÜLDÜ (`data/leaderboard.json`, 160 satır):
+ *     158 satır kesirli
+ *      84 satır uzun ondalıklı kayan nokta artığı
+ *     örnekler: 5.717648576819556e-17 · -1.4420000000000002 · 0.9270000000000002
+ *
+ * Birincisi gerçekte SIFIR. Ham basıldığı için ekranda tam olarak
+ * "5.717648576819556e-17p" görünüyordu — bilimsel gösterim, kullanıcı için
+ * anlamsız.
+ *
+ * Kaynak da düzeltildi (`routes/settle2.cjs` puanı yazarken yuvarlıyor), ama
+ * DEPODA ZATEN KİRLİ VERİ VAR ve o satırlar yeniden hesaplanmıyor. Bu yüzden
+ * gösterim tarafındaki koruma kalıcı: eski kayıtlar da temiz görünsün.
+ *
+ * `lcYaz`dan ayrı tutuldu çünkü kuralları ayrışabilir — puanlar negatif
+ * olabiliyor (ceza), LC olamaz.
+ */
+export function puanYaz(n: number | null | undefined): string {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return "0";
+  /* Çok küçük artıklar sıfırdır: 5.7e-17 → "0" (yoksa "0.00" bile yazılmaz,
+   * toFixed bilimsel gösterimi 0.00'a çevirir ama biz sayıya döndürüyoruz). */
+  return String(Number(x.toFixed(2)));
+}

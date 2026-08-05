@@ -12,6 +12,7 @@ import Colors from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
+import { puanYaz } from "../lib/lcBicim";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -278,7 +279,7 @@ export default function TrLeagueScreen() {
                       <Text style={{ color: "#fbbf24", fontSize: 10, marginRight: 8 }}>+{reward} LC</Text>
                     ) : null}
                     <Text style={{ color: "#a3e635", fontWeight: "800" }}>
-                      {row.points} p
+                      {puanYaz(row.points)} p
                       <Text style={{ color: Colors.muted, fontSize: 10 }}> ({row.matches})</Text>
                     </Text>
                   </View>
