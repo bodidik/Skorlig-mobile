@@ -12,6 +12,7 @@ import Colors from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
+import { puanYaz } from "../lib/lcBicim";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -27,7 +28,7 @@ async function apiFetch(path: string, init?: RequestInit) {
   return sharedApiFetch(p, init as any);
 }
 
-type BoardRow = { userId: string; points: number; matches: number };
+type BoardRow = { userId: string; points: number; matches: number; rank?: number };
 type FxView = {
   fixtureId: string;
   home?: string | null;
@@ -254,8 +255,21 @@ export default function TrLeagueScreen() {
               )}
               {(data.board || []).map((row, ix) => {
                 const isMe = row.userId.toLowerCase() === userId.toLowerCase();
-                const medal = ix < 3 ? REWARD_MEDALS[ix] : ` ${ix + 1}.`;
-                const reward = rewards[ix];
+                /**
+                 * ⚠️ SIRA SUNUCUDAN — ESKİDEN DİZİ İNDEKSİNDEN TÜRETİLİYORDU.
+                 *
+                 * Ödül dağıtımı beraberlikte AYNI sırayı veriyor (üç kişi eşit
+                 * puanlıysa üçü de birincilik ödülünü alır), ama burada
+                 * `ix` kullanıldığı için ekranda 1./2./3. görünüyor ve
+                 * `rewards[ix]` ile ALINMAYAN bir ödül miktarı yazılıyordu.
+                 * Ölçüldü: üç kişi 10 puanla eşit → üçü de 100 LC aldı,
+                 * ikincisine ekranda "60 LC" yazıyordu.
+                 *
+                 * `row.rank` yoksa (eski sunucu) indekse düşülür.
+                 */
+                const sira = typeof row.rank === "number" ? row.rank : ix + 1;
+                const medal = sira <= 3 ? REWARD_MEDALS[sira - 1] : ` ${sira}.`;
+                const reward = rewards[sira - 1];
                 return (
                   <View
                     key={row.userId}
@@ -278,7 +292,7 @@ export default function TrLeagueScreen() {
                       <Text style={{ color: "#fbbf24", fontSize: 10, marginRight: 8 }}>+{reward} LC</Text>
                     ) : null}
                     <Text style={{ color: "#a3e635", fontWeight: "800" }}>
-                      {row.points} p
+                      {puanYaz(row.points)} p
                       <Text style={{ color: Colors.muted, fontSize: 10 }}> ({row.matches})</Text>
                     </Text>
                   </View>

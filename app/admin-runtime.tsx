@@ -14,20 +14,32 @@ import Colors from "../constants/colors";
 import { t, useLang } from "../lib/i18n";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
+import { withAdminHeaders } from "../lib/adminToken";
 import BackBar from "../components/BackBar";
 
 /**
- * Paylasilan apiFetch'e delege eder.
+ * Paylasilan apiFetch'e delege eder; admin basliklarini ekleyerek.
  *
  * ⚠️ BURADA HAM `fetch` VARDI: zaman asimi ve yeniden deneme politikasi yoktu
  * (bkz. lib/fetchPolicy). Istek asildiginda ekran sonsuza kadar spinner
  * gosteriyor, kullanicinin iptal edecek bir seyi olmuyordu — "kings"
  * sekmesinde tam olarak bu yasandi. Ayni kopya 29 dosyada vardi.
  * Paylasilan surum auth basliklarini da kendisi ekliyor.
+ *
+ * ⚠️ ADMIN BASLIGI EKSIKTI: `/api/admin/runtime-mode` ucun IKI yontemi de
+ * (GET ve POST) `requireAdminToken` istiyor, ama bu sarmalayici yalnizca
+ * kimlik basligi gonderiyordu — her istek 401 ADMIN_TOKEN_REQUIRED donuyor,
+ * ekran hicbir zaman calismiyordu. Kardes ekran `admin-live.tsx` ayni paneldeki
+ * butondan aciliyor ve jetonu bastan beri dogru gonderiyor; fark yalnizca
+ * burada gozden kacmisti. Jeton `me.tsx` yonetici panelinde giriliyor
+ * (setAdminToken) ve bu ekran oradan aciliyor, yani jeton zaten elde.
  */
-async function apiFetch(path: string, init?: RequestInit) {
+async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   const p = path.startsWith("/") ? path : `/${path}`;
-  return sharedApiFetch(p, init as any);
+  const headers = await withAdminHeaders({
+    ...((init?.headers as Record<string, string>) || {}),
+  });
+  return sharedApiFetch(p, { ...(init as any), headers });
 }
 
 type RuntimeMode = {

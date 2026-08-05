@@ -4,9 +4,8 @@ import {
   View, Text, TouchableOpacity, ActivityIndicator,
   Animated, StyleSheet, Alert,
 } from "react-native";
-import { getApiBase } from "../lib/apiBase";
 import hataMesaji from "../lib/hataMesaji";
-import { getAuthHeaders } from "../lib/apiFetch";
+import { apiFetch } from "../lib/apiFetch";
 
 type Odds = { home: number; draw: number; away: number };
 type Rewards = { home: number; draw: number; away: number };
@@ -51,14 +50,14 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
     setSelected(outcomeKey);
     setBusy(true);
     try {
-      const base = await getApiBase();
-      const authH = await getAuthHeaders();
       // ⚠️ YANIT KONTROL EDILIYOR. Eskiden sonuc okunmadan "kazandin"
       // rozeti gosteriliyordu: sunucu reddetse bile (bakiye, mac basladi,
       // zaten tahmin edildi) kullanici LC kazandigini saniyordu.
-      const res = await fetch(`${base}/api/pred/submit`, {
+      /* Ham `fetch` + elle taban/kimlik yerine paylasilan sarmalayici:
+       * zaman asimi ve 2xx disi yanitlarin loglanmasi da geliyor. */
+      const res = await apiFetch(`/api/pred/submit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...authH },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fixtureId: fixture.fixtureId,
           outcome: OUTCOMES.find(o => o.key === outcomeKey)!.api,

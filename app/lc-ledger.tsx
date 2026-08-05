@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
+import { lcYaz } from "../lib/lcBicim";
 import { t, useLang } from "../lib/i18n";
 import BackBar from "../components/BackBar";
 
@@ -229,7 +230,7 @@ export default function LcLedgerScreen() {
           <>
             <Text style={{ fontWeight: "700" }}>{t("currentBalance")}</Text>
             <Text style={{ fontSize: 26, fontWeight: "800", color: Colors.accent }}>
-              {wallet.user?.balance ?? 0} LC
+              {lcYaz(wallet.user?.balance)} LC
             </Text>
             <Text style={{ color: Colors.muted, fontSize: 12 }}>
               {t("earnSpend", { e: wallet.user?.totalEarned ?? 0, s: wallet.user?.totalSpent ?? 0 })}

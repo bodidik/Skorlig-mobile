@@ -14,6 +14,7 @@ import Constants from "expo-constants";
 import Colors, { on } from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
+import { lcYaz } from "../lib/lcBicim";
 import { t, useLang } from "../lib/i18n";
 
 /**
@@ -520,7 +521,7 @@ export default function MyStatusScreen() {
         ) : wallet ? (
           <>
             <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.accent }}>
-              {wallet.user?.balance ?? 0} LC
+              {lcYaz(wallet.user?.balance)} LC
             </Text>
             <Text style={{ color: Colors.muted, fontSize: 11, flex: 1 }} numberOfLines={2}>
               {t("entryDaily", { e: wallet.pricing?.matchEntryCost ?? 0, d: wallet.daily?.amount ?? 0 })}

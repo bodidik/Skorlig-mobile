@@ -10,13 +10,13 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { hataMesaji } from "../../lib/hataMesaji";
+import { lcYaz } from "../../lib/lcBicim";
 import { t, useLang } from "../../lib/i18n";
 import { ulkeAdi } from "../../lib/ulkeler";
 import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
 import Colors, { on } from "../../constants/colors";
-import { getApiBase } from "../../lib/apiBase";
-import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { getAdminToken, setAdminToken, withAdminHeaders } from "../../lib/adminToken";
 import Constants from "expo-constants";
 import { getRank, getNextRank, rankProgress, getUnlocked, ACHIEVEMENTS, type AchCtx } from "../../lib/ranks";
@@ -208,9 +208,10 @@ export default function Me() {
   const loadBannedList = useCallback(async () => {
     setBannedLoading(true);
     try {
-      const base = await getApiBase();
-      const tok  = await getAdminToken();
-      const r    = await fetch(`${base}/api/admin/banned`, { headers: { "x-admin-token": tok } });
+      /* Ham `fetch` idi: taban ve yonetici basligi elle kuruluyor, bu yuzden
+       * zaman asimi/yeniden deneme politikasi (lib/fetchPolicy) atlaniyordu.
+       * Jeton artik withAdminHeaders ile tek yerden geliyor. */
+      const r = await apiFetch(`/api/admin/banned`, { headers: await withAdminHeaders({}) });
       const j    = await r.json();
       if (j?.ok) setBannedList(j.items ?? []);
     } catch {}
@@ -223,11 +224,9 @@ export default function Me() {
     setBanBusy(true);
     setBanMsg(null);
     try {
-      const base = await getApiBase();
-      const tok  = await getAdminToken();
-      const r    = await fetch(`${base}/api/admin/ban`, {
+      const r = await apiFetch(`/api/admin/ban`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-token": tok },
+        headers: await withAdminHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ userId: uid, reason: banReason.trim() || null }),
       });
       const j = await r.json();
@@ -245,11 +244,9 @@ export default function Me() {
 
   const unbanUser = useCallback(async (uid: string) => {
     try {
-      const base = await getApiBase();
-      const tok  = await getAdminToken();
-      await fetch(`${base}/api/admin/unban`, {
+      await apiFetch(`/api/admin/unban`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-token": tok },
+        headers: await withAdminHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ userId: uid }),
       });
       loadBannedList();
@@ -1562,7 +1559,7 @@ export default function Me() {
                 <Text style={{ fontSize: 32 }}>🪙</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 32, fontWeight: "900", color: "#92400e", lineHeight: 36 }}>
-                    {wallet.user?.balance ?? 0}
+                    {lcYaz(wallet.user?.balance)}
                     <Text style={{ fontSize: 18, fontWeight: "700" }}> LC</Text>
                   </Text>
                   {wallet.daily?.canClaim && (
@@ -2391,11 +2388,8 @@ export default function Me() {
                     style: "destructive",
                     onPress: async () => {
                       try {
-                        const base = await getApiBase();
-                        const authH = await getAuthHeaders();
-                        const r = await fetch(`${base}/api/users/delete-account`, {
+                        const r = await apiFetch(`/api/users/delete-account`, {
                           method: "DELETE",
-                          headers: authH,
                         });
                         const json = await r.json();
                         if (!json.ok) throw new Error(json.error || t("serverError"));

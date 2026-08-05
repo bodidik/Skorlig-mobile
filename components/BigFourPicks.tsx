@@ -3,7 +3,6 @@ import {
   View, Text, TouchableOpacity, ActivityIndicator,
   StyleSheet, ScrollView, RefreshControl,
 } from "react-native";
-import Constants from "expo-constants";
 // ⚠️ `@react-native-firebase/auth` bu projede KURULU DEĞİL (yalnızca
 // `firebase` var). Bu bileşen hiçbir ekrandan çağrılmadığı için hata
 // çıkmıyordu; import edildiği an paketleme aşamasında çökerdi.
@@ -15,7 +14,9 @@ import { apiFetch } from "../lib/apiFetch";
 import { ligEtiketi } from "../lib/ulkeler";
 import { t, useLang } from "../lib/i18n";
 
-const API = Constants.expoConfig?.extra?.apiBase ?? "https://skorlig87.onrender.com";
+/* ⚠️ BURADA KENDI `API` TABANI VARDI ve degeri sabit kodlanmis bir Render
+ * adresine dusuyordu; lib/apiBase'in LAN/dev cozumlemesinden habersizdi.
+ * Tabani da paylasilan apiFetch belirliyor, ayri kopya kalmadi. */
 
 type Outcome = "H" | "D" | "A";
 
@@ -97,10 +98,20 @@ export default function BigFourPicks() {
     if (!userId) return;
     setSubmitting(fixtureId + outcome);
     try {
-      const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`${API}/api/weekly-picks/predict`, {
+      /**
+       * ⚠️ BU CAGRI HIC CALISMIYORDU. Ham `fetch` ile kimligi
+       * `Authorization: Bearer` olarak gonderiyordu; sunucudaki `verifyToken`
+       * ise YALNIZCA `x-auth-token` okuyor (middleware/verifyToken.cjs).
+       * Yani /api/weekly-picks/predict her seferinde 401 donuyordu ve sonuc
+       * asagidaki `catch {}` + `if (j.ok)` ikilisiyle yutuluyordu: kullanici
+       * secimine dokunuyor, hicbir sey olmuyordu.
+       *
+       * Paylasilan apiFetch dogru basligi kendisi ekliyor; ayrica zaman asimi,
+       * yeniden deneme ve 2xx disi yanitlarin loglanmasi da bedava geliyor.
+       */
+      const res = await apiFetch(`/api/weekly-picks/predict`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fixtureId, outcome }),
       });
       const j = await res.json();

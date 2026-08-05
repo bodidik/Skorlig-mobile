@@ -14,6 +14,7 @@ import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
+import { puanYaz } from "../../lib/lcBicim";
 const t2 = t; // `t` degiskeni (turnuva) golgelemesi icin takma ad
 
 /**
@@ -53,6 +54,8 @@ type BoardResp = {
     finishedAt?: string | null;
     winners?: string[] | null;
     rewardLc?: number | null;
+    /** Ödül verilmediyse nedeni — bugün yalnızca "MIN_UYE". */
+    odulKesildi?: string | null;
   };
   fixtures?: FxView[];
   board?: BoardRow[];       // top 50
@@ -62,6 +65,8 @@ type BoardResp = {
   friendsInBoard?: BoardRow[];
   settledCount?: number;
   pendingCount?: number;
+  /** Ödül kuralı SUNUCUDAN — ekran tahmin etmesin (bkz. api MIN_ODUL_UYE). */
+  odulKurali?: { minUye: number; toplamOdul: number };
   error?: string;
 };
 
@@ -205,6 +210,16 @@ export default function MiniBoardScreen() {
                       {t2("rewardRow", { n: t.rewardLc })}
                     </Text>
                   )}
+                  {/* ⚠️ ÖDÜLSÜZ BİTİŞİN NEDENİ SÖYLENİYOR. Önceden `rewardLc`
+                      0 olunca satır hiç basılmıyordu: kullanıcı şampiyon
+                      oluyor, ödül satırı görünmüyor ve NEDEN görünmediğine
+                      dair hiçbir şey yazmıyordu. Sayı ve kural SUNUCUDAN —
+                      ekran asgari üyeyi tahmin etmiyor. */}
+                  {!t.rewardLc && t.odulKesildi === "MIN_UYE" && !!data?.odulKurali && (
+                    <Text style={{ color: "#b45309", fontSize: 12, fontWeight: "600", textAlign: "center" }}>
+                      {t2("minMembersNoReward", { n: data.odulKurali.minUye })}
+                    </Text>
+                  )}
                 </>
               ) : (
                 <Text style={{ color: "#92400e", fontSize: 13, fontWeight: "600" }}>
@@ -310,7 +325,7 @@ export default function MiniBoardScreen() {
                   {t2("rankAmong", { n: data.totalMembers, r: data.myRank })}
                 </Text>
               </View>
-              <Text style={{ color: "#a3e635", fontWeight: "900", fontSize: 18 }}>{data.myRow.points} p</Text>
+              <Text style={{ color: "#a3e635", fontWeight: "900", fontSize: 18 }}>{puanYaz(data.myRow.points)} p</Text>
             </View>
           )}
 
@@ -362,7 +377,7 @@ export default function MiniBoardScreen() {
                     {row.userId}{isMe ? " 👤" : ""}
                   </Text>
                   <Text style={{ color: "#a3e635", fontWeight: "800" }}>
-                    {row.points} p
+                    {puanYaz(row.points)} p
                   </Text>
                 </View>
               );

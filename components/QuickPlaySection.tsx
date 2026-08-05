@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, StyleSheet, ScrollView } from "react-native";
 import QuickPickCard, { PickFixture } from "./QuickPickCard";
 import StreakBar from "./StreakBar";
-import { getApiBase } from "../lib/apiBase";
-import { getAuthHeaders } from "../lib/apiFetch";
+import { apiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 
 type Props = {
@@ -32,14 +31,13 @@ export default function QuickPlaySection({ country, userId }: Props) {
     let cancelled = false;
     async function load() {
       try {
-        const base = await getApiBase();
         const qs = country ? `?country=${encodeURIComponent(country)}` : "";
 
         const [singlesR, quadR, streakR] = await Promise.all([
-          fetch(`${base}/api/daily-picks/singles${qs}`).then(r => r.json()).catch(() => null),
-          fetch(`${base}/api/daily-picks/quad${qs}`).then(r => r.json()).catch(() => null),
+          apiFetch(`/api/daily-picks/singles${qs}`).then(r => r.json()).catch(() => null),
+          apiFetch(`/api/daily-picks/quad${qs}`).then(r => r.json()).catch(() => null),
           userId
-            ? fetch(`${base}/api/daily-picks/streak?userId=${encodeURIComponent(userId)}`).then(r => r.json()).catch(() => null)
+            ? apiFetch(`/api/daily-picks/streak?userId=${encodeURIComponent(userId)}`).then(r => r.json()).catch(() => null)
             : null,
         ]);
 

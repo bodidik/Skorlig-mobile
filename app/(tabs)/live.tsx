@@ -14,7 +14,7 @@ import { useUserId } from "../../lib/useUserId";
 import { useFocusEffect } from "@react-navigation/native";
 import Colors from "../../constants/colors";
 import { getApiBase, syncServerTime, nowFromServer } from "../../lib/apiBase";
-import { getAuthHeaders, apiJson as sharedApiJson } from "../../lib/apiFetch";
+import { apiFetch as sharedApiFetch, apiJson as sharedApiJson } from "../../lib/apiFetch";
 import { withAdminHeaders } from "../../lib/adminToken";
 import DailyMenuStrip from "../../components/DailyMenuStrip";
 import QuickPlaySection from "../../components/QuickPlaySection";
@@ -356,15 +356,10 @@ function isWithinPredictWindow96h(fx: Fx, nowMs: number) {
   return diff <= PREDICT_OPEN_AHEAD_HOURS * 3600 * 1000;
 }
 
-async function fetchWithTimeout(input: RequestInfo, init?: RequestInit, timeoutMs = 12000) {
-  const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    return await fetch(input, { ...(init || {}), signal: ctrl.signal });
-  } finally {
-    clearTimeout(tid);
-  }
-}
+/* ⚠️ BURADAKI `fetchWithTimeout` KALDIRILDI: lib/fetchPolicy'nin zaman asimi
+ * bolumunun elle yazilmis, eksik bir kopyasiydi (yeniden deneme ve ag
+ * hatasinda adres tazeleme yoktu). Tek kullanicisi olan yerel `apiFetch`
+ * paylasilan surume gecince olu koda dondu. */
 
 function normalizeApiError(j: any): string {
   const code = String(j?.error || j?.code || "").trim();
@@ -763,12 +758,18 @@ export default function LiveScreen() {
   const [addMsg, setAddMsg] = useState<string | null>(null);
   const [addBusy, setAddBusy] = useState(false);
 
+  /**
+   * ⚠️ BU YEREL KOPYA TABANI VE KIMLIGI ELLE KURUYORDU. Kendi
+   * `fetchWithTimeout` yardimcisini kullandigi icin lib/fetchPolicy'deki
+   * yeniden deneme ve ag hatasinda API adresini tazeleme davranisi burada
+   * YOKTU — paylasilan surumun kazandigi her iyilestirme bu ekrani atliyordu.
+   * Artik paylasilan surume delege ediliyor; ekranda gosterilen taban bilgisi
+   * (`baseInfo`) tek yan etki olarak korundu.
+   */
   async function apiFetch(path: string, init?: RequestInit) {
-    const base = await getApiBase();
-    setBaseInfo(base);
-    const authH = await getAuthHeaders();
     const p = path.startsWith("/") ? path : `/${path}`;
-    return fetchWithTimeout(`${base}${p}`, { ...init, headers: { ...authH, ...(init?.headers as any) } }, 12000);
+    setBaseInfo(await getApiBase());
+    return sharedApiFetch(p, init as any);
   }
 
   // ⚠️ Bu yardımcı buraya özeldi ve diğer 113 `.json()` çağrısını korumasız
@@ -1322,7 +1323,19 @@ export default function LiveScreen() {
         return;
       }
 
-      const j2 = await apiJson(`/api/rt/settle2?fixtureId=${encodeURIComponent(selectedFid)}`, { method: "POST" });
+      /**
+       * ⚠️ YÖNETİCİ BAŞLIĞI BURADA DA ŞART — bir üstteki çağrıya eklenmişti,
+       * buna eklenmemişti. `/api/rt/settle2` muhafızı ara katman değil, gövdenin
+       * içinde: `isInternalCaller(req)` ya loopback ya da geçerli `x-admin-token`
+       * istiyor (lib/internal-caller.cjs). Mobil istemci hiçbir zaman loopback
+       * olmadığına göre jeton tek yol; `apiJson` ise yalnızca `x-auth-token` /
+       * `x-user-id` ekliyor. Yani "FT + settle2" seçeneği her seferinde 401
+       * UNAUTHORIZED alıyor, FT yazılıyor ama ödeme hiç tetiklenmiyordu.
+       */
+      const j2 = await apiJson(`/api/rt/settle2?fixtureId=${encodeURIComponent(selectedFid)}`, {
+        method: "POST",
+        headers: await withAdminHeaders({ "Content-Type": "application/json" }),
+      });
       if (!j2?.ok) {
         setAdmMsg(t("ftSettleFailed", { e: normalizeApiError(j2) }));
         await onRefresh();
@@ -1388,7 +1401,12 @@ export default function LiveScreen() {
         return;
       }
 
-      const cnt = Array.isArray(j.leaderboard) ? j.leaderboard.length : 0;
+      // ⚠️ `j.leaderboard` HİÇ VAR OLMADI: uç `count`/`items` döndürüyor
+      // (pred.cjs match-board). `ok` true olduğu için hata da görünmüyordu —
+      // yönetici satır sayısını HER ZAMAN 0 okuyup "tablo boş" sanıyordu.
+      // Boş ekrandan kötü: bildirim BAŞARI deyip YANLIŞ sayı veriyordu.
+      // Doğru adı kardeş ekran zaten kullanıyor: mystatus.tsx `j.items`.
+      const cnt = typeof j.count === "number" ? j.count : (Array.isArray(j.items) ? j.items.length : 0);
       const sc = j.finalScore ? `${j.finalScore.home} - ${j.finalScore.away}` : "-";
       setAdmMsg(t("boardOkRow", { s: sc, n: cnt }));
     } finally {

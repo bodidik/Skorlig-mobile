@@ -59,7 +59,16 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const STAKES = [1, 2, 3, 5, 8, 10, 12];
+/** Sunucunun `/duels/open` yanıtındaki ödül tablosu satırı. */
+type OdulSatiri = { stake: number; pot: number; houseCut: number; winAmount: number };
+
+/**
+ * ⚠️ YEDEK LİSTE — sunucu `odulTablosu` göndermediğinde (eski sunucu) kullanılır.
+ * Kesinti kademeli tam sayı olduğu için ödülü ekranda HESAPLAMIYORUZ; yedek
+ * yalnızca hangi bahislerin sunulacağını söyler, ödül alanı boş kalır.
+ * Gerekçe: api/lib/duello-kesinti.cjs.
+ */
+const YEDEK_STAKES = [1, 2, 3, 5, 8, 10, 12];
 
 function shortId(uid: string) { return String(uid || "").slice(-4).toUpperCase(); }
 
@@ -172,16 +181,19 @@ function Seat({ name, uid, points, isWinner, settled, tied, empty, onSit, sittin
 
 // ─── Arena card ───────────────────────────────────────────────────────────────
 
-function ArenaCard({ duel, userId, myName, onAccept, onCancel, houseCutPct }:
+function ArenaCard({ duel, userId, myName, onAccept, onCancel }:
   { duel: Duel; userId: string; myName: string|null;
-    onAccept: (d: Duel) => void; onCancel: (d: Duel) => void;
-    /** Kasa payı SUNUCUDAN gelir. Yedek hesapta sabit oran kullanmak,
-     *  oran değiştiğinde kullanıcıya yanlış kazanç göstermek demekti. */
-    houseCutPct: number }) {
+    onAccept: (d: Duel) => void; onCancel: (d: Duel) => void }) {
 
-  /** Sunucu `winAmount` göndermediyse (eski kayıt) AYNI kuralla hesapla. */
-  const kazanc = (pot: number) => Math.round(pot * (1 - houseCutPct) * 10) / 10;
-  const kasaYuzde = Math.round(houseCutPct * 100);
+  /**
+   * ⚠️ EKRAN ÖDÜLÜ HESAPLAMIYOR. Eskiden `pot * (1 - houseCutPct)` yapıyordu;
+   * kesinti artık kademeli TAM SAYI olduğu için tek bir oranla ifade edilemez
+   * (bahis 5'te %10, bahis 12'de %4.2, bahis 1-4'te %0). Yedek de sunucunun
+   * sonuçlandırma yolundaki ile AYNI: `duel.winAmount ?? duel.pot`
+   * (bkz. api/routes/duels.cjs, kazanana ödeme satırı).
+   */
+  const kazanc = (d: Duel) => d.winAmount ?? d.pot;
+  const kasaPayi = duel.houseCut;
 
   const [sitting, setSitting] = useState(false);
 
@@ -227,9 +239,11 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel, houseCutPct }:
         </Text>
         <Text style={{ color: "#334155", fontSize: 13 }}>→</Text>
         <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 16 }}>
-          {duel.winAmount ?? kazanc(duel.pot)} LC
+          {kazanc(duel)} LC
         </Text>
-        <Text style={{ color: "#334155", fontSize: 10 }}>(%{kasaYuzde} kasa)</Text>
+        {kasaPayi > 0 && (
+          <Text style={{ color: "#334155", fontSize: 10 }}>({kasaPayi} LC kasa)</Text>
+        )}
         <View style={{ position: "absolute", right: 12 }}>
           <View style={{
             borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3,
@@ -302,7 +316,7 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel, houseCutPct }:
             {tied
               ? t("tiedRefund")
               : iWon
-              ? t("wonMsg", { n: duel.winAmount ?? kazanc(duel.pot) })
+              ? t("wonMsg", { n: kazanc(duel) })
               : t("lostMsg", { n: duel.stake })}
           </Text>
         </View>
@@ -344,19 +358,37 @@ export default function DuelScreen() {
   // Sunucu karari: tek tarafli maca duello kurulamaz (bkz. lib/mac-denge.cjs).
   const [duelloyaUygun, setDuelloyaUygun] = useState(true);
   /**
-   * ⚠️ KASA PAYI SUNUCUDAN GELİR. Bu ekran kazancı kendi hesaplıyordu
-   * (`stake * 2 * 0.95`, üç yerde) ve "%5 kasa payı" metnini sabit
-   * yazıyordu. Sunucudaki HOUSE_CUT_PCT değişse ekran kullanıcıya YANLIŞ
-   * kazanç vaat ederdi — üstelik bu vaat bahsi KOYMADAN ÖNCE gösteriliyor.
+   * ⚠️ ÖDÜL TABLOSU SUNUCUDAN GELİR — ekran artık HİÇBİR ödül hesaplamıyor.
+   *
+   * Bu ekran kazancı kendi hesaplıyordu (`stake * 2 * 0.95`, dört yerde) ve
+   * "%5 kasa payı" metnini sabit yazıyordu. Sonra oran sunucudan alınmaya
+   * başlandı, ama çarpma yine BURADAYDI. 2026-08-05'te kesinti kademeli TAM
+   * SAYI LC'ye çevrildi (gerekçe: api/lib/duello-kesinti.cjs — yüzde, 12
+   * bahsin 11'inde kesirli ödül üretiyor ve cüzdanda kayan nokta hatası
+   * biriktiriyordu) ve tek bir oran kuralı artık ANLATAMIYOR: bahis 5'te
+   * 1/10 = %10, bahis 12'de 1/24 = %4.2, bahis 1-4'te %0.
+   *
+   * Bu yüzden sunucu her bahsin ödülünü HESAPLANMIŞ gönderiyor. Ekranın
+   * çarpacak bir şeyi kalmadı — sapma yapısal olarak imkânsız.
+   *
    * Aynı sınıf bu üründe bir kez pahalıya patladı (api/lib/ekonomi.cjs
    * macOdulu notu: ekran 3009 LC vaat etti, cüzdana ≤15 geçti).
-   * Varsayılan, alanı göndermeyen ESKİ sunucularda eski davranışı korur.
+   *
+   * `null` = ESKİ sunucu, tablo göndermiyor. O durumda yedek bahis listesi
+   * gösterilir ve ödül vaadi HİÇ gösterilmez — yanlış sayı göstermektense
+   * göstermemek doğru yön.
    */
-  const [houseCutPct, setHouseCutPct] = useState(0.05);
+  const [odulTablosu, setOdulTablosu] = useState<OdulSatiri[] | null>(null);
+  /** Sunucu tablosu varsa bahisler ORADAN — yedek liste yalnızca eski sunucuda. */
+  const stakeSecenekleri = odulTablosu?.length
+    ? odulTablosu.map(x => x.stake)
+    : YEDEK_STAKES;
   const [myDuels,   setMyDuels]     = useState<Duel[]>([]);
   const [loading,   setLoading]     = useState(true);
   const [refreshing,setRefreshing]  = useState(false);
   const [selectedStake, setSelectedStake] = useState(3);
+  /** Seçili bahsin ödülü — SUNUCUDAN. Yoksa vaat gösterilmez (bkz. not). */
+  const secilenOdul = odulTablosu?.find(x => x.stake === selectedStake) ?? null;
   const [creating,  setCreating]    = useState(false);
   const [toast,     setToast]       = useState<{ msg: string; ok: boolean } | null>(null);
   const [lcBalance, setLcBalance]   = useState<number | null>(null);
@@ -389,8 +421,14 @@ export default function DuelScreen() {
       if (oj?.ok) setOpenDuels(oj.items || []);
       // Alan yoksa (eski sunucu) ENGELLEME yok: bu arayuz ipucu, kapi sunucuda.
       if (oj?.ok) setDuelloyaUygun(oj.duelloyaUygun !== false);
-      // Alan yoksa (eski sunucu) varsayilan korunur — ayni desen.
-      if (oj?.ok && typeof oj.houseCutPct === "number") setHouseCutPct(oj.houseCutPct);
+      /* Alan yoksa (eski sunucu) `null` kalir: yedek bahis listesi gosterilir,
+       * odul vaadi gosterilmez. Bkz. odulTablosu notu. */
+      if (oj?.ok && Array.isArray(oj.odulTablosu)) {
+        setOdulTablosu(
+          oj.odulTablosu.filter((x: any) =>
+            x && typeof x.stake === "number" && typeof x.winAmount === "number")
+        );
+      }
       if (mj?.ok) setMyDuels(mj.items || []);
       loadBalance(userId);
     } catch (e: any) {
@@ -453,9 +491,10 @@ export default function DuelScreen() {
       showToast(j?.error || t("acceptFailed"), false);
       return;
     }
-    /* Sunucu winAmount göndermediyse aynı kuralla hesapla — oran SUNUCUDAN
-     * (bkz. houseCutPct notu). Bu, ilk taramamda kaçırdığım DÖRDÜNCÜ yerdi. */
-    const prize = duel.winAmount ?? Math.round(duel.pot * (1 - houseCutPct) * 10) / 10;
+    /* Sunucunun sonuçlandırma yolundaki yedekle AYNI: winAmount yoksa pot.
+     * Eskiden burada `pot * (1 - houseCutPct)` çarpımı vardı — bkz. odulTablosu
+     * notu; ekran artık ödül hesaplamıyor. */
+    const prize = duel.winAmount ?? duel.pot;
     showToast(t("duelStarted", { n: prize }));
     loadAll();
   }
@@ -562,7 +601,7 @@ export default function DuelScreen() {
           <View style={{ padding: 14, gap: 12 }}>
             {/* Stake row */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-              {STAKES.map(s => {
+              {stakeSecenekleri.map(s => {
                 const sel = selectedStake === s;
                 const ok  = lcBalance === null || lcBalance >= s;
                 return (
@@ -597,9 +636,13 @@ export default function DuelScreen() {
               <View style={{ flex: 1, backgroundColor: "#0f172a", padding: 12, alignItems: "center" }}>
                 <Text style={{ color: "#475569", fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>{t("ifYouWin")}</Text>
                 <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 22, marginTop: 2 }}>
-                  {Math.round(selectedStake * 2 * (1 - houseCutPct) * 10) / 10} LC
+                  {secilenOdul ? `${secilenOdul.winAmount} LC` : "—"}
                 </Text>
-                <Text style={{ color: "#334155", fontSize: 9, marginTop: 1 }}>{t("houseCutRow", { n: Math.round(houseCutPct * 100) })}</Text>
+                {!!secilenOdul && secilenOdul.houseCut > 0 && (
+                  <Text style={{ color: "#334155", fontSize: 9, marginTop: 1 }}>
+                    {t("houseCutRow", { n: secilenOdul.houseCut })}
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -680,7 +723,8 @@ export default function DuelScreen() {
             </Text>
             {openDuels.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
-                onAccept={acceptDuel} onCancel={cancelDuel} houseCutPct={houseCutPct} />
+
+                onAccept={acceptDuel} onCancel={cancelDuel} />
             ))}
           </View>
         ) : (
@@ -705,7 +749,8 @@ export default function DuelScreen() {
             </Text>
             {myActive.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
-                onAccept={acceptDuel} onCancel={cancelDuel} houseCutPct={houseCutPct} />
+
+                onAccept={acceptDuel} onCancel={cancelDuel} />
             ))}
           </View>
         )}
@@ -718,7 +763,8 @@ export default function DuelScreen() {
             </Text>
             {mySettled.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
-                onAccept={acceptDuel} onCancel={cancelDuel} houseCutPct={houseCutPct} />
+
+                onAccept={acceptDuel} onCancel={cancelDuel} />
             ))}
           </View>
         )}

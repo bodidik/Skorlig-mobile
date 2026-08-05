@@ -9,7 +9,7 @@ import {
   Image,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { getApiBase } from "../lib/apiBase";
+import { apiFetch } from "../lib/apiFetch";
 import { hataMesaji } from "../lib/hataMesaji";
 import { t, useLang } from "../lib/i18n";
 import { ulkeAdi, ulkeBayragi } from "../lib/ulkeler";
@@ -421,8 +421,7 @@ export default function LiveScoresScreen() {
     try {
       if (!silent) setLoading(true);
       setError(null);
-      const base = await getApiBase();
-      const res  = await fetch(`${base}/api/livescore/matches`);
+      const res = await apiFetch(`/api/livescore/matches`);
       const j    = await res.json();
       if (!j.ok) throw new Error(j.error || "API error");
       setData(j);

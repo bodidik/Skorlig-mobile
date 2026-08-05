@@ -92,6 +92,10 @@ const SOZLUK: Record<string, string> = {
   // "kod yanlış" demek onu boşuna yeniden denemeye iter.
   GROUP_CODE_NOT_CONFIGURED:
     "1987GS kod doğrulaması şu an kapalı. Bu bizden kaynaklı, birazdan tekrar dene.",
+  // Üye listesi yalnızca 1987GS üyelerine açık (auth-1987gs.cjs /members).
+  // Yeniden denemek işe yaramaz; kullanıcıya kapının NEDEN kapalı olduğu
+  // söylenmezse "Bir şeyler ters gitti" görüp boşuna tekrar dener.
+  NOT_1987_MEMBER: "Bu liste yalnızca 1987GS üyelerine açık.",
 
   // ── Yönetim (kullanıcı normalde görmez) ──────────────────────────
   ADMIN_TOKEN_REQUIRED: "Bu alana erişim yetkin yok.",

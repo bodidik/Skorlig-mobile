@@ -18,6 +18,7 @@ import { shareResult } from "../../lib/share";
 /* Hata kodunu kullaniciya anlasilir Turkce metne cevirir — bkz. engelleme akisi. */
 import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
+import { puanYaz } from "../../lib/lcBicim";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -275,7 +276,7 @@ export default function MatchRaceScreen() {
           <Text style={{ color: "#60a5fa", fontWeight: "700", fontSize: 11, marginRight: 6 }}>Δ{extra.distance}</Text>
         )}
         {extra?.points != null && (
-          <Text style={{ color: "#a3e635", fontWeight: "800" }}>{extra.points}p</Text>
+          <Text style={{ color: "#a3e635", fontWeight: "800" }}>{puanYaz(extra.points)}p</Text>
         )}
         {!isMe && (
           <Text style={{ color: Colors.muted, fontSize: 10, marginLeft: 6 }}>›</Text>
@@ -467,7 +468,7 @@ export default function MatchRaceScreen() {
                   <Text style={{ fontWeight: "900", fontSize: 15, color: "#e2e8f0" }}>
                     {t("currentRank", { r: data.me.rank, n: data.totalPlayers })}
                   </Text>
-                  <Text style={{ fontWeight: "900", fontSize: 20, color: Colors.accent }}>{data.me.points}p</Text>
+                  <Text style={{ fontWeight: "900", fontSize: 20, color: Colors.accent }}>{puanYaz(data.me.points)}p</Text>
                 </View>
                 {data.me.predScore && (
                   <Text style={{ color: "#94a3b8", fontSize: 12 }}>
