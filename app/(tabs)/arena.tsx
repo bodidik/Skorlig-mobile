@@ -40,6 +40,8 @@ type MatchArena = {
   minStake: number;
   maxStake: number;
   preview: OpenDuel[];
+  /** Gerçek düellosu olmayan "ilk sen aç" kartı — bkz. lib/arena-vitrin.cjs. */
+  vitrin?: boolean;
 };
 
 // ─── Fetch ────────────────────────────────────────────────────────────────────
@@ -268,20 +270,36 @@ function MatchCard({ match, userId, myName, lcBalance, onAccepted, onError, onOp
             ) : null}
             <View style={{
               flexDirection: "row", alignItems: "center", gap: 4,
-              backgroundColor: "#1e3a5f", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3,
+              backgroundColor: match.vitrin ? "#3f2d14" : "#1e3a5f",
+              borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3,
             }}>
-              <Text style={{ fontSize: 10 }}>⚔️</Text>
-              <Text style={{ color: "#60a5fa", fontWeight: "800", fontSize: 11 }}>
-                {t("nOpen", { n: remainingCount })}
+              <Text style={{ fontSize: 10 }}>{match.vitrin ? "✨" : "⚔️"}</Text>
+              <Text style={{ color: match.vitrin ? "#fbbf24" : "#60a5fa", fontWeight: "800", fontSize: 11 }}>
+                {match.vitrin ? t("duelBeFirst") : t("nOpen", { n: remainingCount })}
               </Text>
             </View>
-            <Text style={{ color: "#334155", fontSize: 9 }}>{stakeRange}</Text>
+            {!match.vitrin && <Text style={{ color: "#334155", fontSize: 9 }}>{stakeRange}</Text>}
           </View>
         </View>
       </TouchableOpacity>
 
-      {/* Preview duels */}
-      {visible.length > 0 ? (
+      {/* Vitrin: gerçek düello yok, kullanıcı ilkini açsın */}
+      {match.vitrin ? (
+        <TouchableOpacity onPress={() => onOpenFull(match)} activeOpacity={0.85}
+          style={{ padding: 12, alignItems: "center", gap: 8 }}>
+          <Text style={{ color: "#64748b", fontSize: 11, textAlign: "center" }}>
+            {t("noDuelYetHere")}
+          </Text>
+          <View style={{
+            flexDirection: "row", alignItems: "center", gap: 6,
+            backgroundColor: "#2563eb", borderRadius: 999,
+            paddingHorizontal: 18, paddingVertical: 9,
+          }}>
+            <Text style={{ fontSize: 13 }}>⚔️</Text>
+            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>{t("openFirstDuel")}</Text>
+          </View>
+        </TouchableOpacity>
+      ) : visible.length > 0 ? (
         <View style={{ padding: 8, gap: 6 }}>
           {visible.map(d => (
             <MiniDuelRow
@@ -356,7 +374,7 @@ export default function ArenaScreen() {
   }
 
   const loadArena = useCallback(async (silent = false) => {
-    if (!userId) return;
+    if (!userId) { setLoading(false); return; }
     if (!silent) setLoading(true);
     try {
       const r = await apiFetch(`/api/duels/arena?userId=${encodeURIComponent(userId)}`);
