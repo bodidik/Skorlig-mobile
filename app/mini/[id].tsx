@@ -54,6 +54,8 @@ type BoardResp = {
     finishedAt?: string | null;
     winners?: string[] | null;
     rewardLc?: number | null;
+    /** Ödül verilmediyse nedeni — bugün yalnızca "MIN_UYE". */
+    odulKesildi?: string | null;
   };
   fixtures?: FxView[];
   board?: BoardRow[];       // top 50
@@ -63,6 +65,8 @@ type BoardResp = {
   friendsInBoard?: BoardRow[];
   settledCount?: number;
   pendingCount?: number;
+  /** Ödül kuralı SUNUCUDAN — ekran tahmin etmesin (bkz. api MIN_ODUL_UYE). */
+  odulKurali?: { minUye: number; toplamOdul: number };
   error?: string;
 };
 
@@ -204,6 +208,16 @@ export default function MiniBoardScreen() {
                   {!!t.rewardLc && (
                     <Text style={{ color: "#b45309", fontSize: 12, fontWeight: "700" }}>
                       {t2("rewardRow", { n: t.rewardLc })}
+                    </Text>
+                  )}
+                  {/* ⚠️ ÖDÜLSÜZ BİTİŞİN NEDENİ SÖYLENİYOR. Önceden `rewardLc`
+                      0 olunca satır hiç basılmıyordu: kullanıcı şampiyon
+                      oluyor, ödül satırı görünmüyor ve NEDEN görünmediğine
+                      dair hiçbir şey yazmıyordu. Sayı ve kural SUNUCUDAN —
+                      ekran asgari üyeyi tahmin etmiyor. */}
+                  {!t.rewardLc && t.odulKesildi === "MIN_UYE" && !!data?.odulKurali && (
+                    <Text style={{ color: "#b45309", fontSize: 12, fontWeight: "600", textAlign: "center" }}>
+                      {t2("minMembersNoReward", { n: data.odulKurali.minUye })}
                     </Text>
                   )}
                 </>

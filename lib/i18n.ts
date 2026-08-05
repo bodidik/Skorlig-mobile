@@ -40,6 +40,7 @@ const strings = {
     gs1987enter:   "Kodu Gir",
     gs1987hint:    "Facebook grubundan özel kodu al",
     wrongCode:     "Kod yanlış, tekrar dene",
+    minMembersNoReward: "Ödül verilmedi — ödül için en az {n} gerçek üye gerekiyor.",
     /* ── 2026-08-03 genişletme: yalnız tr+en, diğer diller en'e düşer ── */
     error:            "Hata",
     dismiss:          "Vazgeç",
@@ -1288,6 +1289,7 @@ const strings = {
     gs1987enter:   "Enter Code",
     gs1987hint:    "Get the exclusive code from the Facebook group",
     wrongCode:     "Wrong code, try again",
+    minMembersNoReward: "No reward — at least {n} real members are needed.",
     /* ── 2026-08-03 expansion — see note in tr block ── */
     error:            "Error",
     dismiss:          "Cancel",
@@ -2492,6 +2494,7 @@ const strings = {
     gs1987enter:   "Εισαγωγή Κωδικού",
     gs1987hint:    "Πάρε τον κωδικό από την ομάδα Facebook",
     wrongCode:     "Λάθος κωδικός, δοκίμασε ξανά",
+    minMembersNoReward: "Χωρίς έπαθλο — απαιτούνται τουλάχιστον {n} πραγματικά μέλη.",
   },
   de: {
     matches:       "Spiele",
@@ -2526,6 +2529,7 @@ const strings = {
     gs1987enter:   "Code eingeben",
     gs1987hint:    "Hol dir den Code aus der Facebook-Gruppe",
     wrongCode:     "Falscher Code, erneut versuchen",
+    minMembersNoReward: "Keine Belohnung — mindestens {n} echte Mitglieder erforderlich.",
   },
   fr: {
     matches:       "Matchs",
@@ -2560,6 +2564,7 @@ const strings = {
     gs1987enter:   "Entrer le code",
     gs1987hint:    "Obtiens le code dans le groupe Facebook",
     wrongCode:     "Code incorrect, réessaye",
+    minMembersNoReward: "Aucune récompense — au moins {n} membres réels sont requis.",
   },
   es: {
     matches:       "Partidos",
@@ -2594,6 +2599,7 @@ const strings = {
     gs1987enter:   "Ingresar código",
     gs1987hint:    "Obtén el código del grupo de Facebook",
     wrongCode:     "Código incorrecto, inténtalo de nuevo",
+    minMembersNoReward: "Sin recompensa: se necesitan al menos {n} miembros reales.",
   },
   it: {
     matches:       "Partite",
@@ -2628,6 +2634,7 @@ const strings = {
     gs1987enter:   "Inserisci codice",
     gs1987hint:    "Ottieni il codice dal gruppo Facebook",
     wrongCode:     "Codice errato, riprova",
+    minMembersNoReward: "Nessuna ricompensa: servono almeno {n} membri reali.",
   },
   pt: {
     matches:       "Jogos",
@@ -2662,6 +2669,7 @@ const strings = {
     gs1987enter:   "Inserir código",
     gs1987hint:    "Obtém o código do grupo do Facebook",
     wrongCode:     "Código errado, tente novamente",
+    minMembersNoReward: "Sem recompensa — são necessários pelo menos {n} membros reais.",
   },
   nl: {
     matches:       "Wedstrijden",
@@ -2696,6 +2704,7 @@ const strings = {
     gs1987enter:   "Code invoeren",
     gs1987hint:    "Haal de code op uit de Facebook-groep",
     wrongCode:     "Verkeerde code, probeer opnieuw",
+    minMembersNoReward: "Geen beloning — er zijn minstens {n} echte leden nodig.",
   },
   pl: {
     matches:       "Mecze",
@@ -2730,6 +2739,7 @@ const strings = {
     gs1987enter:   "Wprowadź kod",
     gs1987hint:    "Pobierz kod z grupy na Facebooku",
     wrongCode:     "Zły kod, spróbuj ponownie",
+    minMembersNoReward: "Brak nagrody — wymagane jest co najmniej {n} prawdziwych członków.",
   },
   ru: {
     matches:       "Матчи",
@@ -2764,6 +2774,7 @@ const strings = {
     gs1987enter:   "Введите код",
     gs1987hint:    "Получите код в группе Facebook",
     wrongCode:     "Неверный код, попробуйте снова",
+    minMembersNoReward: "Награда не выдана — нужно минимум {n} реальных участников.",
   },
   uk: {
     matches:       "Матчі",
@@ -2798,6 +2809,7 @@ const strings = {
     gs1987enter:   "Введіть код",
     gs1987hint:    "Отримайте код у групі Facebook",
     wrongCode:     "Невірний код, спробуйте знову",
+    minMembersNoReward: "Нагороду не видано — потрібно щонайменше {n} реальних учасників.",
   },
   hr: {
     matches:       "Utakmice",
@@ -2832,6 +2844,7 @@ const strings = {
     gs1987enter:   "Unesi kod",
     gs1987hint:    "Uzmi kod iz Facebook grupe",
     wrongCode:     "Pogrešan kod, pokušaj ponovo",
+    minMembersNoReward: "Nema nagrade — potrebno je najmanje {n} stvarnih članova.",
   },
   sr: {
     matches:       "Utakmice",
@@ -2866,6 +2879,7 @@ const strings = {
     gs1987enter:   "Unesi kod",
     gs1987hint:    "Uzmi kod iz Facebook grupe",
     wrongCode:     "Pogrešan kod, pokušaj ponovo",
+    minMembersNoReward: "Nema nagrade — potrebno je najmanje {n} stvarnih članova.",
   },
   cs: {
     matches:       "Zápasy",
@@ -2900,6 +2914,7 @@ const strings = {
     gs1987enter:   "Zadat kód",
     gs1987hint:    "Získej kód z facebookové skupiny",
     wrongCode:     "Špatný kód, zkus znovu",
+    minMembersNoReward: "Žádná odměna — je potřeba alespoň {n} skutečných členů.",
   },
   ro: {
     matches:       "Meciuri",
@@ -2934,6 +2949,7 @@ const strings = {
     gs1987enter:   "Introdu codul",
     gs1987hint:    "Obține codul din grupul de Facebook",
     wrongCode:     "Cod greșit, încearcă din nou",
+    minMembersNoReward: "Fără recompensă — sunt necesari cel puțin {n} membri reali.",
   },
   hu: {
     matches:       "Mérkőzések",
@@ -2968,6 +2984,7 @@ const strings = {
     gs1987enter:   "Kód megadása",
     gs1987hint:    "Szerezd meg a kódot a Facebook csoportból",
     wrongCode:     "Hibás kód, próbáld újra",
+    minMembersNoReward: "Nincs jutalom — legalább {n} valódi tag szükséges.",
   },
   sk: {
     matches:       "Zápasy",
@@ -3002,6 +3019,7 @@ const strings = {
     gs1987enter:   "Zadať kód",
     gs1987hint:    "Získaj kód z facebookovej skupiny",
     wrongCode:     "Zlý kód, skús znova",
+    minMembersNoReward: "Žiadna odmena — je potrebných aspoň {n} skutočných členov.",
   },
   bg: {
     matches:       "Мачове",
@@ -3036,6 +3054,7 @@ const strings = {
     gs1987enter:   "Въведи код",
     gs1987hint:    "Вземи кода от Facebook групата",
     wrongCode:     "Грешен код, опитай отново",
+    minMembersNoReward: "Няма награда — необходими са поне {n} реални участници.",
   },
   ar: {
     matches:       "مباريات",
@@ -3070,6 +3089,7 @@ const strings = {
     gs1987enter:   "أدخل الرمز",
     gs1987hint:    "احصل على الرمز من مجموعة Facebook",
     wrongCode:     "رمز خاطئ، حاول مرة أخرى",
+    minMembersNoReward: "لا توجد مكافأة — مطلوب {n} أعضاء حقيقيين على الأقل.",
   },
   ja: {
     matches:       "試合",
@@ -3104,6 +3124,7 @@ const strings = {
     gs1987enter:   "コードを入力",
     gs1987hint:    "Facebookグループからコードを取得",
     wrongCode:     "コードが間違っています、もう一度試してください",
+    minMembersNoReward: "報酬なし — 実際のメンバーが{n}人以上必要です。",
   },
 } as const;
 
