@@ -19,6 +19,7 @@ import { shareResult } from "../../lib/share";
 import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
 import { puanYaz } from "../../lib/lcBicim";
+import ReactionBar from "../../components/ReactionBar";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -390,6 +391,9 @@ export default function MatchRaceScreen() {
               </View>
             </TouchableOpacity>
 
+            {/* Maç öncesi de oda açık: bekleyiş de paylaşılan bir şey. */}
+            <ReactionBar fixtureId={fixtureId} pollMs={pollMs} />
+
             <Text style={{ fontWeight: "700", color: "#e2e8f0", marginTop: 4 }}>
               {t("participants", { n: data.totalPlayers || 0 })}
             </Text>
@@ -517,6 +521,15 @@ export default function MatchRaceScreen() {
                 {t("watchOnly")}
               </Text>
             )}
+
+            {/**
+              * ⚠️ TEPKİ ÇUBUĞU SIRALAMANIN ÜSTÜNDE — sıra bilinçli.
+              *
+              * Sıralama listesi uzun; çubuğu altına koymak onu maçın en hareketli
+              * anında ekran dışında bırakırdı. Skor kartı → benim sıram → oda →
+              * liste: "ne oldu / ben neredeyim / herkes ne diyor / tam liste".
+              */}
+            <ReactionBar fixtureId={fixtureId} pollMs={pollMs} />
 
             <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>
               {t("topOfTotal", { a: (data.top || []).length, b: data.totalPlayers })}

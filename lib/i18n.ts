@@ -1276,6 +1276,26 @@ const strings = {
     verifying1987:    "Doğrulanıyor...",
     use1987Code:      "1987 Kodunu Kullan",
     note1987Verified: "Not: Kod bir kez doğrulandığında profilin 1987GS olarak işaretlenir; sonraki girişlerinde otomatik tanınırsın.",
+
+    /* ── Maç odası tepkileri ──────────────────────────────────────────────
+     * ⚠️ `react_*` anahtarlarının adı SUNUCUDAKİ tepki listesiyle birebir
+     * eşleşmeli (api/lib/reactions-store.cjs → TEPKILER). Anahtar eksikse
+     * ekranda ham `react_gol` görünür. Metinler KISA olmalı: sekiz düğme tek
+     * satıra sığıyor. */
+    reactRoomTitle:   "Maç odası",
+    reactTotal:       "{n} tepki",
+    reactBeFirst:     "İlk tepkiyi sen ver",
+    reactTooFast:     "Biraz yavaş — birkaç saniye bekle",
+    reactLimit:       "Bu maç için tepki hakkın doldu",
+    reactFailed:      "Tepki gönderilemedi",
+    react_gol:        "Gol",
+    react_ates:       "Ateş",
+    react_sok:        "İnanmıyorum",
+    react_guldum:     "Güldüm",
+    react_sinir:      "Sinir",
+    react_helal:      "Helal",
+    react_hakem:      "Hakem?",
+    react_yikildim:   "Yıkıldım",
   },
   en: {
     matches:       "Matches",
@@ -2485,6 +2505,22 @@ const strings = {
     verifying1987:    "Verifying...",
     use1987Code:      "Use 1987 Code",
     note1987Verified: "Note: Once verified, your profile is marked as 1987GS; you will be recognized automatically on future logins.",
+
+    /* Maç odası tepkileri — bkz. tr bloğundaki not. */
+    reactRoomTitle:   "Match room",
+    reactTotal:       "{n} reactions",
+    reactBeFirst:     "Be the first to react",
+    reactTooFast:     "Slow down — wait a couple of seconds",
+    reactLimit:       "You have used all your reactions for this match",
+    reactFailed:      "Could not send reaction",
+    react_gol:        "Goal",
+    react_ates:       "Fire",
+    react_sok:        "No way",
+    react_guldum:     "Funny",
+    react_sinir:      "Furious",
+    react_helal:      "Respect",
+    react_hakem:      "Ref?",
+    react_yikildim:   "Gutted",
   },
   el: {
     matches:       "Αγώνες",
