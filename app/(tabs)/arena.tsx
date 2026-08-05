@@ -111,7 +111,12 @@ function MiniDuelRow({ duel, userId, myName, lcBalance, onAccepted, onError }: {
   const pulse = usePulse();
 
   const canAfford = lcBalance === null || lcBalance >= duel.stake;
-  const prize = duel.winAmount ?? Math.round(duel.pot * 0.95 * 10) / 10;
+  /* ⚠️ SABİT ÇARPAN KALDIRILDI (2026-08-05). Burada `pot * 0.95` vardı; kasa
+   * payı artık kademeli TAM SAYI LC olduğu için tek bir çarpan yanlış ödül
+   * vaat eder (bahis 5'te %10, bahis 12'de %4.2, bahis 1-4'te %0 —
+   * bkz. api/lib/duello-kesinti.cjs). Yedek, sunucunun sonuçlandırma
+   * yolundaki ile AYNI: winAmount yoksa pot. */
+  const prize = duel.winAmount ?? duel.pot;
   const creatorLabel = duel.creatorName || shortId(duel.creatorId);
 
   async function sit() {
