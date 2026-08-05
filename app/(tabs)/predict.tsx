@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase, resetApiBase, syncServerTime, nowFromServer } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { lcYaz } from "../../lib/lcBicim";
 import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
 import { sharePrediction } from "../../lib/share";
@@ -997,7 +998,7 @@ useEffect(() => {
                     kullanıcı parasının bittiğini sanıyordu. Bilinmeyen ile
                     sıfır AYNI ŞEY DEĞİL — aynı hata premium tablosunda
                     "undefined LC" olarak da yaşandı. */}
-              {walletLoading ? "…" : wallet?.user ? `${wallet.user.balance ?? 0} LC` : "— LC"}
+              {walletLoading ? "…" : wallet?.user ? `${lcYaz(wallet.user.balance)} LC` : "— LC"}
             </Text>
             {wallet?.daily?.canClaim && (
               <View style={{ backgroundColor: "#f59e0b33", borderRadius: 999, paddingHorizontal: 5, paddingVertical: 1 }}>

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { hataMesaji } from "../../lib/hataMesaji";
+import { lcYaz } from "../../lib/lcBicim";
 import { t, useLang } from "../../lib/i18n";
 import { ulkeAdi } from "../../lib/ulkeler";
 import { useUserId } from "../../lib/useUserId";
@@ -1558,7 +1559,7 @@ export default function Me() {
                 <Text style={{ fontSize: 32 }}>🪙</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 32, fontWeight: "900", color: "#92400e", lineHeight: 36 }}>
-                    {wallet.user?.balance ?? 0}
+                    {lcYaz(wallet.user?.balance)}
                     <Text style={{ fontSize: 18, fontWeight: "700" }}> LC</Text>
                   </Text>
                   {wallet.daily?.canClaim && (
