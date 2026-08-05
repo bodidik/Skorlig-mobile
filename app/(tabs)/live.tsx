@@ -23,6 +23,7 @@ import TournamentCreate from "../../components/TournamentCreate";
 import TournamentJoin from "../../components/TournamentJoin";
 import Picks1987 from "../../components/Picks1987";
 import GuestBanner from "../../components/GuestBanner";
+import DailyMatchCard from "../../components/DailyMatchCard";
 import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
@@ -1483,6 +1484,24 @@ export default function LiveScreen() {
           <View style={{ marginBottom: 12 }}>
             {/* ===== MİSAFİR ŞERTI ===== */}
             <GuestBanner />
+
+            {/* ===== GÜNÜN MAÇI =====
+                ⚠️ BU KART VARDI AMA HİÇBİR EKRANA BAĞLI DEĞİLDİ — ölü kod.
+                Besleyen uç (`/api/live/daily-featured`) de askıdaki
+                API-Football'a gidip her çağrıda `null` dönüyordu; ikisi
+                birlikte, tasarlanmış bir akış hiç çalışmıyordu.
+
+                Neden en üstte: yeni kullanıcı uygulamayı açtığında ham maç
+                listesi + altı tahmin türüyle karşılaşıyor ve "ne yapacağım"
+                sorusunun cevabını bulamıyordu. Kart tek bir maç için tek bir
+                soru soruyor (1-X-2), tahmini alıyor ve o maçın sıralamasına
+                götürüyor — kapalı, kısa bir döngü.
+
+                Yalnızca normal maç listesinde; turnuva/1987 modlarında ekran
+                zaten kendi içeriğine odaklı. */}
+            {(mode === "schedule" || mode === "open") && (
+              <DailyMatchCard country={userCountry || undefined} userId={userId} />
+            )}
 
             {/* ===== OYUN MODLARI =====
                 Altı mod farklı ekranlara dağılmış; yeni kullanıcı maç

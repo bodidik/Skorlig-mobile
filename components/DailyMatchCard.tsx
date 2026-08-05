@@ -160,13 +160,36 @@ export default function DailyMatchCard({ country, userId }: Props) {
         </View>
       )}
 
-      {/* Detaylı tahmin linki */}
-      <TouchableOpacity
-        onPress={() => router.push({ pathname: "/(tabs)/live", params: { focusId: fixture.fixtureId } })}
-        style={s.detailLink}
-      >
-        <Text style={s.detailText}>{t("detailedPred2")}</Text>
-      </TouchableOpacity>
+      {/**
+        * ⚠️ TAHMİNDEN SONRA SIRALAMA — DÖNGÜYÜ KAPATAN ADIM.
+        *
+        * Kart tahmini alıyordu ama kullanıcıyı hiçbir yere götürmüyordu:
+        * "kaydedildi" yazısı çıkıyor, sonrası yok. Oysa asıl geri bildirim
+        * "bu maçta kaç kişi arasında neredeyim" — o ekran (`match-race`)
+        * zaten vardı, sadece buradan erişilemiyordu.
+        *
+        * Tahmin ÖNCESİ "detaylı tahmin" (diğer tahmin türleri), tahmin
+        * SONRASI "sıralamayı gör" gösteriliyor: her aşamada tek ve net bir
+        * sonraki adım.
+        */}
+      {submitted ? (
+        <TouchableOpacity
+          onPress={() => router.push({
+            pathname: "/match-race/[fixtureId]",
+            params: { fixtureId: fixture.fixtureId, userId },
+          })}
+          style={s.detailLink}
+        >
+          <Text style={s.detailText}>{t("seeMatchRank")}</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          onPress={() => router.push({ pathname: "/(tabs)/live", params: { focusId: fixture.fixtureId } })}
+          style={s.detailLink}
+        >
+          <Text style={s.detailText}>{t("detailedPred2")}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
