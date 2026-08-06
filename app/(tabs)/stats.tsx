@@ -988,8 +988,18 @@ export default function StatsScreen() {
           <View style={{ marginTop: 8 }}>
             {mode === "global" && (
               <>
-                {view === "genel" &&
-                  (genelRows.length ? genelRows.slice(0, gosterilecek) : ([{ userId: "-", totalPoints: 0, totalPenalty: 0, matches: 0 } as TotRow] as TotRow[])).map(
+                {view === "genel" && genelRows.length === 0 && (
+                  <View style={{ padding: 14, borderRadius: 12, backgroundColor: Colors.dark }}>
+                    <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "700" }}>
+                      {t("emptyLeaderboard")}
+                    </Text>
+                    <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 6, lineHeight: 17 }}>
+                      {t("emptyLeaderboardDesc")}
+                    </Text>
+                  </View>
+                )}
+                {view === "genel" && genelRows.length > 0 &&
+                  genelRows.slice(0, gosterilecek).map(
                     (r, ix) => {
                       const isMe = String(r.userId || "").toLowerCase() === userId.toLowerCase();
                       return (
@@ -1063,8 +1073,18 @@ export default function StatsScreen() {
                   </TouchableOpacity>
                 )}
 
-                {view === "fav" &&
-                  (favRows.length ? favRows : ([{ userId: "-", total: 0 } as TeamRankRow] as TeamRankRow[])).map((r, ix) => {
+                {view === "fav" && favRows.length === 0 && (
+                  <View style={{ padding: 14, borderRadius: 12, backgroundColor: Colors.dark }}>
+                    <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "700" }}>
+                      {t("emptyTeamRank")}
+                    </Text>
+                    <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 6, lineHeight: 17 }}>
+                      {t("emptyTeamRankDesc")}
+                    </Text>
+                  </View>
+                )}
+                {view === "fav" && favRows.length > 0 &&
+                  favRows.map((r, ix) => {
                     const isMe = String(r.userId || "").toLowerCase() === userId.toLowerCase();
                     return (
                       <TouchableOpacity
@@ -1135,7 +1155,17 @@ export default function StatsScreen() {
 
             {mode === "cup" && (
               <View style={{ marginTop: 4 }}>
-                {(cupRows.length ? cupRows : ([{ userId: "-", totalPoints: 0, matches: 0, totalPenalty: 0 } as CupRow] as CupRow[])).map((r, ix) => {
+                {cupRows.length === 0 && (
+                  <View style={{ padding: 14, borderRadius: 12, backgroundColor: Colors.dark, marginBottom: 8 }}>
+                    <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "700" }}>
+                      {t("emptyCupBoard")}
+                    </Text>
+                    <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 6, lineHeight: 17 }}>
+                      {t("emptyCupBoardDesc")}
+                    </Text>
+                  </View>
+                )}
+                {cupRows.length > 0 && cupRows.map((r, ix) => {
                   const isMe = String(r.userId || "").toLowerCase() === userId.toLowerCase();
                   return (
                     <View
