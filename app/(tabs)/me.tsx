@@ -72,6 +72,7 @@ type WalletRegen = {
   nextAt?: string | null;
 };
 type WalletMonthly = { amount: number; active: boolean; grantedThisMonth: boolean; nextRenewal?: string };
+type MonthlyAttendance = { month: string; daysThisMonth: number; next: { at: number; amount: number } | null };
 type WalletSummary = {
   user: WalletUser;
   daily: WalletDaily;
@@ -79,6 +80,7 @@ type WalletSummary = {
   regen?: WalletRegen | null;
   premium?: boolean;
   premiumMonthly?: WalletMonthly | null;
+  monthly?: MonthlyAttendance | null;
   updatedAt?: string | null;
 };
 type StorePkg = { id: string; lc: number; priceTRY: number; label: string; popular?: boolean; emergency?: boolean };
@@ -861,7 +863,11 @@ export default function Me() {
 
       if (r?.ok) {
         const gained = r.daily?.amount ?? 0;
-        Alert.alert("SkorLig", t("dailyAdded", { n: gained }));
+        const mBonus = r.monthly?.bonus ?? 0;
+        const msg = mBonus > 0
+          ? `${t("dailyAdded", { n: gained })}\n${t("monthlyBonus", { n: mBonus })}`
+          : t("dailyAdded", { n: gained });
+        Alert.alert("SkorLig", msg);
         await loadWalletSummary(userId);
         await loadPredCount(userId);
         await loadPendingCountIfAdmin(effectiveIsAdmin);
@@ -1620,6 +1626,50 @@ export default function Me() {
                   {t("seeLedger")}
                 </Text>
               </TouchableOpacity>
+
+              {/* Aylık devam ilerleme çubuğu */}
+              {(() => {
+                const m = (wallet as any).monthly as MonthlyAttendance | undefined;
+                if (!m) return null;
+                const days = m.daysThisMonth ?? 0;
+                const maxDay = 20;
+                const pct = Math.min(days / maxDay, 1);
+                const hit10 = days >= 10;
+                const hit20 = days >= 20;
+                return (
+                  <View style={{
+                    marginTop: 6, padding: 10, borderRadius: 8,
+                    backgroundColor: "#0c1a2e", borderWidth: 1, borderColor: "#3b82f6",
+                  }}>
+                    <Text style={{ color: "#93c5fd", fontSize: 12, fontWeight: "600", marginBottom: 6 }}>
+                      {t("monthlyProgress", { days })}
+                      {m.next
+                        ? t("monthlyNext", { left: m.next.at - days, amount: m.next.amount })
+                        : t("monthlyDone")}
+                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <View style={{
+                        flex: 1, height: 8, borderRadius: 4,
+                        backgroundColor: "#1e293b", overflow: "hidden",
+                      }}>
+                        <View style={{
+                          width: `${Math.round(pct * 100)}%`, height: "100%",
+                          borderRadius: 4,
+                          backgroundColor: hit20 ? "#22c55e" : hit10 ? "#3b82f6" : "#60a5fa",
+                        }} />
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+                      <Text style={{ fontSize: 10, color: hit10 ? "#22c55e" : "#64748b" }}>
+                        10 {hit10 ? "✓" : ""} (+5 LC)
+                      </Text>
+                      <Text style={{ fontSize: 10, color: hit20 ? "#22c55e" : "#64748b" }}>
+                        20 {hit20 ? "✓" : ""} (+10 LC)
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })()}
 
               {/* Premium aylık kasa bilgisi */}
               {wallet.premium && wallet.premiumMonthly?.active && (
