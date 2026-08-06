@@ -21,8 +21,7 @@
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#111827"
-      },
-      "versionCode": 1
+      }
     },
     "ios": {
       "supportsTablet": true
