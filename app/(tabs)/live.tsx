@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import TournamentJoin from "../../components/TournamentJoin";
 import Picks1987 from "../../components/Picks1987";
 import GuestBanner from "../../components/GuestBanner";
 import DailyMatchCard from "../../components/DailyMatchCard";
+import KuponKarti from "../../components/KuponKarti";
 import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
@@ -1485,17 +1486,30 @@ export default function LiveScreen() {
             {/* ===== MİSAFİR ŞERTI ===== */}
             <GuestBanner />
 
-            {/* ===== GÜNÜN MAÇI =====
+            {/* ===== HAFTALIK KUPON — BİRİNCİL EYLEM =====
+                ⚠️ SIRA DEĞİŞTİ (2026-08-06). Kupon `OyunModlari` içinde altı
+                moddan biriydi ve yatay şeritte duruyordu; ana ekranın ilk
+                eylemi tek maçlık "günün maçı" kartıydı. Yani haftanın 8 maçlık
+                asıl oyunu, keşfedilmesi gereken bir yan özellik gibi
+                sunuluyordu.
+
+                Genişlik ligdeki maç sayısıyla verilir: kupon 8 maç, günün maçı
+                1. Kupon üstte, günün maçı hemen altında (o da 1987 grubunun
+                tepki katmanını taşıyor).
+
+                ⚠️ Kupon yoksa kart KENDİNİ GİZLER — ana ekranın tepesinde boş
+                bir kutu durmaz (bkz. components/KuponKarti.tsx). */}
+            {(mode === "schedule" || mode === "open") && <KuponKarti />}
+
+            {/* ===== GÜNÜN MAÇI — İKİNCİL =====
                 ⚠️ BU KART VARDI AMA HİÇBİR EKRANA BAĞLI DEĞİLDİ — ölü kod.
                 Besleyen uç (`/api/live/daily-featured`) de askıdaki
                 API-Football'a gidip her çağrıda `null` dönüyordu; ikisi
                 birlikte, tasarlanmış bir akış hiç çalışmıyordu.
 
-                Neden en üstte: yeni kullanıcı uygulamayı açtığında ham maç
-                listesi + altı tahmin türüyle karşılaşıyor ve "ne yapacağım"
-                sorusunun cevabını bulamıyordu. Kart tek bir maç için tek bir
-                soru soruyor (1-X-2), tahmini alıyor ve o maçın sıralamasına
-                götürüyor — kapalı, kısa bir döngü.
+                Neden duruyor: kupona katılmayan ya da kuponu olmayan kullanıcı
+                için tek maçlık kısa bir döngü — tek soru (1-X-2), tahmin, o
+                maçın sıralaması. Tepki katmanı da bu maça bağlı.
 
                 Yalnızca normal maç listesinde; turnuva/1987 modlarında ekran
                 zaten kendi içeriğine odaklı. */}
@@ -2662,3 +2676,4 @@ export default function LiveScreen() {
     </View>
   );
 }
+

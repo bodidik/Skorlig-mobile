@@ -524,6 +524,13 @@ const strings = {
     kuponMissing:     "{n} maç boş kaldı. Boş bırakılan maç yanlış sayılır — kilit kapanmadan tamamla.",
     kuponAllFilled:   "Tüm maçlar dolu. Bol şans!",
     weeklyKupon:      "Haftalık Kupon",
+    // ana ekran kupon kartı (components/KuponKarti.tsx)
+    kuponMoreMatches: "+{n} maç daha",
+    kuponMatchCount:  "{n} maç",
+    kuponJoinFor:     "{n} LC ile katıl",
+    kuponMissingShort:"{n} maç boş",
+    kuponFill:        "Tamamla",
+    kuponView:        "Gör",
     kuponIntroA:      "Haftanın maçları tek kuponda. Hepsine tahmin gir — ödül havuzdan değil,",
     kuponIntroB:      " senin başarından",
     kuponIntroC:      ". Doğru oranın düşükse puanının bir kısmı geri alınır.",
@@ -1780,6 +1787,13 @@ const strings = {
     kuponMissing:     "{n} matches left empty. Empty matches count as wrong — complete before the lock.",
     kuponAllFilled:   "All matches filled. Good luck!",
     weeklyKupon:      "Weekly Coupon",
+    // home screen coupon card (components/KuponKarti.tsx)
+    kuponMoreMatches: "+{n} more matches",
+    kuponMatchCount:  "{n} matches",
+    kuponJoinFor:     "Join for {n} LC",
+    kuponMissingShort:"{n} left empty",
+    kuponFill:        "Complete",
+    kuponView:        "View",
     kuponIntroA:      "The week's matches in one coupon. Predict them all — the reward comes not from a pot but",
     kuponIntroB:      " from your own success",
     kuponIntroC:      ". If your accuracy is low, part of your points is taken back.",
@@ -3268,3 +3282,4 @@ export function setLang(lang: string) {
   _lang = yeni;
   for (const f of _dinleyiciler) { try { f(); } catch {} }
 }
+
