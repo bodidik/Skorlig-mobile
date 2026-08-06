@@ -108,6 +108,7 @@ type Live2Resp = {
    * ölçülen boşluk 14 gündü — boş ekran yerine oynanabilir maç gösteriliyor.)
    */
   countryFallback?: boolean;
+  nextCountryMatchISO?: string | null;
 };
 
 type Mode = "schedule" | "open" | "mine" | "tournaments" | "gs1987";
@@ -690,6 +691,7 @@ export default function LiveScreen() {
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode | null>(null);
   // Ülkede maç yok → dünya listesi gösteriliyor (sunucu bildiriyor).
   const [countryFallback, setCountryFallback] = useState(false);
+  const [nextCountryMatchISO, setNextCountryMatchISO] = useState<string | null>(null);
   const [lockBeforeMin, setLockBeforeMin] = useState<number | null>(null);
 
   const [predFlags, setPredFlags] = useState<Record<string, boolean>>({});
@@ -833,8 +835,8 @@ export default function LiveScreen() {
         setCap(null);
         setRuntimeMode(null);
         setLockBeforeMin(null);
-        // Hata durumunda şerit asılı kalmasın — liste zaten boş.
         setCountryFallback(false);
+        setNextCountryMatchISO(null);
         return;
       }
 
@@ -846,6 +848,7 @@ export default function LiveScreen() {
       setCap(typeof j?.cap === "number" ? j.cap : null);
       setRuntimeMode(j?.runtimeMode ?? null);
       setCountryFallback(!!j?.countryFallback);
+      setNextCountryMatchISO(j?.nextCountryMatchISO || null);
       setLockBeforeMin(typeof j?.lockBeforeMin === "number" ? j.lockBeforeMin : null);
 
       if (list.length === 0) setError(null);
@@ -891,6 +894,8 @@ export default function LiveScreen() {
       setWinDays(null);
       setCap(typeof j?.cap === "number" ? j.cap : null);
       setRuntimeMode(j?.runtimeMode ?? null);
+      setCountryFallback(!!j?.countryFallback);
+      setNextCountryMatchISO(j?.nextCountryMatchISO || null);
       setLockBeforeMin(typeof j?.lockBeforeMin === "number" ? j.lockBeforeMin : null);
 
       if (list.length === 0) setError(null);
@@ -901,6 +906,8 @@ export default function LiveScreen() {
       setWinDays(null);
       setCap(null);
       setRuntimeMode(null);
+      setCountryFallback(false);
+      setNextCountryMatchISO(null);
       setLockBeforeMin(null);
     } finally {
       setLoading(false);
@@ -1534,26 +1541,33 @@ export default function LiveScreen() {
                 ülkesi dışından maç görünce bunu hata sanar. Ölçülen gerçek
                 durum: Süper Lig sezon arasındayken Türk kullanıcının ilk
                 maçı 14 gün sonraydı. */}
-            {countryFallback && (
-              <View
-                style={{
-                  flexDirection: "row", alignItems: "center", gap: 10,
-                  backgroundColor: "#1c1917", borderRadius: 12,
-                  borderWidth: 1, borderColor: "#f59e0b44",
-                  paddingHorizontal: 14, paddingVertical: 11, marginBottom: 10,
-                }}
-              >
-                <Text style={{ fontSize: 18 }}>🌍</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: "#f59e0b", fontWeight: "800", fontSize: 13 }}>
-                    {t("noCountryMatches")}
-                  </Text>
-                  <Text style={{ color: "#a8a29e", fontSize: 11, marginTop: 2 }}>
-                    {t("worldShown")}
-                  </Text>
+            {countryFallback && (() => {
+              const gunKaldi = nextCountryMatchISO
+                ? Math.max(0, Math.ceil((new Date(nextCountryMatchISO).getTime() - Date.now()) / 86400000))
+                : null;
+              return (
+                <View
+                  style={{
+                    flexDirection: "row", alignItems: "center", gap: 10,
+                    backgroundColor: "#1c1917", borderRadius: 12,
+                    borderWidth: 1, borderColor: gunKaldi != null ? "#22c55e44" : "#f59e0b44",
+                    paddingHorizontal: 14, paddingVertical: 11, marginBottom: 10,
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>{gunKaldi != null ? "📅" : "🌍"}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: gunKaldi != null ? "#22c55e" : "#f59e0b", fontWeight: "800", fontSize: 13 }}>
+                      {gunKaldi != null
+                        ? t("seasonStartsIn", { n: gunKaldi })
+                        : t("noCountryMatches")}
+                    </Text>
+                    <Text style={{ color: "#a8a29e", fontSize: 11, marginTop: 2 }}>
+                      {t("worldShown")}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            )}
+              );
+            })()}
 
             {/* ===== HIZLI OYNA ===== */}
             {mode === "open" && (
