@@ -68,6 +68,26 @@ export default function OyunModlari({
   const bedelMetni = (n?: number | null) =>
     typeof n === "number" && n > 0 ? `${n} LC` : null;
 
+  /**
+   * ⚠️ SIRA BİLİNÇLİ — BECERİ ODAKLI MODLAR ÖNDE, BAHİS BENZERİ MEKANİK ARKADA.
+   *
+   * Düello ve havuz, ürünün diğer modlarından yapısal olarak farklı: düelloda
+   * potun bir kısmı kesiliyor (`api/lib/duello-kesinti.cjs`) ve havuz
+   * pari-mutuel — yani ödül, diğer oyuncuların koyduğu LC'den geliyor. İkisi de
+   * bir bahisçinin mekaniği; tek maç, haftalık tahmin ve mini turnuva ise
+   * ödülü BAŞARIDAN üretiyor (bkz. api/lib/kupon.cjs başlığı).
+   *
+   * Bu ayrımın iki somut sonucu var:
+   *   1. Google Play içerik derecelendirmesi (IARC) "simulated gambling"
+   *      soruyor. Bahis benzeri yüzey ne kadar öndeyse, uygulama o kadar
+   *      bahis simülatörü gibi görünür ve 18+ derecelendirme erişimi keser.
+   *   2. Türkiye'de bahis çağrışımı kullanıcıda "dolandırılıyor muyum"
+   *      hissi yaratıyor. Ürün ücretsiz ve sanal para ile çalışıyor; vitrinin
+   *      bunu ilk bakışta anlatması gerekiyor.
+   *
+   * ⚠️ KALDIRILMADILAR, YALNIZCA GERİYE ALINDILAR. Erişilebilir kalıyorlar;
+   * amaç ilk izlenimi değiştirmek, özelliği kısmak değil.
+   */
   const modlar: Mod[] = [
     {
       key: "tek",
@@ -88,6 +108,26 @@ export default function OyunModlari({
       bas: () => router.push("/kupon" as any),
     },
     {
+      key: "mini",
+      ikon: "🏅",
+      ad: t("modeMini"),
+      aciklama: t("modeMiniDesc"),
+      bedel: t("freeLbl"),
+      renk: "#38bdf8",
+      bas: () => router.push("/mini/create" as any),
+    },
+    {
+      key: "gs1987",
+      ikon: "🔴",
+      ad: "1987GS",
+      aciklama: t("modeGsDesc"),
+      bedel: is1987 ? t("membersOpen") : t("codeNeeded"),
+      renk: "#f87171",
+      // Üye ise ekran içi mod; değilse doğrulama ekranı (o gerçek bir rota).
+      bas: () => (is1987 ? onMod?.("gs1987") : router.push("/gs1987-verify" as any)),
+    },
+    /* ── Buradan sonrası: kesinti/havuz mekaniği taşıyan modlar ───────── */
+    {
       key: "duello",
       ikon: "⚔️",
       ad: t("modeDuel"),
@@ -106,25 +146,6 @@ export default function OyunModlari({
       bedel: t("youPickStake"),
       renk: "#a78bfa",
       bas: () => onMod?.("open"),
-    },
-    {
-      key: "mini",
-      ikon: "🏅",
-      ad: t("modeMini"),
-      aciklama: t("modeMiniDesc"),
-      bedel: t("freeLbl"),
-      renk: "#38bdf8",
-      bas: () => router.push("/mini/create" as any),
-    },
-    {
-      key: "gs1987",
-      ikon: "🔴",
-      ad: "1987GS",
-      aciklama: t("modeGsDesc"),
-      bedel: is1987 ? t("membersOpen") : t("codeNeeded"),
-      renk: "#f87171",
-      // Üye ise ekran içi mod; değilse doğrulama ekranı (o gerçek bir rota).
-      bas: () => (is1987 ? onMod?.("gs1987") : router.push("/gs1987-verify" as any)),
     },
   ];
 
