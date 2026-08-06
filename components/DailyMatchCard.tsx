@@ -99,8 +99,23 @@ export default function DailyMatchCard({ country, userId }: Props) {
 
   if (!fixture) return null;
 
-  const kickoff = fixture.kickoffISO
-    ? new Date(fixture.kickoffISO).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
+  const kickDt = fixture.kickoffISO ? new Date(fixture.kickoffISO) : null;
+  const bugun = new Date();
+  const ayniGun = kickDt
+    ? kickDt.getFullYear() === bugun.getFullYear()
+      && kickDt.getMonth() === bugun.getMonth()
+      && kickDt.getDate() === bugun.getDate()
+    : true;
+
+  const gunFarki = kickDt
+    ? Math.max(0, Math.ceil((kickDt.getTime() - Date.now()) / 86400000))
+    : 0;
+
+  const kickoff = kickDt
+    ? ayniGun
+      ? kickDt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
+      : kickDt.toLocaleDateString("tr-TR", { day: "numeric", month: "short" })
+        + " " + kickDt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
     : null;
 
   const lcOpacity = lcAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
@@ -110,7 +125,14 @@ export default function DailyMatchCard({ country, userId }: Props) {
     <View style={s.card}>
       {/* Üst bilgi */}
       <View style={s.meta}>
-        <Text style={s.league}>{ligEtiketi(fixture.league, fixture.country) || t("matchFallback")}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
+          <Text style={s.league}>{ligEtiketi(fixture.league, fixture.country) || t("matchFallback")}</Text>
+          {!ayniGun && gunFarki > 0 && (
+            <View style={s.countdownBadge}>
+              <Text style={s.countdownText}>{t("inDays", { n: gunFarki })}</Text>
+            </View>
+          )}
+        </View>
         {kickoff && <Text style={s.kickoff}>⏱ {kickoff}</Text>}
       </View>
 
@@ -248,4 +270,15 @@ const s = StyleSheet.create({
   },
   detailLink: { alignItems: "flex-end", marginTop: 4 },
   detailText: { color: "#475569", fontSize: 11 },
+  countdownBadge: {
+    backgroundColor: "#22c55e22",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  countdownText: {
+    color: "#22c55e",
+    fontSize: 10,
+    fontWeight: "700",
+  },
 });
