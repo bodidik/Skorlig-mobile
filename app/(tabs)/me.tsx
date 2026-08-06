@@ -2273,14 +2273,7 @@ export default function Me() {
             </View>
           )}
 
-          <TouchableOpacity
-            onPress={() => nav.push({ pathname: "/premium", params: { userId } })}
-            style={{ padding: 10, backgroundColor: "#f59e0b", borderRadius: 10 }}
-          >
-            <Text style={{ textAlign: "center", color: "#fff", fontWeight: "800" }}>
-              {t("premiumBtn")}
-            </Text>
-          </TouchableOpacity>
+          {/* Premium butonu lansman sonrasına kadar gizli (IAP entegrasyonu yok) */}
           {/* ===== ARKADAŞ DAVET PANELİ ===== */}
           <View style={{ borderRadius: 12, borderWidth: 1, borderColor: "#22c55e55", backgroundColor: "#0a1a0f", overflow: "hidden" }}>
             {/* Benim kodum + paylaş */}
