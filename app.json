@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "SkorLig",
-    "slug": "skorlig",
+    "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
