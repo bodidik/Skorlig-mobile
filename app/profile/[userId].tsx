@@ -121,9 +121,11 @@ export default function ProfileUserScreen() {
       if (profRes.status === "fulfilled" && profRes.value?.ok) {
         setProfile(profRes.value.profile || { userId: uid });
       } else {
-        // fallback: try /api/users/get
-        const fb = await apiFetch(`/api/users/get?userId=${encodeURIComponent(uid)}`).then(r => r.json()).catch(() => null);
-        setProfile(fb?.ok ? (fb.user || fb.profile || { userId: uid }) : { userId: uid });
+        /* Eski fallback `/api/users/get`i deniyordu — o uç SUNUCUDA YOK
+         * (2026-08-07 uç eşleşme taraması): her profil hatasında ikinci bir
+         * istek atıp garantili 404 yiyor, gecikme ekleyip asıl hatayı
+         * maskeliyordu. Ölü çağrı söküldü; bozulum aynı (yalın kimlik). */
+        setProfile({ userId: uid });
       }
 
       if (histRes.status === "fulfilled" && histRes.value?.ok) {

@@ -554,26 +554,41 @@ export default function PredictScreen() {
       setLoadingMatch(true);
       setMatchError(null);
 
-      const res = await apiFetch(`/api/skorlig/next?team=${encodeURIComponent(tk)}`);
+      /* ⚠️ ESKİ UÇ SUNUCUDA YOK (2026-08-07 uç eşleşme taraması):
+       * `/api/skorlig/next` hiçbir router'da tanımlı değil — sekme parametresiz
+       * açıldığında (doğrudan dokunma, İLK DENEYİM yolu) her seferinde 404 alıp
+       * ekrana hata basıyordu. Canlı uç `/api/team/fixtures` tam adla çalışır;
+       * "sıradaki maç" seçimi istemcide: bitmemiş ve en yakın başlangıçlı. */
+      const tamAd = TEAM_LABELS[tk] || tk;
+      const res = await apiFetch(`/api/team/fixtures?team=${encodeURIComponent(tamAd)}`);
       const j = await res.json();
 
-      if (!res.ok || !j) {
+      if (!res.ok || !j?.ok) {
         throw new Error(j?.error || `NEXT_HTTP_${res.status}`);
       }
 
-      const fid = String(j.fixtureId || j.id || "").trim();
-      if (!fid) {
+      const simdi = Date.now();
+      const aday = (Array.isArray(j.fixtures) ? j.fixtures : []).find((fx: any) => {
+        if (!fx?.fixtureId) return false;
+        const st = String(fx.status || "NS").toUpperCase();
+        if (["FT", "AET", "PEN", "CANC", "PST", "ABD"].includes(st)) return false;
+        const ko = fx.kickoffISO ? new Date(fx.kickoffISO).getTime() : NaN;
+        // Devam eden maç da gösterilebilir: 3 saatlik pencere geriye bakar.
+        return Number.isFinite(ko) && ko > simdi - 3 * 3600_000;
+      });
+      if (!aday) {
         throw new Error("NEXT_FIXTURE_NOT_FOUND");
       }
 
+      const fid = String(aday.fixtureId).trim();
       setFixtureId(fid);
 
       setNextMatch({
         fixtureId: fid,
-        home: j.home || j.homeTeam || j.home_name || "?",
-        away: j.away || j.awayTeam || j.away_name || "?",
-        kickoffISO: j.kickoffISO || j.dateUTC || j.date || null,
-        status: j.status || null,
+        home: aday.home || "?",
+        away: aday.away || "?",
+        kickoffISO: aday.kickoffISO || null,
+        status: aday.status || null,
       });
 
       // Yeni maça geçince önceki tahmin durumunu tazele
