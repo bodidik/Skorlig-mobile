@@ -21,6 +21,7 @@ import { t, useLang } from "../../lib/i18n";
 import { puanYaz } from "../../lib/lcBicim";
 import ReactionBar from "../../components/ReactionBar";
 import GolAni from "../../components/GolAni";
+import SiralamaCipi from "../../components/SiralamaCipi";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -157,6 +158,27 @@ export default function MatchRaceScreen() {
   // pollMs null olsa bile (maç bitti) ekran açılışında bir kez yükler.
   usePolling(load, pollMs);
 
+  /* SIRALAMA HAREKETİ — API önceki sırayı bilmez, fark İSTEMCİDE alınır.
+   * Her poll'da top listesinin sıraları bir öncekiyle kıyaslanır; değişenler
+   * satırda ▲/▼ çipiyle oynar (bkz. components/SiralamaCipi). İlk yüklemede
+   * önceki yok → çip yok (ekran açılışında yapay hareket olmasın). */
+  const oncekiSiralar = useRef<Map<string, number> | null>(null);
+  const [sicramalar, setSicramalar] = useState<Record<string, number>>({});
+  React.useEffect(() => {
+    const top = (data?.ok && data.top) || [];
+    if (!top.length) return;
+    const yeni = new Map(top.map((r) => [r.userId.toLowerCase(), r.rank]));
+    const eski = oncekiSiralar.current;
+    oncekiSiralar.current = yeni;
+    if (!eski) return;
+    const d: Record<string, number> = {};
+    for (const [uid, sira] of yeni) {
+      const o = eski.get(uid);
+      if (o != null && o !== sira) d[uid] = o - sira; // pozitif = yükseldi
+    }
+    if (Object.keys(d).length) setSicramalar(d);
+  }, [data]);
+
   const openProfile = async (targetUserId: string) => {
     setProfileVisible(true);
     setProfileLoading(true);
@@ -271,6 +293,8 @@ export default function MatchRaceScreen() {
             </Text>
           )}
         </View>
+        {/* ▲/▼: bu poll'da sıra değiştiyse kısa süreli hareket çipi */}
+        <SiralamaCipi delta={sicramalar[uid.toLowerCase()]} benim={isMe} />
         {extra?.inRace != null && (
           <Text style={{ fontSize: 11, marginRight: 8 }}>{extra.inRace ? "🟢" : "🔴"}</Text>
         )}

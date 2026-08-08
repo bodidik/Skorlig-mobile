@@ -3244,7 +3244,7 @@ const strings = {
 } as const;
 
 type Lang = keyof typeof strings;
-type StringKey = keyof typeof strings.tr;
+export type StringKey = keyof typeof strings.tr;
 
 function detectLang(): Lang {
   try {

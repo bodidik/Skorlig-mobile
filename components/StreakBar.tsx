@@ -1,5 +1,5 @@
 import React from "react";
-import { t, useLang } from "../lib/i18n";
+import { t, useLang, type StringKey } from "../lib/i18n";
 import { View, Text, StyleSheet } from "react-native";
 
 type Tier = { threshold: number; bonus: number; label: string } | null;
@@ -12,12 +12,15 @@ type Props = {
   currentTier: Tier;
 };
 
-export const TIER_KEYS: Record<string, string> = {
+/* StringKey tipi: t() dinamik anahtarla çağrılınca TS 1222 seçenekli union
+ * istiyor — harita değerlerini anahtar tipiyle işaretlemek hem hatayı
+ * susturur hem yanlış anahtarı derlemede yakalar. */
+export const TIER_KEYS: Record<string, StringKey> = {
   "Isınıyor": "streakWarmup",
   "Ateşte": "streakOnFire",
   "Durdurulamıyor": "streakUnstoppable",
 };
-const TIERS = [
+const TIERS: { threshold: number; labelKey: StringKey; emoji: string }[] = [
   { threshold: 5, labelKey: "streakWarmup", emoji: "🔥" },
   { threshold: 10, labelKey: "streakOnFire", emoji: "🔥🔥" },
   { threshold: 20, labelKey: "streakUnstoppable", emoji: "💥" },
