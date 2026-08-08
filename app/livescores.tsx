@@ -16,6 +16,7 @@ import { ulkeAdi, ulkeBayragi } from "../lib/ulkeler";
 import BackBar from "../components/BackBar";
 import Colors, { on } from "../constants/colors";
 import { usePolling } from "../hooks/usePolling";
+import GolAni from "../components/GolAni";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -173,6 +174,12 @@ function MatchRow({ match: m, onPredict }: { match: Match; onPredict: () => void
 
       {/* Skor */}
       <View style={{ width: 54, alignItems: "center" }}>
+        {/* Sessiz gol patlaması: 10+ maçlık tabloda ses kakofonisi olmasın,
+            ses yalnızca maç odasında (match-race) çalar. */}
+        <GolAni
+          home={m.homeScore} away={m.awayScore} canli={!!m.isLive} sessiz
+          kimlik={`${m.homeTeam}|${m.awayTeam}|${m.matchDate}`}
+        />
         {m.homeScore != null && m.awayScore != null ? (
           <>
             <Text style={{ fontSize: 14, fontWeight: "900", color: active ? liveColor : "#e2e8f0", letterSpacing: 0.5 }}>
@@ -300,8 +307,12 @@ function LeagueSection({
               <View style={{ flex: 1, height: 0.5, backgroundColor: "#1e293b" }} />
             </View>
           )}
-          {matches.map((m, i) => (
-            <MatchRow key={i} match={m} onPredict={() => onPredict(m)} />
+          {/* ⚠️ Anahtar MAÇ KİMLİĞİ, index DEĞİL: liste her poll'da yeniden
+              sıralanabiliyor; index anahtarıyla React bileşen örneğini BAŞKA
+              maça taşır ve GolAni önceki skoru yanlış maçla kıyaslayıp sahte
+              GOL patlatırdı. */}
+          {matches.map((m) => (
+            <MatchRow key={`${m.homeTeam}|${m.awayTeam}|${m.matchDate}`} match={m} onPredict={() => onPredict(m)} />
           ))}
         </View>
       ))}

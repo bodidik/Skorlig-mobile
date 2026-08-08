@@ -26,6 +26,7 @@ import {
 } from "../../lib/push";
 import { shareInvite as shareInviteLink } from "../../lib/share";
 import { sortCountries } from "../../lib/countrySort";
+import { useHisler, hisAyarla, golSesiCal, titret } from "../../lib/hisler";
 
 /* ========= Types ========= */
 // `is1987` api/routes/users.cjs profil yanıtında dönüyor (1987 segmenti).
@@ -147,6 +148,7 @@ export default function Me() {
   const nav = useRouter();
   const { user, logout } = useAuth();
   useLang(); // dil değişince ekran yeniden çizilsin
+  const hisler = useHisler(); // ses/titreşim tercihleri (yerel)
 
   const onLogout = useCallback(() => {
     Alert.alert(t("logoutTitle"), t("logoutConfirm"), [
@@ -2020,6 +2022,54 @@ export default function Me() {
               })}
             </>
           )}
+        </View>
+
+        {/* ── Ses & Titreşim (yerel tercih — cihazda kalır) ── */}
+        <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
+          <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("feelPref")}</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("feelPrefHelp")}</Text>
+          {([
+            { key: "ses" as const, icon: "🔊", label: t("feelSound"), desc: t("feelSoundD") },
+            { key: "titresim" as const, icon: "📳", label: t("feelHaptic"), desc: t("feelHapticD") },
+          ]).map((row) => {
+            const on = hisler[row.key];
+            return (
+              <TouchableOpacity
+                key={row.key}
+                onPress={() => {
+                  const yeni = !on;
+                  hisAyarla({ [row.key]: yeni });
+                  // Açarken küçük önizleme — kullanıcı ne açtığını duysun/hissetsin.
+                  if (yeni && row.key === "ses") golSesiCal();
+                  if (yeni && row.key === "titresim") titret("gol");
+                }}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: "row", alignItems: "center", gap: 12,
+                  paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12,
+                  backgroundColor: "#0b1424",
+                  borderWidth: 1,
+                  borderColor: on ? Colors.accent + "55" : Colors.border,
+                }}
+              >
+                <Text style={{ fontSize: 18 }}>{row.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 13 }}>{row.label}</Text>
+                  <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 1 }}>{row.desc}</Text>
+                </View>
+                <View
+                  style={{
+                    width: 44, height: 26, borderRadius: 13, padding: 3,
+                    backgroundColor: on ? Colors.accent : "#1e293b",
+                    justifyContent: "center",
+                    alignItems: on ? "flex-end" : "flex-start",
+                  }}
+                >
+                  <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#fff" }} />
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* ── Dil Tercihi ── */}

@@ -59,6 +59,7 @@
       }
     },
     "plugins": [
+      "expo-audio",
       "expo-router",
       "expo-web-browser",
       "@react-native-google-signin/google-signin",

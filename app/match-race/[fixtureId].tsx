@@ -20,6 +20,7 @@ import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
 import { puanYaz } from "../../lib/lcBicim";
 import ReactionBar from "../../components/ReactionBar";
+import GolAni from "../../components/GolAni";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -423,6 +424,8 @@ export default function MatchRaceScreen() {
               <Text style={{ color: "#a3e635", fontSize: 34, fontWeight: "900" }}>
                 {st.score ? `${st.score.home} - ${st.score.away}` : "vs"}
               </Text>
+              {/* Gol anı: skor artınca top + GOL! + (tercihe göre) ses/titreşim */}
+              <GolAni home={st.score?.home} away={st.score?.away} canli={isLive} buyuk kimlik={fixtureId} />
               <View style={{ flexDirection: "row", gap: 10 }}>
                 {st.firstGoal && (
                   <Text style={{ color: Colors.muted, fontSize: 11 }}>
