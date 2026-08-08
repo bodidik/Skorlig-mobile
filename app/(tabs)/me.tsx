@@ -52,6 +52,8 @@ type WalletUser = {
   lastDailyAt?: string | null;
   totalEarned?: number;
   totalSpent?: number;
+  is1987?: boolean;
+  bonus1987?: number | null;
 };
 type WalletDaily = {
   today: string;
@@ -1575,6 +1577,17 @@ export default function Me() {
                   )}
                 </View>
               </View>
+              {/* 1987 bonus cebi — üye göremediği cepten ödemesin (30+30) */}
+              {wallet.user?.is1987 && wallet.user?.bonus1987 != null && (
+                <View style={{
+                  backgroundColor: "#160b21", borderRadius: 8, padding: 8,
+                  borderWidth: 1, borderColor: "#a855f7",
+                }}>
+                  <Text style={{ color: "#c084fc", fontSize: 12, fontWeight: "600" }}>
+                    {t("bonus1987Line", { n: wallet.user.bonus1987 })}
+                  </Text>
+                </View>
+              )}
               <Text style={{ color: Colors.muted, fontSize: 12 }}>
                 {t("earnSpend", { e: wallet.user?.totalEarned ?? 0, s: wallet.user?.totalSpent ?? 0 })}
               </Text>
