@@ -44,6 +44,12 @@ export default function DailyMatchCard({ country, userId }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const lcAnim = useRef(new Animated.Value(0)).current;
+  // Geri sayım her dakika yenilensin — saniyelik tik pil ve render israfı.
+  const [, setTik] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTik((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,6 +130,16 @@ export default function DailyMatchCard({ country, userId }: Props) {
         + " " + kickDt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
     : null;
 
+  // Bugünkü maçta saatten çok "ne kadar kaldı" heyecan verir: son 6 saatte
+  // canlı geri sayım gösterilir, dakikada bir yenilenir.
+  const kalanMs = kickDt ? kickDt.getTime() - Date.now() : -1;
+  const geriSayim =
+    kalanMs > 0 && kalanMs < 6 * 3600_000
+      ? kalanMs >= 3600_000
+        ? `${Math.floor(kalanMs / 3600_000)}s ${Math.floor((kalanMs % 3600_000) / 60_000)}dk`
+        : `${Math.max(1, Math.floor(kalanMs / 60_000))}dk`
+      : null;
+
   const lcOpacity = lcAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
   const lcY = lcAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -24] });
 
@@ -140,7 +156,13 @@ export default function DailyMatchCard({ country, userId }: Props) {
             </View>
           )}
         </View>
-        {kickoff && <Text style={s.kickoff}>⏱ {kickoff}</Text>}
+        {geriSayim ? (
+          <View style={s.geriSayimRozet}>
+            <Text style={s.geriSayimYazi}>⏳ {geriSayim}</Text>
+          </View>
+        ) : kickoff ? (
+          <Text style={s.kickoff}>⏱ {kickoff}</Text>
+        ) : null}
       </View>
 
       {/* Takım isimleri */}
@@ -294,5 +316,18 @@ const s = StyleSheet.create({
     color: "#22c55e",
     fontSize: 10,
     fontWeight: "700",
+  },
+  geriSayimRozet: {
+    backgroundColor: "#f59e0b22",
+    borderWidth: 1,
+    borderColor: "#f59e0b55",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  geriSayimYazi: {
+    color: "#fbbf24",
+    fontSize: 11,
+    fontWeight: "800",
   },
 });
