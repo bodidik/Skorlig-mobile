@@ -276,6 +276,10 @@ export default function Me() {
   const [teamSearch, setTeamSearch]         = useState("");
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
   const [countrySaving, setCountrySaving] = useState(false);
+  /* Seçici, kayıtlı seçim VARKEN kapalı başlar: rozet + "değiştir" tek satır.
+   * Eskiden ülke şeridi + takım listesi her zaman açıktı ve seçim yapmış
+   * kullanıcının profilinde kalıcı yer işgal ediyordu. */
+  const [secimAcik, setSecimAcik] = useState(false);
 
   // Türkiye başta + tr-alfabetik. Sunucu sırası deterministik değil, listenin
   // her yenilenişinde göze çarpan sallama olmasın diye burada sabitliyoruz.
@@ -1797,16 +1801,26 @@ export default function Me() {
             gap: 10,
           }}
         >
-          <Text style={{ fontWeight: "700" }}>{t("teamCountry")}</Text>
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            {t("teamCountryHelp")}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={{ fontWeight: "700" }}>{t("teamCountry")}</Text>
+            {/* Kayıtlı seçim varsa seçici kapalı durur; bu düğme açıp kapatır */}
+            {!!(profile?.mainTeam || profile?.country) && (
+              <TouchableOpacity
+                onPress={() => setSecimAcik(v => !v)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={{ color: Colors.accent, fontSize: 12, fontWeight: "700" }}>
+                  {secimAcik ? t("pickerClose") : t("pickerChange")}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-          {/* Mevcut kayıtlı seçimler */}
+          {/* Mevcut kayıtlı seçimler — dokununca da seçici açılır */}
           {(profile?.mainTeam || profile?.country) && (
             <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
               {profile?.country && (
-                <View style={{
+                <TouchableOpacity onPress={() => setSecimAcik(true)} style={{
                   paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
                   backgroundColor: "#edf4ff", borderWidth: 1, borderColor: Colors.accent,
                 }}>
@@ -1817,17 +1831,17 @@ export default function Me() {
                       return bulunan ? ulkeAdi(bulunan.name) || bulunan.name : profile.country;
                     })()}
                   </Text>
-                </View>
+                </TouchableOpacity>
               )}
               {profile?.mainTeam && (
-                <View style={{
+                <TouchableOpacity onPress={() => setSecimAcik(true)} style={{
                   paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
                   backgroundColor: Colors.accent,
                 }}>
                   <Text style={{ fontWeight: "600", fontSize: 12, color: Colors.onAccent }}>
                     ⚽ {profile.mainTeam}
                   </Text>
-                </View>
+                </TouchableOpacity>
               )}
               {!!profile?.mainTeam && (
                 <TouchableOpacity
@@ -1844,6 +1858,13 @@ export default function Me() {
               )}
             </View>
           )}
+
+          {/* Seçici gövdesi: hiç seçim yoksa HEP açık (yeni kullanıcı yolunu
+              kapatma), seçim varsa yalnızca istenince */}
+          {(secimAcik || !(profile?.mainTeam || profile?.country)) && (<>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>
+            {t("teamCountryHelp")}
+          </Text>
 
           {/* Ülke seçici — yatay kaydırmalı */}
           <Text style={{ fontSize: 12, color: Colors.muted, fontWeight: "600" }}>{t("pickCountry")}</Text>
@@ -1926,7 +1947,11 @@ export default function Me() {
 
               {!!teamInput && (
                 <TouchableOpacity
-                  onPress={() => saveTeamAndCountry(teamInput, selectedCountryCode)}
+                  onPress={async () => {
+                    await saveTeamAndCountry(teamInput, selectedCountryCode);
+                    // Kayıt bitti — seçici tekrar küçülsün, rozetler kalsın.
+                    setSecimAcik(false);
+                  }}
                   disabled={countrySaving}
                   style={{
                     padding: 12, backgroundColor: Colors.live, borderRadius: 10,
@@ -1940,6 +1965,7 @@ export default function Me() {
               )}
             </>
           )}
+          </>)}
         </View>
 
         {/* ── Bildirimler ── */}

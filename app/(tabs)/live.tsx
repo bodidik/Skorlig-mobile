@@ -422,7 +422,13 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={() => {
-        if (adminMode) onSelect(item);
+        /* ⚠️ KART GÖVDESİ ÖLÜYDÜ: onPress yalnızca admin modunda çalışıyordu.
+         * Kullanıcı maça basıyor, hiçbir şey olmuyor — "tahmin sayfasına
+         * atmıyor" şikayetinin kaynağı. Kart artık en anlamlı hedefe götürür:
+         * tahmin açıksa tahmin ekranı, değilse (canlı/biten) yarış panosu. */
+        if (adminMode) { onSelect(item); return; }
+        if (!isFinished && (mode === "open" || canPredictByLocalRule)) { onPredict(item); return; }
+        if (hasPred === true || isLive || (isFinished && hasScore)) onRace(item);
       }}
     >
       <View
@@ -1098,6 +1104,14 @@ export default function LiveScreen() {
     return loadSchedule();
   }, [mode, loadOpen, loadSchedule, loadMyPreds, loadMyTournaments]);
 
+  /* Tahmin sayısı SEKMEYE GİRMEDEN görünsün: "Tahminlerim (3)" rozeti için
+   * açılışta bir kez yükle. Eskiden yalnızca sekmeye girilince yükleniyordu —
+   * kullanıcı tahminlerinin nerede olduğunu bilmiyorsa sayıyı da hiç
+   * göremiyordu ("yaptığım tahminler kayboluyor" şikayeti). */
+  useEffect(() => {
+    if (userId.trim()) loadMyPreds();
+  }, [userId, loadMyPreds]);
+
   useEffect(() => {
     if (mode === "mine") { loadMyPreds(); return; }
     if (mode === "tournaments") { loadMyTournaments(); return; }
@@ -1682,10 +1696,19 @@ export default function LiveScreen() {
                 {[
                   { key: "schedule" as const, label: t("matches") },
                   { key: "open" as const, label: t("open") },
-                  { key: "mine" as const, label: t("myBets") },
+                  /* Bekleyen tahmin sayısı sekmede: kullanıcı tahminlerinin
+                     NEREDE olduğunu aramadan görsün. */
+                  {
+                    key: "mine" as const,
+                    label: myPreds.current.length > 0
+                      ? `${t("myBets")} (${myPreds.current.length})`
+                      : t("myBets"),
+                    vurgula: myPreds.current.length > 0,
+                  },
                   { key: "tournaments" as const, label: t("tournaments") },
                 ].map((tab) => {
                   const active = mode === tab.key;
+                  const vurgulu = !active && (tab as any).vurgula;
                   return (
                     <TouchableOpacity
                       key={tab.key}
@@ -1695,13 +1718,15 @@ export default function LiveScreen() {
                         paddingVertical: 8,
                         borderRadius: 999,
                         backgroundColor: active ? Colors.accent : "transparent",
+                        borderWidth: vurgulu ? 1 : 0,
+                        borderColor: vurgulu ? "#4ade8066" : "transparent",
                       }}
                     >
                       <Text
                         style={{
                           textAlign: "center",
-                          color: active ? Colors.onAccent : Colors.muted,
-                          fontWeight: active ? "700" : "500",
+                          color: active ? Colors.onAccent : vurgulu ? "#4ade80" : Colors.muted,
+                          fontWeight: active || vurgulu ? "700" : "500",
                           fontSize: 11,
                         }}
                       >

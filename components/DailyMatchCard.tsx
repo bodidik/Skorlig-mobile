@@ -44,6 +44,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [oranlar, setOranlar] = useState<{ home: number; draw: number; away: number } | null>(null);
   const lcAnim = useRef(new Animated.Value(0)).current;
   // Geri sayım her dakika yenilensin — saniyelik tik pil ve render israfı.
   const [, setTik] = useState(0);
@@ -66,6 +67,24 @@ export default function DailyMatchCard({ country, userId }: Props) {
     load();
     return () => { cancelled = true; };
   }, [country]);
+
+  /* Oranlar karta da gelsin: kullanıcı "kim yener"i ORANSIZ seçiyordu —
+   * hangi seçimin kaç puan getireceği ancak tahmin ekranında görünüyordu.
+   * Aynı ucu (pred/weights) kullanıyoruz; hata olursa kart oransız çalışmaya
+   * devam eder, tahmin engellenmez. */
+  useEffect(() => {
+    if (!fixture) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await apiFetch(
+          `/api/pred/weights?fixtureId=${encodeURIComponent(fixture.fixtureId)}`
+        ).then((x) => x.json());
+        if (!cancelled && r?.ok && r.odds) setOranlar(r.odds);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [fixture?.fixtureId]);
 
   async function handlePick(outcome: string) {
     if (submitted || busy || !fixture) return;
@@ -182,6 +201,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
               : "X";
 
             const isSelected = selected === o.key;
+            const oran = oranlar?.[o.key];
             return (
               <Basinc
                 key={o.key}
@@ -199,9 +219,16 @@ export default function DailyMatchCard({ country, userId }: Props) {
                 >
                   {busy && isSelected
                     ? <ActivityIndicator color="#fff" size="small" />
-                    : <Text style={[s.btnText, isSelected && { color: "#fff" }]} numberOfLines={1}>
-                        {label}
-                      </Text>
+                    : <>
+                        <Text style={[s.btnText, isSelected && { color: "#fff" }]} numberOfLines={1}>
+                          {label}
+                        </Text>
+                        {typeof oran === "number" && oran > 1 && (
+                          <Text style={[s.oranText, isSelected && { color: "#fff" }]}>
+                            {oran.toFixed(2)}
+                          </Text>
+                        )}
+                      </>
                   }
                 </View>
               </Basinc>
@@ -241,11 +268,24 @@ export default function DailyMatchCard({ country, userId }: Props) {
           <Text style={s.detailText}>{t("seeMatchRank")}</Text>
         </TouchableOpacity>
       ) : (
+        /* ⚠️ ESKİDEN live sekmesine "focusId" ile atıyordu — kullanıcı maçı
+         * listede kendisi bulup Tahmin'e bir daha basmak zorundaydı; çoğu
+         * burada kopuyordu. Artık DOĞRUDAN tahmin ekranına, maç bilgisiyle. */
         <TouchableOpacity
-          onPress={() => router.push({ pathname: "/(tabs)/live", params: { focusId: fixture.fixtureId } })}
-          style={s.detailLink}
+          onPress={() => router.push({
+            pathname: "/(tabs)/predict",
+            params: {
+              fixtureId: fixture.fixtureId,
+              userId: userId || "",
+              home: fixture.home,
+              away: fixture.away,
+              league: fixture.league || "",
+              kickoffISO: fixture.kickoffISO || "",
+            },
+          })}
+          style={s.detayDugme}
         >
-          <Text style={s.detailText}>{t("detailedPred2")}</Text>
+          <Text style={s.detayDugmeYazi}>{t("detailedPred2")} →</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -307,6 +347,20 @@ const s = StyleSheet.create({
   },
   detailLink: { alignItems: "flex-end", marginTop: 4 },
   detailText: { color: "#475569", fontSize: 11 },
+  oranText: { color: "#94a3b8", fontSize: 10, fontWeight: "700", marginTop: 2 },
+  /* Eski hali 11px soluk gri bir yazıydı — fiilen görünmezdi. Skor ve alt
+   * tahminlere giden TEK kapı olduğu için düğme gibi görünmek zorunda. */
+  detayDugme: {
+    marginTop: 10,
+    alignSelf: "stretch",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#fbbf2455",
+    backgroundColor: "#fbbf2411",
+  },
+  detayDugmeYazi: { color: "#fbbf24", fontSize: 13, fontWeight: "800" },
   countdownBadge: {
     backgroundColor: "#22c55e22",
     borderRadius: 6,

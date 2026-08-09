@@ -11,6 +11,7 @@ import { flushPendingCountry } from "../lib/pendingCountry";
 import { flushPendingTeam } from "../lib/pendingTeam";
 import ErrorBoundary from "../components/ErrorBoundary";
 import CountryBackfillPrompt from "../components/CountryBackfillPrompt";
+import GeriEv from "../components/GeriEv";
 import {
   capturePendingRef, captureRefFromInitialUrl, applyPendingRef,
 } from "../lib/referral";
@@ -168,6 +169,8 @@ export default function RootLayout() {
       <AuthProvider>
         <AuthGuard />
         <Stack screenOptions={{ headerShown: false }} />
+        {/* Sekme dışı ekranlarda her an görünen geri + ana sayfa */}
+        <GeriEv />
         {/* Ülkesi eksik mevcut kullanıcılar için geri doldurma (engellemez) */}
         <CountryBackfillPrompt />
       </AuthProvider>
