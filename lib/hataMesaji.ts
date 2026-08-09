@@ -85,6 +85,19 @@ const SOZLUK: Record<string, string> = {
   // ── Kimlik / yetki ───────────────────────────────────────────────
   UNAUTHORIZED: "Bu işlem için giriş yapman gerekiyor.",
   AUTH_REQUIRED: "Bu işlem için giriş yapman gerekiyor.",
+  /* ⚠️ AŞAĞIDAKİ ÜÇÜ ÜRETİMDE GÖRÜNMEZ HATAYA SEBEP OLDU (2026-08-09).
+   *
+   * middleware/verifyToken.cjs bu kodları döndürüyor ama kapsam nöbetçisi
+   * yalnızca routes/ tarıyordu — middleware hiç bakılmamıştı. Sunucuda
+   * Firebase kimlik bilgisi tanımsız kalınca her tahmin 503
+   * AUTH_NOT_CONFIGURED dönüyordu; sözlükte karşılığı olmadığı için
+   * kullanıcı "Bir şeyler ters gitti" görüyor ve NEDEN olduğunu asla
+   * öğrenemiyordu. Maçlar (genel okuma) çalıştığı için sorun da
+   * "tahmin bozuk" gibi görünüyordu — asıl neden kimlik katmanıydı. */
+  AUTH_NOT_CONFIGURED:
+    "Giriş doğrulaması sunucuda şu an kapalı. Bu bizden kaynaklı, birazdan tekrar dene.",
+  INVALID_TOKEN: "Oturumun geçersiz olmuş. Çıkıp tekrar giriş yapman gerekiyor.",
+  USER_BANNED: "Bu hesap askıya alınmış.",
   USER_REQUIRED: "Bu işlem için giriş yapman gerekiyor.",
   USER_ID_REQUIRED: "Bu işlem için giriş yapman gerekiyor.",
   BAD_USERID: "Kullanıcı bilgisi okunamadı. Çıkıp tekrar giriş yapmayı dene.",
