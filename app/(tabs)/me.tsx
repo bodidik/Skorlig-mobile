@@ -1790,6 +1790,27 @@ export default function Me() {
           ) : null}
         </View>
 
+        {/* Tahminlerim — toplu görünüme tek dokunuş.
+            Tahminler live sekmesinin alt sekmesinde saklıydı; profilden
+            görünür bir kapı yoktu ("tahminlerimizi toplu göreceğimiz yer
+            net değil"). ts damgası: sekme açıkken de mod değişsin. */}
+        <TouchableOpacity
+          onPress={() => nav.push({
+            pathname: "/(tabs)/live",
+            params: { tab: "mine", ts: String(Date.now()) },
+          })}
+          style={{
+            flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+            padding: 14, backgroundColor: "#0f172a", borderRadius: 12,
+            borderWidth: 1, borderColor: "#22c55e44",
+          }}
+        >
+          <Text style={{ fontWeight: "800", fontSize: 14 }}>📋 {t("myBets")}</Text>
+          <Text style={{ color: "#4ade80", fontWeight: "700", fontSize: 13 }}>
+            {predCount !== null && predCount > 0 ? `${predCount} · ` : ""}→
+          </Text>
+        </TouchableOpacity>
+
         {/* Takımım & Ülkem — kombine seçici */}
         <View
           style={{

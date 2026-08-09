@@ -1491,6 +1491,15 @@ useEffect(() => {
               >
                 <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 13 }}>{t("backMatches")}</Text>
               </TouchableOpacity>
+              {/* Toplu tahmin görünümü: kayıttan sonra "diğer tahminlerim
+                  neredeydi"nin cevabı buradan tek dokunuş. ts damgası:
+                  live sekmesi açıkken de mod değişsin (bkz. live.tsx qTs). */}
+              <TouchableOpacity
+                onPress={() => router.replace({ pathname: "/(tabs)/live", params: { tab: "mine", ts: String(Date.now()) } })}
+                style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: "#1e293b", borderWidth: 1, borderColor: "#22c55e44" }}
+              >
+                <Text style={{ color: "#4ade80", fontWeight: "700", fontSize: 13 }}>📋 {t("myBets")}</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}

@@ -633,7 +633,7 @@ export default function LiveScreen() {
    * "kaydedildi" uyarısını alıp aynı dili görmeye devam eder. */
   useLang();
   const router = useRouter();
-  const { userId: qUserId, admin: qAdmin, tab: qTab } = useLocalSearchParams<{ userId?: string; admin?: string; tab?: string }>();
+  const { userId: qUserId, admin: qAdmin, tab: qTab, ts: qTs } = useLocalSearchParams<{ userId?: string; admin?: string; tab?: string; ts?: string }>();
   const { isAnonymous, linkWithGoogle } = useAuth();
 
   const userId = useUserId(qUserId);
@@ -650,6 +650,17 @@ export default function LiveScreen() {
     return "open";
   }, [qTab]);
   const [mode, setMode] = useState<Mode>(initialMode);
+
+  /* ⚠️ `tab` PARAMETRESİ YALNIZCA İLK AÇILIŞTA OKUNUYORDU (useState başlangıcı).
+   * Sekme zaten açıkken profil/tahmin ekranından "Tahminlerim"e bağlantı
+   * verilince parametre değişse de mod değişmiyordu — bağlantı ölü görünürdü.
+   * `ts` (damga) parametresi aynı sekmeye ikinci kez bağlanmayı da tetikler. */
+  useEffect(() => {
+    const t = String(qTab || "").trim();
+    if (t === "mine" || t === "tournaments" || t === "open" || t === "gs1987" || t === "schedule") {
+      setMode(t as Mode);
+    }
+  }, [qTab, qTs]);
 
   const [items, setItems] = useState<Fx[]>([]);
 
