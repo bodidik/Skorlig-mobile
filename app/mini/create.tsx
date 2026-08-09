@@ -13,6 +13,7 @@ import Colors, { on } from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
+import { useUserId } from "../../lib/useUserId";
 
 const MIN_FIXTURES = 2;
 const MAX_FIXTURES = 10;
@@ -44,7 +45,10 @@ export default function MiniCreateScreen() {
   useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const { userId: qUserId } = useLocalSearchParams<{ userId?: string }>();
-  const userId = String(qUserId || "demo1").trim();
+  // ⚠️ "demo1" YEDEĞİ KALDIRILDI: OyunModlari parametresiz açıyordu ve ekran
+  // demo1'in profil ülkesine göre sıralıyordu. Kimlik artık oturumdan gelir;
+  // sunucu zaten gövdedeki userId'yi değil token'ı kullanıyor (mini.cjs).
+  const userId = useUserId(qUserId);
 
   const [name, setName] = useState("");
   const [isPublic, setIsPublic] = useState(false);

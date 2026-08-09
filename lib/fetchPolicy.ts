@@ -33,7 +33,13 @@ export type PolicyOptions = RequestInit & {
 };
 
 const DEFAULT_TIMEOUT_MS = 15_000;
-const RETRY_DELAYS_MS = [500, 1500];
+/**
+ * ⚠️ ÜÇÜNCÜ TEKRAR SOĞUK SUNUCU İÇİN. Render ücretsiz katman uykudan
+ * 50-90 saniyede uyanıyor; iki tekrarla toplam koruma ~47 sn kalıyordu ve
+ * uyanma anına denk gelen HER ekran boş dönüyordu ("maç yok" şikayetinin
+ * kökü). Üç tekrar + uzun son bekleme toplamı ~66 sn'ye çıkarır.
+ */
+const RETRY_DELAYS_MS = [500, 1500, 4000];
 const RETRYABLE_STATUS = new Set([502, 503, 504]);
 const CACHE_MAX_ENTRIES = 100;
 

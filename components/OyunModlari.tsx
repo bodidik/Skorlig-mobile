@@ -179,7 +179,19 @@ export default function OyunModlari({
               borderColor: `${m.renk}44`,
             }}
           >
-            <Text style={{ fontSize: 20 }}>{m.ikon}</Text>
+            {/* Dilden bağımsız tanınırlık: büyük emoji + renkli rozet zemin.
+                Kullanıcı isteği (2026-08-09): mod kartları yazı okumadan seçilebilsin. */}
+            <View
+              style={{
+                alignSelf: "flex-start",
+                backgroundColor: `${m.renk}22`,
+                borderRadius: 10,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+              }}
+            >
+              <Text style={{ fontSize: 26 }}>{m.ikon}</Text>
+            </View>
             <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "800", marginTop: 6 }}>
               {m.ad}
             </Text>

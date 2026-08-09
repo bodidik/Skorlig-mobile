@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Text } from "react-native";
-import { t } from "../lib/i18n";
+import { t, useLang } from "../lib/i18n";
 import { golSesiCal, titret } from "../lib/hisler";
 
 /**
@@ -36,6 +36,7 @@ type Props = {
 };
 
 export default function GolAni({ home, away, canli, sessiz, buyuk, kimlik }: Props) {
+  useLang(); // dil değişince GOL yazısı da değişsin (nöbetçi: dil-degisimi.test)
   const onceki = useRef<{ h: number; a: number } | null>(null);
   const oncekiKimlik = useRef<string | undefined>(kimlik);
   const [gorunur, setGorunur] = useState(false);

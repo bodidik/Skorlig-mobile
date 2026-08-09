@@ -3246,17 +3246,31 @@ const strings = {
 type Lang = keyof typeof strings;
 export type StringKey = keyof typeof strings.tr;
 
+/**
+ * ⚠️ ÜRETİMDE HERKES İNGİLİZCE GÖRÜYORDU. Eski algılama
+ * `NativeModules.I18nManager.localeIdentifier` okuyordu; RN 0.81'in yeni
+ * mimarisinde (bridgeless) bu modül `NativeModules` üzerinden GELMİYOR —
+ * `undefined` dönüyor ve kod sessizce "en" yedeğine düşüyordu. Türkçe
+ * telefonda İngilizce açılış, Play Store sürüm 5'te yaşandı.
+ * Birincil kaynak artık expo-localization; eski yollar yedek kalıyor.
+ */
 function detectLang(): Lang {
   try {
-    let tag = "en";
-    if (Platform.OS === "ios") {
+    let tag = "";
+    try {
+      const loc = require("expo-localization");
+      const l0 = loc?.getLocales?.()?.[0];
+      if (l0?.languageCode) tag = String(l0.languageCode);
+    } catch {}
+    if (!tag && Platform.OS === "ios") {
       const settings = NativeModules.SettingsManager?.settings;
       const langs: string[] | undefined = settings?.AppleLanguages;
       if (langs?.[0]) tag = langs[0];
-    } else if (Platform.OS === "android") {
+    } else if (!tag && Platform.OS === "android") {
       const locale = NativeModules.I18nManager?.localeIdentifier;
       if (locale) tag = locale.replace("_", "-");
     }
+    if (!tag) tag = String(Intl?.DateTimeFormat?.().resolvedOptions?.().locale || "en");
     const code = tag.toLowerCase().split("-")[0] as Lang;
     if (code in strings) return code;
   } catch {}

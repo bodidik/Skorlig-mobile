@@ -1,75 +1,24 @@
 // D:\APPden\SkorLig\mobile\app\(tabs)\_layout.tsx
 import React from "react";
 import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Colors from "../../constants/colors";
+import TabBar from "../../components/TabBar";
 import { t, useLang } from "../../lib/i18n";
 
-export default function TabsLayout() {
+export default function TabsLayout() {
   useLang(); // dil değişince sekme başlıkları yenilensin
-  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: "#020617",
-          borderTopColor: "#111827",
-          height: 56 + insets.bottom,
-          paddingBottom: Math.max(insets.bottom, 6),
-          paddingTop: 6,
-        },
-        tabBarActiveTintColor: Colors.accent,
-        tabBarInactiveTintColor: "#9ca3af",
-      }}
+      // Özel çubuk: aktif altın hap + dolu ikon + yay animasyonu.
+      // İkonlar components/TabBar.tsx içinde rota adına göre eşlenir.
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
-      <Tabs.Screen
-        name="live"
-        options={{
-          title: t("matches"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="football-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="predict"
-        options={{
-          title: t("tabPredict"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="create-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="arena"
-        options={{
-          title: t("modeDuel"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="flash-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="stats"
-        options={{
-          title: t("rankingTab"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="podium-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="me"
-        options={{
-          title: t("tabProfile"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-circle-outline" color={color} size={size} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="live" options={{ title: t("matches") }} />
+      <Tabs.Screen name="predict" options={{ title: t("tabPredict") }} />
+      <Tabs.Screen name="arena" options={{ title: t("modeDuel") }} />
+      <Tabs.Screen name="stats" options={{ title: t("rankingTab") }} />
+      <Tabs.Screen name="me" options={{ title: t("tabProfile") }} />
     </Tabs>
   );
 }

@@ -44,3 +44,6 @@ GoogleService-Info.plist
 *.bak-*
 SCAN_REPORT.*
 __team_lines.txt
+
+# EAS keystore yedegi - ASLA commit etme
+*.jks
