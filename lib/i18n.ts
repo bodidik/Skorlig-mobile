@@ -33,6 +33,7 @@ const strings = {
     myCountry:     "Ülkem",
     selectTeam:    "Takım Seç",
     selectCountry: "Ülke Seç",
+    appTagline:    "Tahmin et, seri yap, zirveye oyna",
     guestBanner:   "Misafir olarak oynuyorsun · Kaydet",
     signInGoogle:  "Google ile Giriş →",
     // 1987GS
@@ -1361,6 +1362,7 @@ const strings = {
     myCountry:     "My Country",
     selectTeam:    "Select Team",
     selectCountry: "Select Country",
+    appTagline:    "Predict, streak, play for the top",
     guestBanner:   "Playing as guest · Save progress",
     signInGoogle:  "Sign in with Google →",
     gs1987locked:  "This area is for 1987GS members only",

@@ -25,6 +25,8 @@ import Picks1987 from "../../components/Picks1987";
 import GuestBanner from "../../components/GuestBanner";
 import DailyMatchCard from "../../components/DailyMatchCard";
 import KuponKarti from "../../components/KuponKarti";
+import GradyanZemin from "../../components/GradyanZemin";
+import { Gradyan } from "../../constants/colors";
 import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
@@ -1496,6 +1498,26 @@ export default function LiveScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
         ListHeaderComponent={
           <View style={{ marginBottom: 12 }}>
+            {/* ===== MARKA BANDI ===== stadyum gecesi gradyanı üstünde logo.
+                Ekran başlıksız başlıyordu — uygulamanın "yüzü" yoktu. */}
+            {(mode === "schedule" || mode === "open") && (
+              <View style={{
+                borderRadius: 14, overflow: "hidden", marginBottom: 12,
+                paddingVertical: 14, paddingHorizontal: 16,
+                borderWidth: 1, borderColor: "#1e3a8a66",
+              }}>
+                <GradyanZemin renkler={Gradyan.night} yon="capraz" />
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Text style={{ fontSize: 22 }}>⚽</Text>
+                  <Text style={{ color: "#f8fafc", fontSize: 20, fontWeight: "900", letterSpacing: 0.5 }}>
+                    SkorLig
+                  </Text>
+                </View>
+                <Text style={{ color: "#93c5fd", fontSize: 11, marginTop: 3, fontWeight: "600" }}>
+                  {t("appTagline")}
+                </Text>
+              </View>
+            )}
             {/* ===== MİSAFİR ŞERTI ===== */}
             <GuestBanner />
 
