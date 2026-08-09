@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { t, useLang, type StringKey } from "../lib/i18n";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Animated, Easing } from "react-native";
+import GradyanZemin from "./GradyanZemin";
+import { Gradyan } from "../constants/colors";
 
 type Tier = { threshold: number; bonus: number; label: string } | null;
 
@@ -28,32 +30,71 @@ const TIERS: { threshold: number; labelKey: StringKey; emoji: string }[] = [
 
 export default function StreakBar({ seriesCumOdds, seriesCount, activeSeries, bestSeries, currentTier }: Props) {
   useLang(); // dil değişince yeniden çizilsin
-  if (!activeSeries && seriesCount === 0 && bestSeries === 0) return null;
 
   const nextTier = TIERS.find(ti => ti.threshold > seriesCumOdds) || TIERS[TIERS.length - 1];
   const progress = nextTier ? Math.min(1, seriesCumOdds / nextTier.threshold) : 1;
+
+  // Çubuk dolumu yaylanarak ilerler — sıçrayan sayı yerine akan hareket.
+  const dolum = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(dolum, {
+      toValue: progress,
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false, // width yüzdesi native sürücüyle animasyonlanamaz
+    }).start();
+  }, [progress, dolum]);
+
+  // Seri aktifken alev nabız gibi atar; seri büyüdükçe alev büyür.
+  const nabiz = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!activeSeries || seriesCount === 0) return;
+    const dongu = Animated.loop(
+      Animated.sequence([
+        Animated.timing(nabiz, { toValue: 1.25, duration: 600, useNativeDriver: true }),
+        Animated.timing(nabiz, { toValue: 1, duration: 600, useNativeDriver: true }),
+      ])
+    );
+    dongu.start();
+    return () => dongu.stop();
+  }, [activeSeries, seriesCount, nabiz]);
+
+  if (!activeSeries && seriesCount === 0 && bestSeries === 0) return null;
 
   const tierI18nKey = currentTier?.label ? TIER_KEYS[currentTier.label] ?? "streakSeries" : "streakSeries";
   const tierEmoji = currentTier?.label
     ? TIERS.find(ti => ti.labelKey === TIER_KEYS[currentTier.label])?.emoji ?? ""
     : "";
+  const alevBoyu = 16 + Math.min(12, seriesCount * 2);
+  const atesli = activeSeries && seriesCount > 0;
 
   return (
-    <View style={s.container}>
+    <View style={[s.container, atesli && s.containerAtesli]}>
+      {atesli && <GradyanZemin renkler={["#7c2d12", "#1e293b"]} yon="yatay" />}
       <View style={s.row}>
-        <Text style={s.label}>
-          {activeSeries && seriesCount > 0
-            ? `${t(tierI18nKey)} ${tierEmoji}`
-            : t("newStreak")
-          }
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          {atesli && (
+            <Animated.Text style={{ fontSize: alevBoyu, transform: [{ scale: nabiz }] }}>
+              🔥
+            </Animated.Text>
+          )}
+          <Text style={s.label}>
+            {atesli ? `${t(tierI18nKey)} ${tierEmoji}` : t("newStreak")}
+          </Text>
+        </View>
         <Text style={s.stats}>
           {t("streakRow", { n: seriesCount, x: seriesCumOdds.toFixed(1) })}
         </Text>
       </View>
 
       <View style={s.barBg}>
-        <View style={[s.barFill, { width: `${Math.round(progress * 100)}%` }]} />
+        <Animated.View
+          style={[
+            s.barFill,
+            atesli && { backgroundColor: "#fb923c" },
+            { width: dolum.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) },
+          ]}
+        />
       </View>
 
       <View style={s.row}>
@@ -70,6 +111,11 @@ const s = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
+    overflow: "hidden",
+  },
+  containerAtesli: {
+    borderWidth: 1,
+    borderColor: "#fb923c66",
   },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   label: { color: "#fbbf24", fontWeight: "800", fontSize: 13 },
