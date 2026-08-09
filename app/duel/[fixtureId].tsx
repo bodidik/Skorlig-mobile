@@ -10,6 +10,7 @@ import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
 import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
+import Konfeti from "../../components/Konfeti";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -312,8 +313,10 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel, onRaise, onRaiseR
       {duel.status === "settled" && (isCreator || isAcceptor) && (
         <View style={{
           marginHorizontal: 12, marginBottom: 12, borderRadius: 10, padding: 10, alignItems: "center",
+          overflow: "hidden",
           backgroundColor: tied ? "#1e293b" : iWon ? "#052e1655" : "#1a040455",
         }}>
+          {iWon && !tied && <Konfeti anahtar={duel.id} />}
           <Text style={{
             fontWeight: "800", fontSize: 13,
             color: tied ? "#94a3b8" : iWon ? "#4ade80" : "#f87171",
