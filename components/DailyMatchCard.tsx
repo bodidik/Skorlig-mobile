@@ -8,6 +8,7 @@ import Basinc from "./Basinc";
 import GradyanZemin from "./GradyanZemin";
 import Konfeti from "./Konfeti";
 import { titret } from "../lib/hisler";
+import { MacKartiIskeleti } from "./Iskelet";
 import { Gradyan } from "../constants/colors";
 import { t, useLang } from "../lib/i18n";
 import { ligEtiketi } from "../lib/ulkeler";
@@ -105,7 +106,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
 
   if (loading) return (
     <View style={s.card}>
-      <ActivityIndicator color="#a3e635" />
+      <MacKartiIskeleti />
     </View>
   );
 

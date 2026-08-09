@@ -28,6 +28,7 @@ import { apiJson } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 import { ulkeAdi } from "../lib/ulkeler";
 import GradyanZemin from "./GradyanZemin";
+import IskeletBlok from "./Iskelet";
 import { Gradyan } from "../constants/colors";
 
 type Mac = {
@@ -88,7 +89,11 @@ export default function KuponKarti() {
   if (loading) {
     return (
       <View style={s.card}>
-        <ActivityIndicator color="#a3e635" />
+        <View style={{ gap: 8 }}>
+          <IskeletBlok style={{ width: 130, height: 14 }} />
+          <IskeletBlok style={{ width: "80%", height: 12 }} />
+          <IskeletBlok style={{ width: "65%", height: 12 }} />
+        </View>
       </View>
     );
   }
