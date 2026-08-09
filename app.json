@@ -20,7 +20,8 @@
       "package": "com.skorlig",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#111827"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f5229"
       }
     },
     "ios": {
