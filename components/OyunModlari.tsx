@@ -30,10 +30,12 @@
  */
 
 import React from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import { t, useLang } from "../lib/i18n";
+import Basinc from "./Basinc";
+import GradyanZemin from "./GradyanZemin";
 
 export type OyunModlariProps = {
   /** Maç girişi bedeli (LC) — cüzdan özetindeki `pricing.matchEntryCost`. */
@@ -164,49 +166,56 @@ export default function OyunModlari({
         contentContainerStyle={{ gap: 10, paddingRight: 8 }}
       >
         {modlar.map((m) => (
-          <TouchableOpacity
+          <Basinc
             key={m.key}
             onPress={m.bas}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={`${m.ad}: ${m.aciklama}`}
-            style={{
-              width: 138,
-              padding: 12,
-              borderRadius: 12,
-              backgroundColor: Colors.card,
-              borderWidth: 1,
-              borderColor: `${m.renk}44`,
-            }}
+            scaleTo={0.94}
           >
-            {/* Dilden bağımsız tanınırlık: büyük emoji + renkli rozet zemin.
-                Kullanıcı isteği (2026-08-09): mod kartları yazı okumadan seçilebilsin. */}
             <View
+              accessibilityRole="button"
+              accessibilityLabel={`${m.ad}: ${m.aciklama}`}
               style={{
-                alignSelf: "flex-start",
-                backgroundColor: `${m.renk}22`,
-                borderRadius: 10,
-                paddingHorizontal: 8,
-                paddingVertical: 4,
+                width: 148,
+                padding: 12,
+                borderRadius: 14,
+                backgroundColor: Colors.card,
+                borderWidth: 1,
+                borderColor: `${m.renk}66`,
+                overflow: "hidden",
               }}
             >
-              <Text style={{ fontSize: 26 }}>{m.ikon}</Text>
-            </View>
-            <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "800", marginTop: 6 }}>
-              {m.ad}
-            </Text>
-            <Text
-              style={{ color: Colors.muted, fontSize: 10, marginTop: 3, lineHeight: 14, minHeight: 28 }}
-              numberOfLines={2}
-            >
-              {m.aciklama}
-            </Text>
-            {m.bedel ? (
-              <Text style={{ color: m.renk, fontSize: 10, fontWeight: "700", marginTop: 6 }}>
-                {m.bedel}
+              {/* Mod renginden karta akan gradyan — düz kart "ayarlar menüsü"
+                  gibi duruyordu; renk kimliği karta yayılınca oyun rafı oldu. */}
+              <GradyanZemin renkler={[`${m.renk}30`, `${m.renk}05`]} yon="dikey" />
+              {/* Dilden bağımsız tanınırlık: büyük emoji + renkli rozet zemin.
+                  Kullanıcı isteği (2026-08-09): mod kartları yazı okumadan seçilebilsin. */}
+              <View
+                style={{
+                  alignSelf: "flex-start",
+                  backgroundColor: `${m.renk}33`,
+                  borderRadius: 12,
+                  paddingHorizontal: 9,
+                  paddingVertical: 5,
+                }}
+              >
+                <Text style={{ fontSize: 32 }}>{m.ikon}</Text>
+              </View>
+              <Text style={{ color: Colors.text, fontSize: 13.5, fontWeight: "800", marginTop: 7 }}>
+                {m.ad}
               </Text>
-            ) : null}
-          </TouchableOpacity>
+              <Text
+                style={{ color: Colors.muted, fontSize: 10, marginTop: 3, lineHeight: 14, minHeight: 28 }}
+                numberOfLines={2}
+              >
+                {m.aciklama}
+              </Text>
+              {m.bedel ? (
+                <Text style={{ color: m.renk, fontSize: 10.5, fontWeight: "800", marginTop: 6 }}>
+                  {m.bedel}
+                </Text>
+              ) : null}
+            </View>
+          </Basinc>
         ))}
       </ScrollView>
     </View>
