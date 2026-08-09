@@ -18,17 +18,20 @@ import { useAuth } from "../contexts/AuthContext";
 export default function GuestBanner() {
   useLang(); // dil değişince yeniden çizilsin
   const { user, isAnonymous, signInWithGoogle } = useAuth();
-  const [busy, setBusy] = useState(false);
-  const [err, setErr]   = useState(false);
+  const [busy, setBusy]       = useState(false);
+  const [err, setErr]         = useState(false);
+  const [hidden, setHidden]   = useState(false); // başarılı girişten sonra anında gizle
 
   // Oturum varsa ve anonim değilse: gösterme.
-  if (user && !isAnonymous) return null;
+  if (hidden || (user && !isAnonymous)) return null;
 
   const handleLink = async () => {
     setBusy(true);
     setErr(false);
     try {
       await signInWithGoogle();
+      // Başarılı — context güncellenene kadar yerel state ile hemen gizle.
+      setHidden(true);
     } catch {
       setErr(true);
     }

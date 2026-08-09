@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ export default function LoginScreen() {
   useLang(); // dil değişince yeniden çizilsin
   const { user, loading, signInWithGoogle } = useAuth();
   const router = useRouter();
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -23,13 +24,25 @@ export default function LoginScreen() {
     }
   }, [user, loading]);
 
-  if (loading) {
+  if (loading || busy) {
     return (
       <View style={s.center}>
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
+
+  const handleSignIn = async () => {
+    setBusy(true);
+    try {
+      await signInWithGoogle();
+      // onAuthStateChanged ve useEffect redirect'i üstlenecek;
+      // başarılı girişte bu ekran zaten unmount olur.
+    } catch {
+      // İptal veya hata — düğmeyi geri göster.
+    }
+    setBusy(false);
+  };
 
   return (
     <View style={s.root}>
@@ -40,7 +53,7 @@ export default function LoginScreen() {
       </View>
 
       <View style={s.bottom}>
-        <TouchableOpacity style={s.googleBtn} onPress={signInWithGoogle} activeOpacity={0.85}>
+        <TouchableOpacity style={s.googleBtn} onPress={handleSignIn} activeOpacity={0.85}>
           <Text style={s.googleIcon}>G</Text>
           <Text style={s.googleText}>{t("googleSignInBtn")}</Text>
         </TouchableOpacity>
