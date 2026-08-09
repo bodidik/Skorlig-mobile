@@ -23,6 +23,9 @@ const SOZLUK: Record<string, string> = {
   BAD_JSON: "Sunucudan beklenmeyen bir yanıt geldi. Birazdan tekrar dene.",
   EMPTY_RESPONSE: "Sunucu boş yanıt döndü. Birazdan tekrar dene.",
   NETWORK: "Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.",
+  // Sunucu hız sınırı (middleware/rateLimit.cjs). Yanıtta waitMs de var ama
+  // saniye söylemek yalan olur: sınır kovası kayan pencere, "birkaç saniye" dürüst.
+  RATE_LIMIT: "Çok hızlı art arda işlem yaptın. Birkaç saniye bekleyip tekrar dene.",
   STORE_DISABLED: "Mağaza şu an kapalı.",
   STORE_PROVIDER_NOT_IMPLEMENTED: "Bu ödeme yöntemi henüz aktif değil.",
 
