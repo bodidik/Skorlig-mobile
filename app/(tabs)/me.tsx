@@ -1369,13 +1369,15 @@ export default function Me() {
                 {unlocked.map(a => (
                   <View key={a.key} style={{
                     flexDirection: "row", alignItems: "center", gap: 6,
-                    backgroundColor: "#1e293b", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
-                    borderWidth: 1, borderColor: "#334155",
+                    // Kazanılan rozet gri çip değil, madalya gibi görünmeli:
+                    // altın tonlu zemin + parlayan çerçeve.
+                    backgroundColor: "#f59e0b1a", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
+                    borderWidth: 1, borderColor: "#f59e0b66",
                   }}>
-                    <Text style={{ fontSize: 18 }}>{a.emoji}</Text>
+                    <Text style={{ fontSize: 22 }}>{a.emoji}</Text>
                     <View>
-                      <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12 }}>{a.label}</Text>
-                      <Text style={{ color: "#64748b", fontSize: 9 }}>{a.desc}</Text>
+                      <Text style={{ color: "#fbbf24", fontWeight: "800", fontSize: 12 }}>{a.label}</Text>
+                      <Text style={{ color: "#94a3b8", fontSize: 9 }}>{a.desc}</Text>
                     </View>
                   </View>
                 ))}
