@@ -36,12 +36,14 @@ export default function LoginScreen() {
     setBusy(true);
     try {
       await signInWithGoogle();
-      // onAuthStateChanged ve useEffect redirect'i üstlenecek;
-      // başarılı girişte bu ekran zaten unmount olur.
+      // Başarılı — busy=true'da bırak; onAuthStateChanged tetiklenip
+      // useEffect redirect'i login ekranını unmount edecek.
+      // setBusy(false) çağırmıyoruz: çağırılırsa ekran anlık geri gelir.
+      return;
     } catch {
       // İptal veya hata — düğmeyi geri göster.
+      setBusy(false);
     }
-    setBusy(false);
   };
 
   return (
