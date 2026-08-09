@@ -4,6 +4,9 @@ import {
   Animated, StyleSheet, Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import Basinc from "./Basinc";
+import GradyanZemin from "./GradyanZemin";
+import { Gradyan } from "../constants/colors";
 import { t, useLang } from "../lib/i18n";
 import { ligEtiketi } from "../lib/ulkeler";
 import hataMesaji from "../lib/hataMesaji";
@@ -123,6 +126,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
 
   return (
     <View style={s.card}>
+      <GradyanZemin renkler={Gradyan.card} yon="dikey" />
       {/* Üst bilgi */}
       <View style={s.meta}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
@@ -153,23 +157,28 @@ export default function DailyMatchCard({ country, userId }: Props) {
 
             const isSelected = selected === o.key;
             return (
-              <TouchableOpacity
+              <Basinc
                 key={o.key}
                 onPress={() => handlePick(o.key)}
                 disabled={busy}
-                style={[
-                  s.btn,
-                  { borderColor: o.color },
-                  isSelected && { backgroundColor: o.color },
-                ]}
+                style={{ flex: 1 }}
+                scaleTo={0.92}
               >
-                {busy && isSelected
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={[s.btnText, isSelected && { color: "#fff" }]} numberOfLines={1}>
-                      {label}
-                    </Text>
-                }
-              </TouchableOpacity>
+                <View
+                  style={[
+                    s.btn,
+                    { borderColor: o.color },
+                    isSelected && { backgroundColor: o.color, shadowColor: o.color, shadowOpacity: 0.6, shadowRadius: 8, elevation: 6 },
+                  ]}
+                >
+                  {busy && isSelected
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={[s.btnText, isSelected && { color: "#fff" }]} numberOfLines={1}>
+                        {label}
+                      </Text>
+                  }
+                </View>
+              </Basinc>
             );
           })}
         </View>
@@ -222,6 +231,7 @@ const s = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#1e293b",
+    overflow: "hidden",
     padding: 16,
     marginHorizontal: 12,
     marginTop: 12,

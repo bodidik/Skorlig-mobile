@@ -27,6 +27,8 @@ import { useRouter } from "expo-router";
 import { apiJson } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 import { ulkeAdi } from "../lib/ulkeler";
+import GradyanZemin from "./GradyanZemin";
+import { Gradyan } from "../constants/colors";
 
 type Mac = {
   fixtureId: string;
@@ -115,6 +117,7 @@ export default function KuponKarti() {
       onPress={() => router.push("/kupon")}
       style={s.card}
     >
+      <GradyanZemin renkler={Gradyan.pitch} yon="capraz" />
       <View style={s.ustSatir}>
         <View style={s.rozet}>
           <Text style={s.rozetYazi}>🎟️ {baslik}</Text>
@@ -172,6 +175,7 @@ const s = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#a3e63544",
+    overflow: "hidden",
     padding: 16,
     marginHorizontal: 12,
     marginTop: 12,

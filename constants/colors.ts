@@ -24,6 +24,20 @@ export const Colors = {
   cardBorder: "#1e293b",
   textMuted: "#64748b",
   purple: "#7c3aed",
+  // Stadyum paleti — tek amber tekdüzeliğini kırmak için ikincil canlı renkler.
+  win: "#a3e635",        // kazanç / seri: neon lime
+  liveGlow: "#38bdf8",   // canlı maç: elektrik mavi
+  fire: "#fb923c",       // seri ateşi: sıcak turuncu
+  hot: "#f43f5e",        // düello / rekabet: sıcak kırmızı-pembe
+};
+
+/** Gradient çiftleri — GradyanZemin ile kullanılır. */
+export const Gradyan = {
+  gold: ["#f59e0b", "#b45309"] as const,
+  pitch: ["#14532d", "#052e16"] as const,   // çim yeşili derinlik
+  night: ["#1e3a8a", "#030d18"] as const,   // stadyum gecesi
+  fire: ["#fb923c", "#dc2626"] as const,
+  card: ["#1e293b", "#0f172a"] as const,    // kart derinliği (nötr)
 };
 
 export type ColorKeys = keyof typeof Colors;
