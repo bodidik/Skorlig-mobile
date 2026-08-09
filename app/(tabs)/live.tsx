@@ -64,6 +64,10 @@ type Fx = {
   lock?: boolean | null;
   lockAtISO?: string | null;
 
+  /** Tek taraflı maç düelloya kapalı (sunucu kararı, lib/mac-denge.cjs).
+   *  Alan yoksa (eski sunucu) AÇIK varsayılır — kapı sunucuda zaten var. */
+  duelloAcik?: boolean | null;
+
   league?: string | null;
   country?: string | null;
   source?: string | null;
@@ -565,21 +569,42 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
               >
                 <Text style={{ color: Colors.onAccent, fontWeight: "700", fontSize: 12 }}>{t("predictBtn")}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => onDuel(item)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 999,
-                  backgroundColor: "#1e293b",
-                  borderWidth: 1,
-                  borderColor: "#f59e0b55",
-                  flexDirection: "row",
-                  alignItems: "center",
-                }}
-              >
-                <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>⚔️</Text>
-              </TouchableOpacity>
+              {/* Tek taraflı maçta düello düğmesi BAŞTAN kapalı: eskiden
+                  tıklanıyor, ekran açılıyor, kurma anında MATCH_TOO_LOPSIDED
+                  yeniyordu. Kapalı kapının düğmesi kapalı görünmeli. */}
+              {item.duelloAcik === false ? (
+                <View
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 999,
+                    backgroundColor: "#0f172a",
+                    borderWidth: 1,
+                    borderColor: "#334155",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    opacity: 0.45,
+                  }}
+                >
+                  <Text style={{ color: "#64748b", fontWeight: "700", fontSize: 12 }}>⚔️🔒</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => onDuel(item)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 999,
+                    backgroundColor: "#1e293b",
+                    borderWidth: 1,
+                    borderColor: "#f59e0b55",
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>⚔️</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
