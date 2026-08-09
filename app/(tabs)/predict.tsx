@@ -1312,7 +1312,8 @@ useEffect(() => {
               {/* İlk Gol */}
               <View style={{ gap: 6, marginTop: 10 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>{t("firstGoalQ")}</Text>
+                  {/* Emoji: dil bilmeden de tanınsın (kullanıcı isteği 2026-08-09). */}
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>⚽ {t("firstGoalQ")}</Text>
                   <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("plusPts", { n: 1 })}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 6 }}>
@@ -1330,7 +1331,7 @@ useEffect(() => {
               {/* İlk Yarı */}
               <View style={{ gap: 6 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>{t("firstHalfRes")}</Text>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>⏱️ {t("firstHalfRes")}</Text>
                   <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("plusPts", { n: 2 })}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 6 }}>
@@ -1351,7 +1352,7 @@ useEffect(() => {
               {/* Kırmızı Kart */}
               <View style={{ gap: 6 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>{t("redCard")}</Text>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>🟥 {t("redCard")}</Text>
                   <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("plusPts", { n: 1.5 })}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 6 }}>
@@ -1381,7 +1382,7 @@ useEffect(() => {
               {/* Penaltı */}
               <View style={{ gap: 6 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>{t("penalty")}</Text>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>⚪ {t("penalty")}</Text>
                   <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("plusPts", { n: 1.5 })}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 6 }}>

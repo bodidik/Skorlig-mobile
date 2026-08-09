@@ -39,6 +39,8 @@ type Duel = {
   createdAt: string;
   acceptedAt: string | null;
   settledAt: string | null;
+  /** Bekleyen yükseltme teklifi — bkz. api/routes/duels.cjs /duels/raise. */
+  raise?: { by: string; to: number; at: string } | null;
 };
 
 // ─── Fetch ────────────────────────────────────────────────────────────────────
@@ -181,9 +183,12 @@ function Seat({ name, uid, points, isWinner, settled, tied, empty, onSit, sittin
 
 // ─── Arena card ───────────────────────────────────────────────────────────────
 
-function ArenaCard({ duel, userId, myName, onAccept, onCancel }:
+function ArenaCard({ duel, userId, myName, onAccept, onCancel, onRaise, onRaiseResponse, maxStake }:
   { duel: Duel; userId: string; myName: string|null;
-    onAccept: (d: Duel) => void; onCancel: (d: Duel) => void }) {
+    onAccept: (d: Duel) => void; onCancel: (d: Duel) => void;
+    onRaise: (d: Duel, to: number) => void;
+    onRaiseResponse: (d: Duel, accept: boolean) => void;
+    maxStake: number }) {
 
   /**
    * ⚠️ EKRAN ÖDÜLÜ HESAPLAMIYOR. Eskiden `pot * (1 - houseCutPct)` yapıyordu;
@@ -334,7 +339,124 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel }:
           <Text style={{ color: "#ef4444", fontSize: 11 }}>{t("withdrawRow", { n: duel.stake })}</Text>
         </TouchableOpacity>
       )}
+
+      {/* Bahis yükseltme — yalnızca AKTİF düelloda ve iki katılımcıya. */}
+      {duel.status === "active" && (isCreator || isAcceptor) && (
+        <RaisePanel
+          duel={duel}
+          userId={userId}
+          maxStake={maxStake}
+          onRaise={onRaise}
+          onRaiseResponse={onRaiseResponse}
+        />
+      )}
     </Animated.View>
+  );
+}
+
+// ─── Raise panel ──────────────────────────────────────────────────────────────
+
+/**
+ * BAHİS YÜKSELTME PANELİ (aktif düello).
+ *
+ * Üç durum:
+ *  - teklif yok → mevcut bahsin üstünden tavana kadar seçenek çipleri + "Artır"
+ *  - benim teklifim bekliyor → "geri çek" (ret olarak gönderilir)
+ *  - rakibin teklifi → "Kabul et (+fark)" / "Reddet"
+ *
+ * Para güvenliği sunucuda (iki taraftan atomik tahsilat); burası yalnızca yüzey.
+ */
+function RaisePanel({ duel, userId, maxStake, onRaise, onRaiseResponse }:
+  { duel: Duel; userId: string; maxStake: number;
+    onRaise: (d: Duel, to: number) => void;
+    onRaiseResponse: (d: Duel, accept: boolean) => void }) {
+
+  const uidL = userId.toLowerCase();
+  const raise = duel.raise || null;
+  const [secilen, setSecilen] = useState<number | null>(null);
+
+  // Mevcut bahsin üstünden tavana kadar tam sayı seçenekleri.
+  const secenekler: number[] = [];
+  for (let s = duel.stake + 1; s <= maxStake; s++) secenekler.push(s);
+
+  // Zaten tavandaysak yükseltme yok.
+  if (!raise && secenekler.length === 0) return null;
+
+  const kutu = {
+    marginHorizontal: 12, marginBottom: 12, borderRadius: 10, padding: 10,
+    borderWidth: 1, borderColor: "#f59e0b33", backgroundColor: "#1a1206",
+  } as const;
+
+  if (raise) {
+    const benimTeklif = String(raise.by).toLowerCase() === uidL;
+    const fark = raise.to - duel.stake;
+    return (
+      <View style={kutu}>
+        <Text style={{ color: "#fbbf24", fontWeight: "800", fontSize: 12, marginBottom: 8, textAlign: "center" }}>
+          {benimTeklif ? t("raisePendingMine", { n: raise.to }) : t("raiseIncoming", { n: raise.to })}
+        </Text>
+        {benimTeklif ? (
+          <TouchableOpacity
+            onPress={() => onRaiseResponse(duel, false)}
+            style={{ borderRadius: 8, borderWidth: 1, borderColor: "#ef444433", paddingVertical: 8, alignItems: "center" }}
+          >
+            <Text style={{ color: "#ef4444", fontSize: 12, fontWeight: "700" }}>{t("raiseWithdrawBtn")}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => onRaiseResponse(duel, true)}
+              style={{ flex: 1, borderRadius: 8, backgroundColor: "#f59e0b", paddingVertical: 9, alignItems: "center" }}
+            >
+              <Text style={{ color: "#1a1206", fontSize: 12, fontWeight: "900" }}>{t("raiseAcceptBtn", { n: fark })}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => onRaiseResponse(duel, false)}
+              style={{ flex: 1, borderRadius: 8, borderWidth: 1, borderColor: "#64748b55", paddingVertical: 9, alignItems: "center" }}
+            >
+              <Text style={{ color: "#94a3b8", fontSize: 12, fontWeight: "700" }}>{t("raiseDeclineBtn")}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <View style={kutu}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: 8 }}>
+        {secenekler.map((s) => {
+          const secili = secilen === s;
+          return (
+            <TouchableOpacity
+              key={s}
+              onPress={() => setSecilen(s)}
+              style={{
+                paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+                borderWidth: 1, borderColor: secili ? "#f59e0b" : "#334155",
+                backgroundColor: secili ? "#f59e0b22" : "transparent",
+              }}
+            >
+              <Text style={{ color: secili ? "#fbbf24" : "#94a3b8", fontSize: 12, fontWeight: secili ? "900" : "600" }}>
+                {s} LC
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+      <TouchableOpacity
+        disabled={secilen === null}
+        onPress={() => secilen != null && onRaise(duel, secilen)}
+        style={{
+          borderRadius: 8, paddingVertical: 8, alignItems: "center",
+          backgroundColor: secilen != null ? "#f59e0b" : "#1e293b",
+        }}
+      >
+        <Text style={{ color: secilen != null ? "#1a1206" : "#475569", fontSize: 12, fontWeight: "900" }}>
+          {t("raiseBtn")}
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -383,6 +505,8 @@ export default function DuelScreen() {
   const stakeSecenekleri = odulTablosu?.length
     ? odulTablosu.map(x => x.stake)
     : YEDEK_STAKES;
+  /** Yükseltme tavanı = sunulan en yüksek bahis (tek kaynak: api/lib/duello-kesinti.cjs). */
+  const maxStake = Math.max(...stakeSecenekleri);
   const [myDuels,   setMyDuels]     = useState<Duel[]>([]);
   const [loading,   setLoading]     = useState(true);
   const [refreshing,setRefreshing]  = useState(false);
@@ -497,6 +621,43 @@ export default function DuelScreen() {
     const prize = duel.winAmount ?? duel.pot;
     showToast(t("duelStarted", { n: prize }));
     loadAll();
+  }
+
+  async function raiseDuel(duel: Duel, to: number) {
+    try {
+      const r = await apiFetch("/api/duels/raise", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ duelId: duel.id, to }),
+      });
+      const j = await r.json();
+      if (!j?.ok) { showToast(j?.error || t("error"), false); return; }
+      showToast(t("raiseSent", { n: to }));
+      loadAll();
+    } catch (e: any) {
+      showToast(String(e?.message || t("error")), false);
+    }
+  }
+
+  async function respondRaise(duel: Duel, accept: boolean) {
+    // Kabulde fark kadar LC gerekir; ön kontrol (asıl kapı sunucuda).
+    if (accept && duel.raise && lcBalance !== null) {
+      const fark = duel.raise.to - duel.stake;
+      if (lcBalance < fark) { showToast(t("needLc", { n: fark }), false); return; }
+    }
+    try {
+      const r = await apiFetch("/api/duels/raise-response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ duelId: duel.id, accept }),
+      });
+      const j = await r.json();
+      if (!j?.ok) { showToast(j?.error || t("error"), false); return; }
+      showToast(accept ? t("raiseDone", { n: j.duel?.stake ?? duel.stake }) : t("raiseDropped", { n: duel.stake }));
+      loadAll();
+    } catch (e: any) {
+      showToast(String(e?.message || t("error")), false);
+    }
   }
 
   async function cancelDuel(duel: Duel) {
@@ -723,7 +884,8 @@ export default function DuelScreen() {
             </Text>
             {openDuels.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
-
+                maxStake={maxStake}
+                onRaise={raiseDuel} onRaiseResponse={respondRaise}
                 onAccept={acceptDuel} onCancel={cancelDuel} />
             ))}
           </View>
@@ -749,7 +911,8 @@ export default function DuelScreen() {
             </Text>
             {myActive.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
-
+                maxStake={maxStake}
+                onRaise={raiseDuel} onRaiseResponse={respondRaise}
                 onAccept={acceptDuel} onCancel={cancelDuel} />
             ))}
           </View>
@@ -763,7 +926,8 @@ export default function DuelScreen() {
             </Text>
             {mySettled.map(d => (
               <ArenaCard key={d.id} duel={d} userId={userId} myName={myDisplayName}
-
+                maxStake={maxStake}
+                onRaise={raiseDuel} onRaiseResponse={respondRaise}
                 onAccept={acceptDuel} onCancel={cancelDuel} />
             ))}
           </View>

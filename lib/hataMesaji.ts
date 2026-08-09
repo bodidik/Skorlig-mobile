@@ -105,6 +105,15 @@ const SOZLUK: Record<string, string> = {
   INVALID_STAKE: "Bahis tutarı sınırların dışında.",
   NOT_OPEN: "Bu düello artık açık değil — başkası kabul etmiş olabilir.",
   CONCURRENT_WRITE: "Aynı anda başka bir işlem oldu. Tekrar dene.",
+  // Düelloyu büyütme (bkz. api/routes/duels.cjs /duels/raise)
+  NOT_ACTIVE: "Bu düello şu an sürmüyor — büyütme yalnızca rakip belliyken yapılabilir.",
+  NOT_PARTICIPANT: "Bu düellonun tarafı değilsin.",
+  INVALID_RAISE: "Geçersiz büyütme tutarı — mevcut tutardan yüksek ve tavanın altında olmalı.",
+  RAISE_PENDING_OR_NOT_ACTIVE: "Zaten bekleyen bir büyütme teklifi var. Önce o sonuçlansın.",
+  NO_RAISE: "Bekleyen bir büyütme teklifi yok.",
+  CANNOT_ACCEPT_OWN_RAISE: "Kendi teklifini kabul edemezsin — geri çekebilirsin.",
+  RAISE_GONE: "Teklif artık geçerli değil; düellonun durumu değişmiş.",
+  RAISER_LC_NOT_ENOUGH: "Teklifi veren tarafın LC'si yetmedi, teklif düştü. Bir şey ödemedin.",
 
   // ── Mini turnuva ─────────────────────────────────────────────────
   CANNOT_INVITE_SELF: "Kendini davet edemezsin.",
