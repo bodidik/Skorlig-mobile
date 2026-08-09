@@ -224,7 +224,23 @@ export async function getApiBase(): Promise<string> {
     const r = await fetch(`${resolvedBase}/api/runtime/config`);
     const j = await r.json();
     if (j?.ok && j.apiBase) {
-      resolvedBase = String(j.apiBase);
+      const aday = String(j.apiBase).trim();
+      /* ⚠️ SUNUCUNUN İLAN ETTİĞİ ADRESE KOŞULSUZ GÜVENİLMEZ.
+       *
+       * YAŞANDI (2026-08-09, üretim): sunucuda trust proxy yoktu, config
+       * `apiBase: "http://skorlig87.onrender.com"` döndü. Buradaki eski kod
+       * https adresimizi o değerle EZDİ; Android yayın derlemesi cleartext
+       * HTTP'yi engellediği için sonraki her istek öldü — "hiçbir alanda
+       * maç yok". İki kural:
+       *   1. https → http DÜŞÜŞÜ hiçbir modda kabul edilmez.
+       *   2. Yayın derlemesinde yalnızca https kabul edilir. */
+      const dususVar = resolvedBase.startsWith("https://") && aday.startsWith("http://");
+      const yayindaHttp = !__DEV__ && !aday.startsWith("https://");
+      if (aday && !dususVar && !yayindaHttp) {
+        resolvedBase = aday;
+      } else if (aday) {
+        console.warn(`[apiBase] sunucunun ilan ettigi adres reddedildi (${aday}); ${resolvedBase} kullaniliyor.`);
+      }
     }
   } catch (e) {
     console.warn(`[apiBase] "${resolvedBase}" adresine ulaşılamadı, bu adresle devam ediliyor:`, e);
