@@ -674,30 +674,45 @@ export default function KingsScreen() {
                     row.userId.trim().toLowerCase() === userId.toLowerCase();
 
                   const approxPts = Math.round(row.totalPoints || 0);
+                  // İlk üç madalyayla anılır — sıralama okumadan tanınmalı.
+                  const madalya = row.rank === 1 ? "🥇" : row.rank === 2 ? "🥈" : row.rank === 3 ? "🥉" : null;
+                  const zeminRengi = isMe
+                    ? "#022c22"
+                    : row.rank === 1 ? "#f59e0b1a"
+                    : row.rank === 2 ? "#94a3b81a"
+                    : row.rank === 3 ? "#b4530920"
+                    : "#020617";
 
                   return (
                     <View
                       key={`${row.userId}-${row.rank}`}
                       style={{
                         flexDirection: "row",
-                        paddingVertical: 6,
+                        alignItems: "center",
+                        paddingVertical: madalya ? 9 : 6,
                         paddingHorizontal: 8,
                         borderRadius: 8,
                         marginBottom: 4,
-                        backgroundColor: isMe ? "#022c22" : "#020617",
+                        backgroundColor: zeminRengi,
+                        borderWidth: isMe ? 1 : 0,
+                        borderColor: isMe ? "#a3e63566" : "transparent",
                       }}
                     >
                       {/* Sıra */}
-                      <View style={{ width: 32 }}>
-                        <Text
-                          style={{
-                            color: isMe ? "#a7f3d0" : Colors.muted,
-                            fontSize: 12,
-                            fontWeight: "600",
-                          }}
-                        >
-                          #{row.rank}
-                        </Text>
+                      <View style={{ width: madalya ? 36 : 32 }}>
+                        {madalya ? (
+                          <Text style={{ fontSize: 18 }}>{madalya}</Text>
+                        ) : (
+                          <Text
+                            style={{
+                              color: isMe ? "#a7f3d0" : Colors.muted,
+                              fontSize: 12,
+                              fontWeight: "600",
+                            }}
+                          >
+                            #{row.rank}
+                          </Text>
+                        )}
                       </View>
 
                       {/* Kullanıcı adı */}
