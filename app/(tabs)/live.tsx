@@ -828,7 +828,11 @@ export default function LiveScreen() {
       const j: Live2Resp = await r.json();
 
       if (!j?.ok) {
-        setItems([]);
+        /* ⚠️ ESKİ LİSTE SİLİNMEZ. Sekmeye her dönüşte yenileme tetikleniyor;
+         * soğuk sunucu/geçici ağ hatasında burada setItems([]) yapmak,
+         * kullanıcının az önce gördüğü maçları yok ediyordu ("gezinince
+         * maçlar kayboluyor" bildirimi, 2026-08-09). Bayat liste boş
+         * listeden iyidir — hata bandı zaten görünür. */
         setError(String(j?.error || "LIVE2_SCHEDULE_FAILED"));
         setWin(null);
         setWinDays(null);
@@ -853,8 +857,8 @@ export default function LiveScreen() {
 
       if (list.length === 0) setError(null);
     } catch (e: any) {
+      // Eski liste korunur — bkz. yukarıdaki !ok yolundaki not.
       setError(String(e?.message || e));
-      setItems([]);
       setWin(null);
       setWinDays(null);
       setCap(null);
@@ -877,7 +881,9 @@ export default function LiveScreen() {
       const j: Live2Resp = await r.json();
 
       if (!j?.ok) {
-        setItems([]);
+        /* ⚠️ ESKİ LİSTE SİLİNMEZ — useFocusEffect her sekmeye dönüşte bu
+         * fonksiyonu çağırıyor; başarısız yenileme setItems([]) yapınca
+         * kullanıcının önünde duran maçlar kayboluyordu. */
         setError(String(j?.error || "LIVE2_OPEN_FAILED"));
         setWin(j?.window ?? null);
         setWinDays(null);
@@ -900,8 +906,8 @@ export default function LiveScreen() {
 
       if (list.length === 0) setError(null);
     } catch (e: any) {
+      // Eski liste korunur — bkz. yukarıdaki !ok yolundaki not.
       setError(String(e?.message || e));
-      setItems([]);
       setWin(null);
       setWinDays(null);
       setCap(null);
