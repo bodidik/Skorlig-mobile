@@ -353,13 +353,10 @@ function kickoffMs(fx: Fx): number | null {
   return parseKickoffMs(fx.kickoffISO || null);
 }
 
-function isWithinPredictWindow96h(fx: Fx, nowMs: number) {
-  const ms = kickoffMs(fx);
-  if (ms == null) return false;
-  const diff = ms - nowMs;
-  if (diff < 0) return false;
-  return diff <= PREDICT_OPEN_AHEAD_HOURS * 3600 * 1000;
-}
+/* ⚠️ `isWithinPredictWindow96h` KALDIRILDI: sunucuda karşılığı olmayan bir
+ * kuraldı (pred/submit yalnızca maç başlayınca kilitler) ve Tahmin düğmesini
+ * 4 günden uzak maçlarda gizliyordu — kullanıcı 5 gün sonraki maça sunucunun
+ * kabul edeceği tahmini arayüzden VEREMİYORDU. */
 
 /* ⚠️ BURADAKI `fetchWithTimeout` KALDIRILDI: lib/fetchPolicy'nin zaman asimi
  * bolumunun elle yazilmis, eksik bir kopyasiydi (yeniden deneme ve ag
@@ -402,8 +399,12 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
 
   const waitingResult = isFinished && !hasScore;
 
-  const nowMs = nowFromServer();
-  const canPredictByLocalRule = !isFinished && isWithinPredictWindow96h(item, nowMs);
+  /* ⚠️ 96 SAAT KURALI SUNUCUDA YOK — pred/submit yalnızca maç başlayınca
+   * kilitler. Buradaki yerel kural Tahmin düğmesini 4 günden uzak maçlarda
+   * GİZLİYORDU: kullanıcı 5 gün sonraki GS maçını görüyor ama tahmin
+   * kapısı bulamıyordu ("detaylı tahmin açılmıyor" şikayeti). Başlamamış
+   * her maç tahmine açık; sunucu kilidi son sözü zaten söylüyor. */
+  const tahmineAcik = !isFinished && !isLive;
 
   const highlight = mode === "open" ? true : isLive;
   const cardBg = selected ? "#1e1b4b" : isLive ? "#071a0f" : "#0f172a";
@@ -427,7 +428,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
          * atmıyor" şikayetinin kaynağı. Kart artık en anlamlı hedefe götürür:
          * tahmin açıksa tahmin ekranı, değilse (canlı/biten) yarış panosu. */
         if (adminMode) { onSelect(item); return; }
-        if (!isFinished && (mode === "open" || canPredictByLocalRule)) { onPredict(item); return; }
+        if (tahmineAcik) { onPredict(item); return; }
         if (hasPred === true || isLive || (isFinished && hasScore)) onRace(item);
       }}
     >
@@ -542,14 +543,14 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
               <Text style={{ color: Colors.live, fontSize: 11 }}>{t("liveDot")}</Text>
             ) : isFinished ? (
               <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("matchOver")}</Text>
-            ) : mode === "open" || canPredictByLocalRule ? (
+            ) : tahmineAcik ? (
               <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("canPredict")}</Text>
             ) : (
               <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("notOpenYet")}</Text>
             )}
           </View>
 
-          {!adminMode && !isFinished && (mode === "open" || canPredictByLocalRule) && (
+          {!adminMode && tahmineAcik && (
             <View style={{ flexDirection: "row", gap: 6, marginLeft: 8 }}>
               <TouchableOpacity
                 onPress={() => onPredict(item)}
