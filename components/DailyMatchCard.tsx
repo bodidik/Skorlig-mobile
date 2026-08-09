@@ -6,6 +6,8 @@ import {
 import { useRouter } from "expo-router";
 import Basinc from "./Basinc";
 import GradyanZemin from "./GradyanZemin";
+import Konfeti from "./Konfeti";
+import { titret } from "../lib/hisler";
 import { Gradyan } from "../constants/colors";
 import { t, useLang } from "../lib/i18n";
 import { ligEtiketi } from "../lib/ulkeler";
@@ -84,6 +86,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
         return;
       }
       setSubmitted(true);
+      titret("hafif");
       // LC animasyonu
       Animated.sequence([
         Animated.timing(lcAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -184,6 +187,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
         </View>
       ) : (
         <View style={s.doneRow}>
+          <Konfeti anahtar={fixture.fixtureId} />
           <Text style={s.doneText}>{t("predSaved")}</Text>
           <Animated.Text style={[s.lcBadge, { opacity: lcOpacity, transform: [{ translateY: lcY }] }]}>
             +LC
