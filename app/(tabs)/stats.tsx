@@ -688,15 +688,19 @@ export default function StatsScreen() {
             })}
           </View>
 
-          {/* Diğer istatistik sayfaları */}
+          {/* Diğer istatistik sayfaları
+              ⚠️ "Gol Kralları" (/kings) ve "Kupa Krallığı" (/stats/competition-kings)
+              KALDIRILDI: ikisi de yukarıdaki modların (Tahmin Kralları / Kupa
+              Kralları) birebir kopyasıydı — aynı sıralamayı iki ayrı adla iki
+              ayrı yerde göstermek "kafa karıştırıcı" şikayetinin kaynağıydı.
+              Modlar tek ve net giriş; bu satır yalnızca gerçekten ek olan
+              detay sayfalarını taşır. */}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
             {[
-              { label: t("goalKingsBtn"), pathname: "/kings" },
               { label: t("linkDetailedMe"), pathname: "/stats/me" },
               { label: t("linkTeamPanel"), pathname: "/stats/team", params: { team: teamName } },
               { label: t("linkFlagBoard"), pathname: "/stats/board2" },
               { label: t("linkFavSettings"), pathname: "/stats/fav" },
-              { label: t("linkCupKings"), pathname: "/stats/competition-kings" },
             ].map((item) => (
               <TouchableOpacity
                 key={item.pathname}

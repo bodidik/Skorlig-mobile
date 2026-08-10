@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, Pressable, Animated, StyleSheet } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "../constants/colors";
 import { titret } from "../lib/hisler";
@@ -50,6 +50,8 @@ function Sekme({
 
   const ikon = IKONLAR[rota] || IKONLAR.live;
   const renk = odakta ? Colors.accent : "#7b8794";
+  // Sıralama sekmesi = kral tacı. Ionicons'ta crown yok; MaterialCommunityIcons.
+  const tacMi = rota === "stats";
 
   return (
     <Pressable
@@ -72,7 +74,9 @@ function Sekme({
           },
         ]}
       >
-        <Ionicons name={odakta ? ikon.aktif : ikon.pasif} size={22} color={renk} />
+        {tacMi
+          ? <MaterialCommunityIcons name={odakta ? "crown" : "crown-outline"} size={23} color={renk} />
+          : <Ionicons name={odakta ? ikon.aktif : ikon.pasif} size={22} color={renk} />}
       </Animated.View>
       <Text style={[s.etiket, { color: renk }, odakta && s.etiketAktif]} numberOfLines={1}>
         {etiket}
