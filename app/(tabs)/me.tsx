@@ -28,6 +28,22 @@ import { shareInvite as shareInviteLink } from "../../lib/share";
 import { sortCountries } from "../../lib/countrySort";
 import { useHisler, hisAyarla, golSesiCal, titret } from "../../lib/hisler";
 
+/* Dil listesi render dışında: kapalı görünümdeki rozet de bu tablodan
+ * etiket okuyor, iki yerde ayrı liste tutmak ayrışma demekti. */
+const DILLER = [
+  { code: "tr", label: "🇹🇷 Türkçe" }, { code: "en", label: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 English" },
+  { code: "fr", label: "🇫🇷 Français" }, { code: "de", label: "🇩🇪 Deutsch" },
+  { code: "es", label: "🇪🇸 Español" }, { code: "pt", label: "🇵🇹 Português" },
+  { code: "it", label: "🇮🇹 Italiano" }, { code: "nl", label: "🇳🇱 Nederlands" },
+  { code: "el", label: "🇬🇷 Ελληνικά" }, { code: "pl", label: "🇵🇱 Polski" },
+  { code: "ru", label: "🇷🇺 Русский" }, { code: "uk", label: "🇺🇦 Українська" },
+  { code: "ar", label: "🇸🇦 العربية" },  { code: "ja", label: "🇯🇵 日本語" },
+  { code: "hr", label: "🇭🇷 Hrvatski" }, { code: "sr", label: "🇷🇸 Srpski" },
+  { code: "cs", label: "🇨🇿 Čeština" },  { code: "ro", label: "🇷🇴 Română" },
+  { code: "hu", label: "🇭🇺 Magyar" },   { code: "sk", label: "🇸🇰 Slovenčina" },
+  { code: "bg", label: "🇧🇬 Български" },
+];
+
 /* ========= Types ========= */
 // `is1987` api/routes/users.cjs profil yanıtında dönüyor (1987 segmenti).
 type Profile = { nickname?: string | null; mainTeam: string | null; country?: string | null; totals: number; is1987?: boolean };
@@ -291,10 +307,12 @@ export default function Me() {
   // Ek lig seçici
   const [preferredLeagues, setPreferredLeagues] = useState<string[]>([]);
   const [leagueSaving, setLeagueSaving]         = useState(false);
+  const [ligAcik, setLigAcik]                   = useState(false);
 
   // Dil tercihi
   const [preferredLang, setPreferredLang]   = useState<string | null>(null);
   const [langSaving, setLangSaving]         = useState(false);
+  const [dilAcik, setDilAcik]               = useState(false);
 
   // Bildirim tercihleri
   const [pushPrefs, setPushPrefsState]  = useState<PushPrefs>(DEFAULT_PUSH_PREFS);
@@ -2121,62 +2139,83 @@ export default function Me() {
           })}
         </View>
 
-        {/* ── Dil Tercihi ── */}
+        {/* ── Dil Tercihi ──
+            Seçim VARKEN kapalı: tek rozet + "değiştir". 21 dil şeridi seçimini
+            yapmış kullanıcının profilinde kalıcı yer işgal ediyordu. */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
-          <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("langPref")}</Text>
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("langPrefHelp")}</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            {[
-              { code: "tr", label: "🇹🇷 Türkçe" }, { code: "en", label: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 English" },
-              { code: "fr", label: "🇫🇷 Français" }, { code: "de", label: "🇩🇪 Deutsch" },
-              { code: "es", label: "🇪🇸 Español" }, { code: "pt", label: "🇵🇹 Português" },
-              { code: "it", label: "🇮🇹 Italiano" }, { code: "nl", label: "🇳🇱 Nederlands" },
-              { code: "el", label: "🇬🇷 Ελληνικά" }, { code: "pl", label: "🇵🇱 Polski" },
-              { code: "ru", label: "🇷🇺 Русский" }, { code: "uk", label: "🇺🇦 Українська" },
-              { code: "ar", label: "🇸🇦 العربية" },  { code: "ja", label: "🇯🇵 日本語" },
-              { code: "hr", label: "🇭🇷 Hrvatski" }, { code: "sr", label: "🇷🇸 Srpski" },
-              { code: "cs", label: "🇨🇿 Čeština" },  { code: "ro", label: "🇷🇴 Română" },
-              { code: "hu", label: "🇭🇺 Magyar" },   { code: "sk", label: "🇸🇰 Slovenčina" },
-              { code: "bg", label: "🇧🇬 Български" },
-            ].map(l => {
-              const active = preferredLang === l.code;
-              return (
-                <TouchableOpacity
-                  key={l.code}
-                  disabled={langSaving}
-                  onPress={() => saveLang(l.code)}
-                  style={{
-                    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: active ? Colors.accent : Colors.border,
-                    backgroundColor: active ? Colors.accent : "#fff",
-                    opacity: langSaving ? 0.6 : 1,
-                  }}
-                >
-                  <Text style={{ fontSize: 12, fontWeight: "600", color: active ? Colors.onAccent : Colors.slate900 }}>
-                    {l.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("langPref")}</Text>
+            {!!preferredLang && (
+              <TouchableOpacity onPress={() => setDilAcik(v => !v)} style={{ paddingHorizontal: 10, paddingVertical: 4 }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.accent }}>
+                  {dilAcik ? t("pickerClose") : t("pickerChange")}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
-          {preferredLang && (
-            <TouchableOpacity
-              onPress={() => saveLang("")}
-              disabled={langSaving}
-              style={{ alignSelf: "flex-start" }}
-            >
-              <Text style={{ fontSize: 11, color: Colors.muted }}>{t("langClear")}</Text>
-            </TouchableOpacity>
+
+          {!!preferredLang && !dilAcik && (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: Colors.accent }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.onAccent }}>
+                  {DILLER.find(l => l.code === preferredLang)?.label || preferredLang}
+                </Text>
+              </View>
+            </View>
           )}
+
+          {(dilAcik || !preferredLang) && (<>
+            <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("langPrefHelp")}</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+              {DILLER.map(l => {
+                const active = preferredLang === l.code;
+                return (
+                  <TouchableOpacity
+                    key={l.code}
+                    disabled={langSaving}
+                    onPress={() => { saveLang(l.code); setDilAcik(false); }}
+                    style={{
+                      paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: active ? Colors.accent : Colors.border,
+                      backgroundColor: active ? Colors.accent : "#fff",
+                      opacity: langSaving ? 0.6 : 1,
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: "600", color: active ? Colors.onAccent : Colors.slate900 }}>
+                      {l.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {preferredLang && (
+              <TouchableOpacity
+                onPress={() => { saveLang(""); setDilAcik(false); }}
+                disabled={langSaving}
+                style={{ alignSelf: "flex-start" }}
+              >
+                <Text style={{ fontSize: 11, color: Colors.muted }}>{t("langClear")}</Text>
+              </TouchableOpacity>
+            )}
+          </>)}
         </View>
 
-        {/* ── Takip Ettiğim Ligler ── */}
+        {/* ── Takip Ettiğim Ligler ──
+            Seçim VARKEN kapalı: rozetler + "değiştir". 25+ ülkelik ızgara
+            aksi halde profilin yarısını kaplıyordu. */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
-          <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("myLeagues")}</Text>
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            {t("myLeaguesHelp")}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("myLeagues")}</Text>
+            {preferredLeagues.length > 0 && (
+              <TouchableOpacity onPress={() => setLigAcik(v => !v)} style={{ paddingHorizontal: 10, paddingVertical: 4 }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.accent }}>
+                  {ligAcik ? t("pickerClose") : t("pickerChange")}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
           {preferredLeagues.length > 0 && (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
               {preferredLeagues.map(l => (
@@ -2188,44 +2227,50 @@ export default function Me() {
               ))}
             </View>
           )}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            {sortedRichCountries.map(c => {
-              const selected = preferredLeagues.includes(c.name);
-              return (
-                <TouchableOpacity
-                  key={c.code}
-                  disabled={leagueSaving}
-                  onPress={() => {
-                    const next = selected
-                      ? preferredLeagues.filter(l => l !== c.name)
-                      : [...preferredLeagues, c.name];
-                    saveLeagues(next);
-                  }}
-                  style={{
-                    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10,
-                    borderWidth: 1,
-                    borderColor: selected ? Colors.live : Colors.border,
-                    backgroundColor: selected ? "#f0fdf4" : "#fff",
-                    opacity: leagueSaving ? 0.6 : 1,
-                  }}
-                >
-                  <Text style={{ fontSize: 12, fontWeight: selected ? "700" : "400", color: selected ? Colors.live : Colors.slate900 }}>
-                    {selected ? "✓ " : ""}{c.flag} {c.localName}
-                  </Text>
-                  <Text style={{ fontSize: 10, color: Colors.muted }}>{c.topLeague}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          {preferredLeagues.length > 0 && (
-            <TouchableOpacity
-              onPress={() => saveLeagues([])}
-              disabled={leagueSaving}
-              style={{ alignSelf: "flex-start" }}
-            >
-              <Text style={{ fontSize: 11, color: Colors.muted }}>{t("clearAll")}</Text>
-            </TouchableOpacity>
-          )}
+
+          {(ligAcik || preferredLeagues.length === 0) && (<>
+            <Text style={{ color: Colors.muted, fontSize: 12 }}>
+              {t("myLeaguesHelp")}
+            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+              {sortedRichCountries.map(c => {
+                const selected = preferredLeagues.includes(c.name);
+                return (
+                  <TouchableOpacity
+                    key={c.code}
+                    disabled={leagueSaving}
+                    onPress={() => {
+                      const next = selected
+                        ? preferredLeagues.filter(l => l !== c.name)
+                        : [...preferredLeagues, c.name];
+                      saveLeagues(next);
+                    }}
+                    style={{
+                      paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: selected ? Colors.live : Colors.border,
+                      backgroundColor: selected ? "#f0fdf4" : "#fff",
+                      opacity: leagueSaving ? 0.6 : 1,
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: selected ? "700" : "400", color: selected ? Colors.live : Colors.slate900 }}>
+                      {selected ? "✓ " : ""}{c.flag} {c.localName}
+                    </Text>
+                    <Text style={{ fontSize: 10, color: Colors.muted }}>{c.topLeague}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {preferredLeagues.length > 0 && (
+              <TouchableOpacity
+                onPress={() => { saveLeagues([]); setLigAcik(false); }}
+                disabled={leagueSaving}
+                style={{ alignSelf: "flex-start" }}
+              >
+                <Text style={{ fontSize: 11, color: Colors.muted }}>{t("clearAll")}</Text>
+              </TouchableOpacity>
+            )}
+          </>)}
         </View>
 
         <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
