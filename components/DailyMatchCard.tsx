@@ -86,9 +86,25 @@ export default function DailyMatchCard({ country, userId }: Props) {
     return () => { cancelled = true; };
   }, [fixture?.fixtureId]);
 
-  async function handlePick(outcome: string) {
+  /* ⚠️ SEÇİM ARTIK GÖNDERMİYOR — yalnızca taslak.
+   *
+   * Eskiden bir seçeneğe dokunmak DOĞRUDAN /api/pred/submit'e gidiyordu:
+   * yanlışlıkla basan ya da fikrini değiştiren kullanıcının geri dönüşü
+   * yoktu, tahmini LC harcanmış olarak kaydolmuştu. Aynı ekranda
+   * `predict.tsx` zaten toggle + ayrı gönder deseniyle çalışıyordu; kart
+   * o desenin dışında kalmıştı.
+   *
+   * Yeni akış: dokun → taslak · aynısına dokun → seçim kalkar · Gönder → API.
+   */
+  function handlePick(outcome: string) {
     if (submitted || busy || !fixture) return;
-    setSelected(outcome);
+    titret("hafif");
+    setSelected(cur => (cur === outcome ? null : outcome));
+  }
+
+  async function gonder() {
+    if (submitted || busy || !fixture || !selected) return;
+    const outcome = selected;
     setBusy(true);
     try {
       // ⚠️ YANIT KONTROL EDILIYOR. Eskiden `await fetch(...)` sonrasi dogrudan
@@ -106,20 +122,27 @@ export default function DailyMatchCard({ country, userId }: Props) {
       });
       const j = await res.json().catch(() => null);
       if (!res.ok || j?.ok === false) {
-        setSelected(null);
-        Alert.alert("Tahmin kaydedilemedi", hataMesaji(j?.error));
+        /* ⚠️ SEÇİM KORUNUYOR. Eskiden `setSelected(null)` vardı: sunucu
+         * geçici bir hata döndüğünde kullanıcı seçimini de kaybediyor,
+         * baştan seçmek zorunda kalıyordu. Taslak akışında seçim kullanıcıya
+         * ait — hata gönderimi başarısız kılar, seçimi değil. */
+        Alert.alert(t("predFailedTitle"), hataMesaji(j?.error));
         setBusy(false);
         return;
       }
       setSubmitted(true);
-      titret("hafif");
+      titret("gol");
       // LC animasyonu
       Animated.sequence([
         Animated.timing(lcAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
         Animated.delay(1200),
         Animated.timing(lcAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
       ]).start();
-    } catch {}
+    } catch {
+      /* Ağ hatası da sessiz kalmamalı: eskiden `catch {}` idi ve kullanıcı
+       * düğmeye bastığında hiçbir şey olmuyormuş gibi görünüyordu. */
+      Alert.alert(t("predFailedTitle"), t("netErr"));
+    }
     setBusy(false);
   }
 
@@ -245,6 +268,20 @@ export default function DailyMatchCard({ country, userId }: Props) {
         </View>
       )}
 
+      {/* ── GÖNDER ── yalnızca taslak seçim varken.
+          Seçim yapılana kadar hiç yer kaplamaz; çıktığında kartın asıl
+          eylemi olduğu belli olsun diye dolu ve geniş. */}
+      {!submitted && !!selected && (
+        <>
+          <TouchableOpacity onPress={gonder} disabled={busy} style={[s.gonderBtn, busy && { opacity: 0.6 }]}>
+            {busy
+              ? <ActivityIndicator color="#052e16" size="small" />
+              : <Text style={s.gonderYazi}>{t("sendPred")}</Text>}
+          </TouchableOpacity>
+          <Text style={s.iptalIpucu}>{t("tapToCancel")}</Text>
+        </>
+      )}
+
       {/**
         * ⚠️ TAHMİNDEN SONRA SIRALAMA — DÖNGÜYÜ KAPATAN ADIM.
         *
@@ -361,6 +398,16 @@ const s = StyleSheet.create({
     backgroundColor: "#fbbf2411",
   },
   detayDugmeYazi: { color: "#fbbf24", fontSize: 13, fontWeight: "800" },
+  gonderBtn: {
+    marginTop: 12,
+    alignSelf: "stretch",
+    alignItems: "center",
+    paddingVertical: 13,
+    borderRadius: 999,
+    backgroundColor: "#4ade80",
+  },
+  gonderYazi: { color: "#052e16", fontSize: 15, fontWeight: "900" },
+  iptalIpucu: { color: "#64748b", fontSize: 11, textAlign: "center", marginTop: 6 },
   countdownBadge: {
     backgroundColor: "#22c55e22",
     borderRadius: 6,
