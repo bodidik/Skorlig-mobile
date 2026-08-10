@@ -39,6 +39,11 @@ type TotRow = {
   qualified?: boolean;
   /** Eşik değeri (API: minPlayed) — "N maç daha" mesajı için. */
   minPlayed?: number;
+  /**
+   * Kazanılan turnuva sayısı (API: cups). Puandaşlar arasında ilk ayırıcı;
+   * kaynak bitmiş mini turnuvaların kazananları (api lib/user-cups.cjs).
+   */
+  cups?: number;
   lastAt?: string;
 };
 
@@ -351,6 +356,10 @@ export default function StatsScreen() {
             // "Sıralamaya girmek için N maç daha" hiç görünmüyordu.
             qualified: typeof t.qualified === "boolean" ? t.qualified : undefined,
             minPlayed: t.minPlayed != null ? Number(t.minPlayed) : undefined,
+            // ⚠️ AYNI TUZAK: yukarıdaki nota bak. Sunucu `cups` gönderiyor;
+            // buraya kopyalanmazsa kupa rozeti hiç görünmez ve "eşitlik
+            // bozucu çalışmıyor" sanılır.
+            cups: t.cups != null ? Number(t.cups) : undefined,
             lastAt: t.lastAt || t.updatedAt || undefined,
           };
         });
@@ -1016,10 +1025,21 @@ export default function StatsScreen() {
                         >
                           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#0b0b0e", padding: 12, borderRadius: 12, marginBottom: 8 }}>
                             <View>
-                              <Text style={{ color: "#fff", fontWeight: "600" }}>
-                                {ix + 1}. {r.userId}
-                                {isMe ? t("me2") : ""}
-                              </Text>
+                              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                <Text style={{ color: "#fff", fontWeight: "600" }}>
+                                  {ix + 1}. {r.userId}
+                                  {isMe ? t("me2") : ""}
+                                </Text>
+                                {/* Kupa rozeti: puandaşlar arasında ilk ayırıcı.
+                                    Sıralamayı etkileyen bir ölçüt görünmezse
+                                    kullanıcı sıranın neden öyle olduğunu anlayamaz. */}
+                                {!!r.cups && r.cups > 0 && (
+                                  <View style={{ flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "#422006", borderColor: "#a1620744", borderWidth: 1, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999 }}>
+                                    <Text style={{ fontSize: 10 }}>🏆</Text>
+                                    <Text style={{ color: "#fbbf24", fontSize: 10, fontWeight: "800" }}>{r.cups}</Text>
+                                  </View>
+                                )}
+                              </View>
                               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
                                 {t("rowStats", { m: r.matches, p: r.totalPoints, c: r.totalPenalty })}
                               </Text>
