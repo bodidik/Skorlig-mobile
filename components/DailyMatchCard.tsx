@@ -30,10 +30,13 @@ type Props = {
   userId?: string;
 };
 
+/* Renkler predict/kupon ile BİREBİR: ev=mavi, beraberlik=kehribar,
+ * deplasman=kırmızı. Eskiden beraberlik gri, deplasman turuncuydu — aynı
+ * 1X2'yi üç ekranda üç ayrı renkle görmek "renkler kaymış" hissi veriyordu. */
 const OUTCOMES = [
   { key: "home", api: "H", color: "#3b82f6" },
-  { key: "draw", api: "D", color: "#64748b" },
-  { key: "away", api: "A", color: "#f97316" },
+  { key: "draw", api: "D", color: "#f59e0b" },
+  { key: "away", api: "A", color: "#ef4444" },
 ] as const;
 
 export default function DailyMatchCard({ country, userId }: Props) {

@@ -50,10 +50,14 @@ type KuponT = {
   kalanSaniye: number;
 };
 
-const SECIM: Array<{ k: "H" | "D" | "A"; etiket: string }> = [
-  { k: "H", etiket: "1" },
-  { k: "D", etiket: "X" },
-  { k: "A", etiket: "2" },
+/* Renkler uygulamanın geri kalanıyla BİREBİR: DailyMatchCard ve predict'te
+ * 1=mavi (ev), X=kehribar (beraberlik), 2=turuncu (deplasman). Kuponda üçü de
+ * tek `Colors.accent` idi — seçim yapılınca hangi sonucu işaretlediğin
+ * kutunun renginden anlaşılmıyordu, "renkler kaymış" hissinin kaynağı buydu. */
+const SECIM: Array<{ k: "H" | "D" | "A"; etiket: string; renk: string }> = [
+  { k: "H", etiket: "1", renk: "#3b82f6" },
+  { k: "D", etiket: "X", renk: "#f59e0b" },
+  { k: "A", etiket: "2", renk: "#ef4444" },
 ];
 
 function sureMetni(saniye: number): string {
@@ -232,11 +236,27 @@ export default function KuponEkrani() {
                   {dolu < k.maclar.length ? t("emptyCountsWrong") : ""}
                 </Text>
 
-                {k.maclar.map((m) => (
-                  <View key={m.fixtureId} style={{ marginBottom: 12 }}>
-                    <Text style={{ color: Colors.text, fontSize: 13, marginBottom: 6 }}>
-                      {m.home} <Text style={{ color: Colors.muted }}>–</Text> {m.away}
-                    </Text>
+                {k.maclar.map((m) => {
+                  const bosMu = !secim[m.fixtureId];
+                  return (
+                  <View
+                    key={m.fixtureId}
+                    style={{
+                      marginBottom: 10, padding: 10, borderRadius: 10,
+                      backgroundColor: "#0f172a",
+                      borderWidth: 1,
+                      borderColor: bosMu && acik ? "#f59e0b44" : "#1f2937",
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                      <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "600", flex: 1, textAlign: "right" }} numberOfLines={1}>
+                        {m.home}
+                      </Text>
+                      <Text style={{ color: Colors.muted, fontSize: 12, marginHorizontal: 8 }}>vs</Text>
+                      <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "600", flex: 1 }} numberOfLines={1}>
+                        {m.away}
+                      </Text>
+                    </View>
                     <View style={{ flexDirection: "row", gap: 8 }}>
                       {SECIM.map((s) => {
                         const secili = secim[m.fixtureId] === s.k;
@@ -246,13 +266,14 @@ export default function KuponEkrani() {
                             disabled={!acik}
                             onPress={() => sec(k.id, m.fixtureId, s.k)}
                             style={{
-                              flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: "center",
-                              backgroundColor: secili ? Colors.accent : "#111827",
-                              borderWidth: 1, borderColor: secili ? Colors.accent : "#1f2937",
+                              flex: 1, paddingVertical: 11, borderRadius: 8, alignItems: "center",
+                              backgroundColor: secili ? s.renk : "#111827",
+                              borderWidth: 1.5, borderColor: secili ? s.renk : "#1f2937",
                               opacity: acik ? 1 : 0.6,
+                              ...(secili ? { shadowColor: s.renk, shadowOpacity: 0.5, shadowRadius: 6, elevation: 4 } : {}),
                             }}
                           >
-                            <Text style={{ color: secili ? Colors.onAccent : Colors.text, fontWeight: "700" }}>
+                            <Text style={{ color: secili ? "#ffffff" : s.renk, fontWeight: "800", fontSize: 15 }}>
                               {s.etiket}
                             </Text>
                           </TouchableOpacity>
@@ -260,7 +281,8 @@ export default function KuponEkrani() {
                       })}
                     </View>
                   </View>
-                ))}
+                  );
+                })}
 
                 {acik ? (
                   <TouchableOpacity
