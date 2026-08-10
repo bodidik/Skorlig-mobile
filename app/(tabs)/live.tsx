@@ -308,6 +308,22 @@ function buildSettleChips(detail: any): { label: string; pts: number }[] {
   return chips;
 }
 
+/* Maç bittiyse tahmin sonucu SKORDAN deterministik türetilir.
+ * Neden settle geçmişine güvenmiyoruz: puan şeridi yalnızca
+ * `/api/rt/pred/history` yüklenince çıkıyor; o istek boş/gecikmeli dönerse
+ * kullanıcı bitmiş maçta bile "tuttu mu" göremiyordu. Skor + tahmin varsa
+ * cevap zaten elimizde. null → henüz belli değil (maç bitmemiş / veri yok). */
+function tahminTuttuMu(
+  status: string | null | undefined,
+  score: { home: number; away: number } | null | undefined,
+  predOutcome: string | null | undefined,
+): boolean | null {
+  const isFT = String(status || "").toUpperCase() === "FT";
+  if (!isFT || !score || !predOutcome) return null;
+  const gercek = score.home > score.away ? "H" : score.home < score.away ? "A" : "D";
+  return predOutcome.toUpperCase() === gercek;
+}
+
 // Tek satırlık settle özeti şeridi (Tahminlerim kartlarının altına)
 const SettleSummaryStrip: React.FC<{ points: number; detail: any }> = ({ points, detail }) => {
   const chips = buildSettleChips(detail);
@@ -1855,6 +1871,36 @@ export default function LiveScreen() {
                     Burada ikinci bir "henüz tahmin yok" metni göstermek,
                     aşağıdaki kartla birlikte iki kez tekrar demekti. */}
 
+                {/* Döküm özeti: "tuttu mu tutmadı mı" sorusuna tek bakışta cevap.
+                    Güncel + eski TÜM tahminleri sayar; sonuç skordan türetilir. */}
+                {(() => {
+                  const hepsi = [...myPreds.current, ...myPreds.old];
+                  if (hepsi.length === 0) return null;
+                  let tuttu = 0, tutmadi = 0, bekleyen = 0;
+                  for (const mp of hepsi) {
+                    const r = tahminTuttuMu(mp.status, mp.score, mp.pred?.outcome);
+                    if (r === null) bekleyen++;
+                    else if (r) tuttu++;
+                    else tutmadi++;
+                  }
+                  return (
+                    <View style={{ flexDirection: "row", gap: 8, paddingVertical: 4 }}>
+                      <View style={{ flex: 1, alignItems: "center", backgroundColor: "#14532d33", borderWidth: 1, borderColor: "#22c55e44", borderRadius: 10, paddingVertical: 8 }}>
+                        <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 18 }}>{tuttu}</Text>
+                        <Text style={{ color: "#4ade80", fontSize: 10, fontWeight: "700" }}>✓ {t("predHit")}</Text>
+                      </View>
+                      <View style={{ flex: 1, alignItems: "center", backgroundColor: "#7f1d1d33", borderWidth: 1, borderColor: "#ef444444", borderRadius: 10, paddingVertical: 8 }}>
+                        <Text style={{ color: "#f87171", fontWeight: "900", fontSize: 18 }}>{tutmadi}</Text>
+                        <Text style={{ color: "#f87171", fontSize: 10, fontWeight: "700" }}>✗ {t("predMiss")}</Text>
+                      </View>
+                      <View style={{ flex: 1, alignItems: "center", backgroundColor: "#1e293b", borderWidth: 1, borderColor: "#334155", borderRadius: 10, paddingVertical: 8 }}>
+                        <Text style={{ color: "#94a3b8", fontWeight: "900", fontSize: 18 }}>{bekleyen}</Text>
+                        <Text style={{ color: "#94a3b8", fontSize: 10, fontWeight: "700" }}>⏳ {t("predPending")}</Text>
+                      </View>
+                    </View>
+                  );
+                })()}
+
                 {myPreds.current.map((mp) => {
                   const isFT = String(mp.status || "").toUpperCase() === "FT";
                   const isLive = ["1H","HT","2H","LIVE"].includes(String(mp.status || "").toUpperCase());
@@ -1892,10 +1938,23 @@ export default function LiveScreen() {
                           <Text style={{ color: "#475569", fontSize: 10, fontStyle: "italic" }}>—</Text>
                         )}
 
-                        {/* status / skor */}
-                        <Text style={{ color: isLive ? "#22c55e" : isFT ? "#94a3b8" : "#475569", fontSize: 10, fontWeight: "700", minWidth: 20, textAlign: "right" }}>
-                          {mp.score ? `${mp.score.home}-${mp.score.away}` : isLive ? "🔴" : isFT ? "FT" : "NS"}
-                        </Text>
+                        {/* status / skor + sonuç rozeti */}
+                        <View style={{ alignItems: "flex-end", minWidth: 34 }}>
+                          <Text style={{ color: isLive ? "#22c55e" : isFT ? "#e2e8f0" : "#475569", fontSize: 12, fontWeight: "800" }}>
+                            {mp.score ? `${mp.score.home}-${mp.score.away}` : isLive ? "🔴" : isFT ? "FT" : "NS"}
+                          </Text>
+                          {(() => {
+                            const tuttu = tahminTuttuMu(mp.status, mp.score, mp.pred?.outcome);
+                            if (tuttu === null) return null;
+                            return (
+                              <View style={{ marginTop: 2, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, backgroundColor: tuttu ? "#14532d" : "#7f1d1d" }}>
+                                <Text style={{ color: tuttu ? "#4ade80" : "#f87171", fontSize: 9, fontWeight: "900" }}>
+                                  {tuttu ? "✓ " + t("predHit") : "✗ " + t("predMiss")}
+                                </Text>
+                              </View>
+                            );
+                          })()}
+                        </View>
 
                         {/* butonlar */}
                         <TouchableOpacity onPress={() => goPredict({ fixtureId: mp.fixtureId, home: mp.home, away: mp.away, league: mp.league, kickoffISO: mp.kickoffISO } as any)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#1d4ed833" }}>
@@ -1932,11 +1991,22 @@ export default function LiveScreen() {
                         style={{ borderRadius: 10, backgroundColor: "#0a0f1a", borderWidth: 1, borderColor: Colors.border, opacity: 0.75, overflow: "hidden" }}
                       >
                         <View style={{ padding: 12 }}>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
                           <Text style={{ color: Colors.muted, fontWeight: "600", flex: 1 }} numberOfLines={1}>
                             {mp.home || mp.fixtureId} — {mp.away || ""}
                           </Text>
                           {mp.score && <Text style={{ color: Colors.muted, fontWeight: "700" }}>{mp.score.home}–{mp.score.away}</Text>}
+                          {(() => {
+                            const tuttu = tahminTuttuMu(mp.status, mp.score, mp.pred?.outcome);
+                            if (tuttu === null) return null;
+                            return (
+                              <View style={{ paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, backgroundColor: tuttu ? "#14532d" : "#7f1d1d" }}>
+                                <Text style={{ color: tuttu ? "#4ade80" : "#f87171", fontSize: 9, fontWeight: "900" }}>
+                                  {tuttu ? "✓" : "✗"}
+                                </Text>
+                              </View>
+                            );
+                          })()}
                         </View>
                         <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 2 }}>
                           {mp.kickoffISO ? new Date(mp.kickoffISO).toLocaleString("tr-TR", { day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" }) : ""}
