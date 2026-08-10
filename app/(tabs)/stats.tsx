@@ -1035,15 +1035,24 @@ export default function StatsScreen() {
                             </View>
                             {/* Sıralama maç-başı ortalamaya göre (rating) — toplam puan
                                 değil. 1000 bot her maça girdiği için kümülatif tabloda
-                                insan yetişemiyordu. */}
-                            <View style={{ alignItems: "flex-end" }}>
-                              <Text style={{ color: "#a3e635", fontWeight: "700", fontSize: 15 }}>
-                                {r.rating != null ? r.rating.toFixed(1) : r.totalPoints}
-                              </Text>
-                              <Text style={{ color: Colors.muted, fontSize: 9 }}>
-                                {r.rating != null ? t("matchAvg") : t("points")}
-                              </Text>
-                            </View>
+                                insan yetişemiyordu.
+                                ⚠️ İŞARET RENGİ: sıfır orta çizgi. Sıfır üstü başarı
+                                (yeşil), sıfır altı başarısız (kırmızı). Puan LC gibi
+                                değil — eksi görünmeli ki kesintiler anlam taşısın. */}
+                            {(() => {
+                              const deger = r.rating != null ? r.rating : Number(r.totalPoints || 0);
+                              const artida = deger >= 0;
+                              return (
+                                <View style={{ alignItems: "flex-end" }}>
+                                  <Text style={{ color: artida ? "#a3e635" : "#f87171", fontWeight: "700", fontSize: 15 }}>
+                                    {artida ? "" : ""}{r.rating != null ? r.rating.toFixed(1) : r.totalPoints}
+                                  </Text>
+                                  <Text style={{ color: Colors.muted, fontSize: 9 }}>
+                                    {r.rating != null ? t("matchAvg") : t("points")}
+                                  </Text>
+                                </View>
+                              );
+                            })()}
                           </View>
                         </TouchableOpacity>
                       );
