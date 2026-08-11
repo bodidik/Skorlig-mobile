@@ -33,28 +33,92 @@ const OUTCOMES = [
   { key: "away" as const, api: "A", color: "#f97316" },
 ];
 
+// Skor sayacı: +/− butonlu küçük sayaç
+function ScoreCounter({
+  value, onChange, disabled,
+}: { value: number; onChange: (v: number) => void; disabled: boolean }) {
+  return (
+    <View style={sc.row}>
+      <TouchableOpacity onPress={() => onChange(Math.max(0, value - 1))} disabled={disabled} style={sc.btn}>
+        <Text style={sc.op}>−</Text>
+      </TouchableOpacity>
+      <Text style={sc.val}>{value}</Text>
+      <TouchableOpacity onPress={() => onChange(Math.min(20, value + 1))} disabled={disabled} style={sc.btn}>
+        <Text style={sc.op}>+</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const sc = StyleSheet.create({
+  row: { flexDirection: "row", alignItems: "center", gap: 6 },
+  btn: { width: 26, height: 26, borderRadius: 13, backgroundColor: "#1e293b", alignItems: "center", justifyContent: "center" },
+  op: { color: "#94a3b8", fontSize: 16, fontWeight: "700", lineHeight: 20 },
+  val: { color: "#f1f5f9", fontSize: 15, fontWeight: "800", minWidth: 22, textAlign: "center" },
+});
+
+// Üç seçenek düğmesi (Evet/Hayır/Fark Etmez)
+function TriButton({
+  value, onChange, disabled,
+}: { value: boolean | null; onChange: (v: boolean | null) => void; disabled: boolean }) {
+  const opts: { label: string; val: boolean | null; color: string }[] = [
+    { label: "Evet", val: true, color: "#22c55e" },
+    { label: "Hayır", val: false, color: "#ef4444" },
+    { label: "—", val: null, color: "#475569" },
+  ];
+  return (
+    <View style={{ flexDirection: "row", gap: 4 }}>
+      {opts.map(o => (
+        <TouchableOpacity
+          key={String(o.val)}
+          onPress={() => onChange(o.val)}
+          disabled={disabled}
+          style={[
+            tb.btn,
+            value === o.val && { backgroundColor: o.color, borderColor: o.color },
+            value !== o.val && { borderColor: o.color },
+          ]}
+        >
+          <Text style={[tb.label, value === o.val && { color: "#fff" }]}>{o.label}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+const tb = StyleSheet.create({
+  btn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1.5, borderColor: "#475569" },
+  label: { color: "#94a3b8", fontSize: 11, fontWeight: "700" },
+});
+
 export default function QuickPickCard({ fixture, onPredicted, compact }: Props) {
-  useLang(); // dil değişince yeniden çizilsin
+  useLang();
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const lcAnim = useRef(new Animated.Value(0)).current;
   const [earnedLC, setEarnedLC] = useState(0);
 
+  // Detay paneli
+  const [detayAcik, setDetayAcik] = useState(false);
+  const [homeScore, setHomeScore] = useState(0);
+  const [awayScore, setAwayScore] = useState(0);
+  const [skorGirildi, setSkorGirildi] = useState(false);
+  const [penaltyVal, setPenaltyVal] = useState<boolean | null>(null);
+  const [redVal, setRedVal] = useState<boolean | null>(null);
+  const [detayBusy, setDetayBusy] = useState(false);
+  const [detayGonderildi, setDetayGonderildi] = useState(false);
+
   const kickoff = fixture.kickoffISO
     ? new Date(fixture.kickoffISO).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
     : null;
 
+  // 1X2 hızlı submit
   async function handlePick(outcomeKey: "home" | "draw" | "away") {
     if (submitted || busy) return;
     setSelected(outcomeKey);
     setBusy(true);
     try {
-      // ⚠️ YANIT KONTROL EDILIYOR. Eskiden sonuc okunmadan "kazandin"
-      // rozeti gosteriliyordu: sunucu reddetse bile (bakiye, mac basladi,
-      // zaten tahmin edildi) kullanici LC kazandigini saniyordu.
-      /* Ham `fetch` + elle taban/kimlik yerine paylasilan sarmalayici:
-       * zaman asimi ve 2xx disi yanitlarin loglanmasi da geliyor. */
       const res = await apiFetch(`/api/pred/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -67,6 +131,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
       const j = await res.json().catch(() => null);
       if (!res.ok || j?.ok === false) {
         Alert.alert("Tahmin kaydedilemedi", hataMesaji(j?.error));
+        setSelected(null);
         return;
       }
       const reward = fixture.rewards[outcomeKey];
@@ -80,6 +145,74 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
       ]).start();
     } catch {}
     setBusy(false);
+  }
+
+  // Tahmini geri al
+  async function handleGeriAl() {
+    Alert.alert(
+      t("cancelPredTitle"),
+      t("cancelPredMsg"),
+      [
+        { text: t("cancel"), style: "cancel" },
+        {
+          text: "Sil",
+          style: "destructive",
+          onPress: async () => {
+            setBusy(true);
+            try {
+              const res = await apiFetch(`/api/pred/cancel`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ fixtureId: fixture.fixtureId }),
+              });
+              const j = await res.json().catch(() => null);
+              if (!res.ok || j?.ok === false) {
+                Alert.alert("Silinemedi", hataMesaji(j?.error));
+                return;
+              }
+              // Kartı başa sıfırla
+              setSubmitted(false);
+              setSelected(null);
+              setDetayAcik(false);
+              setSkorGirildi(false);
+              setDetayGonderildi(false);
+              setPenaltyVal(null);
+              setRedVal(null);
+            } catch {}
+            setBusy(false);
+          },
+        },
+      ]
+    );
+  }
+
+  // Detay alanlarını gönder (skor + penaltı + kırmızı)
+  async function handleDetayGonder() {
+    if (!skorGirildi && penaltyVal === null && redVal === null) {
+      Alert.alert("Detay girilmedi", "En az bir detay seç: skor, penaltı veya kırmızı kart.");
+      return;
+    }
+    setDetayBusy(true);
+    try {
+      const body: Record<string, unknown> = { fixtureId: fixture.fixtureId };
+      if (skorGirildi) { body.home = homeScore; body.away = awayScore; }
+      if (penaltyVal !== null) body.penaltyAny = penaltyVal;
+      if (redVal !== null) body.redAny = redVal;
+
+      const res = await apiFetch(`/api/pred/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const j = await res.json().catch(() => null);
+      if (!res.ok || j?.ok === false) {
+        Alert.alert("Detay kaydedilemedi", hataMesaji(j?.error));
+        return;
+      }
+      setDetayGonderildi(true);
+      setDetayAcik(false);
+    } catch {}
+    setDetayBusy(false);
   }
 
   const lcOpacity = lcAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
@@ -99,6 +232,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
       </View>
 
       {!submitted ? (
+        // ── Henüz tahmin yok: 1X2 butonları ──
         <View style={s.buttons}>
           {OUTCOMES.map(o => {
             const label = o.key === "home" ? fixture.home
@@ -132,11 +266,86 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
           })}
         </View>
       ) : (
-        <View style={s.doneRow}>
-          <Text style={s.doneText}>✅ +{earnedLC} LC kazanabilirsin</Text>
-          <Animated.Text style={[s.lcBadge, { opacity: lcOpacity, transform: [{ translateY: lcY }] }]}>
-            +{earnedLC} LC
-          </Animated.Text>
+        // ── Tahmin yapıldı: seçim göster + detay paneli ──
+        <View>
+          {/* Seçim özeti + geri al */}
+          <View style={s.doneRow}>
+            <View style={s.doneLeft}>
+              <Text style={s.doneText}>
+                ✅ {selected === "home" ? fixture.home : selected === "away" ? fixture.away : "Beraberlik"} seçildi
+              </Text>
+              {detayGonderildi && (
+                <Text style={s.detayDoneText}>+skor & detay ✓</Text>
+              )}
+            </View>
+            <Animated.Text style={[s.lcBadge, { opacity: lcOpacity, transform: [{ translateY: lcY }] }]}>
+              +{earnedLC} LC
+            </Animated.Text>
+            {!busy && (
+              <TouchableOpacity onPress={handleGeriAl} style={s.geriAlBtn}>
+                <Text style={s.geriAlText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Detay aç/kapat butonu */}
+          {!detayGonderildi && (
+            <TouchableOpacity
+              onPress={() => setDetayAcik(v => !v)}
+              style={s.detayToggle}
+            >
+              <Text style={s.detayToggleText}>
+                {detayAcik ? "▲ Detayı kapat" : "▾ Skor & detay ekle"}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Detay paneli */}
+          {detayAcik && !detayGonderildi && (
+            <View style={s.detayPanel}>
+              {/* Skor */}
+              <View style={s.detayRow}>
+                <Text style={s.detayLbl}>Skor</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <ScoreCounter
+                    value={homeScore}
+                    onChange={v => { setHomeScore(v); setSkorGirildi(true); }}
+                    disabled={detayBusy}
+                  />
+                  <Text style={s.detaySep}>:</Text>
+                  <ScoreCounter
+                    value={awayScore}
+                    onChange={v => { setAwayScore(v); setSkorGirildi(true); }}
+                    disabled={detayBusy}
+                  />
+                </View>
+              </View>
+
+              {/* Penaltı */}
+              <View style={s.detayRow}>
+                <Text style={s.detayLbl}>Penaltı?</Text>
+                <TriButton value={penaltyVal} onChange={setPenaltyVal} disabled={detayBusy} />
+              </View>
+
+              {/* Kırmızı kart */}
+              <View style={s.detayRow}>
+                <Text style={s.detayLbl}>Kırmızı?</Text>
+                <TriButton value={redVal} onChange={setRedVal} disabled={detayBusy} />
+              </View>
+
+              {/* Gönder */}
+              <TouchableOpacity
+                onPress={handleDetayGonder}
+                disabled={detayBusy}
+                style={s.detayGonderBtn}
+              >
+                {detayBusy
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={s.detayGonderText}>Detayı Kaydet</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -167,7 +376,22 @@ const s = StyleSheet.create({
   btnLabel: { color: "#94a3b8", fontWeight: "800", fontSize: 11, marginBottom: 2 },
   oddText: { color: "#cbd5e1", fontWeight: "600", fontSize: 13 },
   rewardText: { color: "#a3e635", fontWeight: "700", fontSize: 9, marginTop: 1 },
-  doneRow: { alignItems: "center", paddingVertical: 8, position: "relative" },
-  doneText: { color: "#a3e635", fontWeight: "700", fontSize: 13 },
-  lcBadge: { position: "absolute", top: -6, color: "#fbbf24", fontWeight: "900", fontSize: 15 },
+  // Done state
+  doneRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, position: "relative" },
+  doneLeft: { flex: 1 },
+  doneText: { color: "#a3e635", fontWeight: "700", fontSize: 12 },
+  detayDoneText: { color: "#60a5fa", fontSize: 10, fontWeight: "600", marginTop: 2 },
+  lcBadge: { position: "absolute", right: 28, top: -6, color: "#fbbf24", fontWeight: "900", fontSize: 15 },
+  geriAlBtn: { width: 26, height: 26, borderRadius: 13, backgroundColor: "#1e293b", alignItems: "center", justifyContent: "center" },
+  geriAlText: { color: "#ef4444", fontWeight: "800", fontSize: 13 },
+  // Detay toggle
+  detayToggle: { marginTop: 6, paddingVertical: 6, alignItems: "center", borderTopWidth: 1, borderTopColor: "#1e293b" },
+  detayToggleText: { color: "#60a5fa", fontSize: 11, fontWeight: "700" },
+  // Detay paneli
+  detayPanel: { marginTop: 8, gap: 10 },
+  detayRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  detayLbl: { color: "#94a3b8", fontSize: 11, fontWeight: "700" },
+  detaySep: { color: "#475569", fontSize: 16, fontWeight: "700" },
+  detayGonderBtn: { backgroundColor: "#2563eb", borderRadius: 8, paddingVertical: 9, alignItems: "center", marginTop: 4 },
+  detayGonderText: { color: "#fff", fontSize: 12, fontWeight: "800" },
 });
