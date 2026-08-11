@@ -319,6 +319,7 @@ export default function Me() {
   const [pushDevices, setPushDevices]   = useState(0);
   const [pushLoading, setPushLoading]   = useState(true);
   const [pushSavingKey, setPushSavingKey] = useState<keyof PushPrefs | null>(null);
+  const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
   const [miniWins, setMiniWins] = useState<MiniWin[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [totalsRow, setTotalsRow] = useState<TotRow | null>(null);
@@ -785,15 +786,20 @@ export default function Me() {
     }
   }
 
-  // Bildirim tercihlerini sunucudan çek
+  // Bildirim tercihleri + okunmamış duyuru sayısı
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const { prefs, deviceCount } = await getPushPrefs();
+        const [pushData] = await Promise.all([
+          getPushPrefs(),
+          apiFetch("/api/push/announcements?limit=1")
+            .then(r => r.json()).catch(() => null)
+            .then(j => { if (alive && j?.ok) setUnreadAnnouncements(j.unread || 0); }),
+        ]);
         if (!alive) return;
-        setPushPrefsState(prefs);
-        setPushDevices(deviceCount);
+        setPushPrefsState(pushData.prefs);
+        setPushDevices(pushData.deviceCount);
       } finally {
         if (alive) setPushLoading(false);
       }
@@ -2006,6 +2012,35 @@ export default function Me() {
           )}
           </>)}
         </View>
+
+        {/* ── Duyurular ── */}
+        <TouchableOpacity
+          onPress={() => { setUnreadAnnouncements(0); nav.push("/announcements" as any); }}
+          style={{
+            backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1,
+            borderColor: Colors.border, padding: 14,
+            flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Text style={{ fontSize: 20 }}>🔔</Text>
+            <Text style={{ fontWeight: "800", fontSize: 14, color: Colors.slate900 }}>Duyurular</Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {unreadAnnouncements > 0 && (
+              <View style={{
+                backgroundColor: "#ef4444", borderRadius: 10,
+                minWidth: 20, height: 20, paddingHorizontal: 5,
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>
+                  {unreadAnnouncements > 99 ? "99+" : unreadAnnouncements}
+                </Text>
+              </View>
+            )}
+            <Text style={{ color: Colors.muted, fontSize: 18 }}>›</Text>
+          </View>
+        </TouchableOpacity>
 
         {/* ── Bildirimler ── */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>

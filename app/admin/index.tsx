@@ -86,6 +86,46 @@ export default function AdminResultsScreen() {
   const [penaltyAny, setPenaltyAny] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Duyuru gönderme
+  const [announceTitle, setAnnounceTitle] = useState("");
+  const [announceBody, setAnnounceBody] = useState("");
+  const [announceBusy, setAnnounceBusy] = useState(false);
+  const [announceResult, setAnnounceResult] = useState<string | null>(null);
+  const [pushStatus, setPushStatus] = useState<{ users: number; devices: number } | null>(null);
+
+  useEffect(() => {
+    // Push durumu: kayıtlı cihaz sayısı
+    apiFetch("/api/push/status").then(r => r.json()).then(j => {
+      if (j?.ok) setPushStatus({ users: j.users, devices: j.devices });
+    }).catch(() => {});
+  }, [tokenReady]);
+
+  async function sendAnnouncement() {
+    const title = announceTitle.trim();
+    const body = announceBody.trim();
+    if (!title || !body) {
+      Alert.alert("Eksik alan", "Başlık ve içerik zorunlu.");
+      return;
+    }
+    setAnnounceBusy(true);
+    setAnnounceResult(null);
+    try {
+      const res = await apiFetch("/api/push/announce", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body }),
+      });
+      const j = await res.json().catch(() => null);
+      if (!res.ok || !j?.ok) throw new Error(j?.error || "Gönderilemedi");
+      setAnnounceResult(`✅ Gönderildi — push: ${j.push?.sent ?? "?"} cihaz`);
+      setAnnounceTitle("");
+      setAnnounceBody("");
+    } catch (e: any) {
+      setAnnounceResult(`❌ ${String(e?.message || e)}`);
+    }
+    setAnnounceBusy(false);
+  }
+
   // tab: "all" | "pending" | "done"
   const [tab, setTab] = useState<"all" | "pending" | "done">("pending");
 
@@ -252,6 +292,65 @@ export default function AdminResultsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: Colors.bg }}>
       <BackBar title={t("adminEnterResult")} />
+
+      {/* ── Duyuru Gönder ── */}
+      <View style={{
+        margin: 16, marginBottom: 0, padding: 14,
+        backgroundColor: "#0f172a", borderRadius: 14,
+        borderWidth: 1, borderColor: "#1e293b", gap: 10,
+      }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Text style={{ color: "#f1f5f9", fontWeight: "800", fontSize: 14 }}>📣 Duyuru Gönder</Text>
+          {pushStatus && (
+            <Text style={{ color: "#64748b", fontSize: 11 }}>
+              {pushStatus.devices} cihaz ({pushStatus.users} kullanıcı)
+            </Text>
+          )}
+        </View>
+        <TextInput
+          value={announceTitle}
+          onChangeText={setAnnounceTitle}
+          placeholder="Başlık"
+          placeholderTextColor="#475569"
+          style={{
+            backgroundColor: "#1e293b", borderRadius: 8, padding: 10,
+            color: "#f1f5f9", fontSize: 13, fontWeight: "700",
+          }}
+        />
+        <TextInput
+          value={announceBody}
+          onChangeText={setAnnounceBody}
+          placeholder="İçerik..."
+          placeholderTextColor="#475569"
+          multiline
+          numberOfLines={3}
+          style={{
+            backgroundColor: "#1e293b", borderRadius: 8, padding: 10,
+            color: "#f1f5f9", fontSize: 13, minHeight: 70, textAlignVertical: "top",
+          }}
+        />
+        <TouchableOpacity
+          onPress={sendAnnouncement}
+          disabled={announceBusy}
+          style={{
+            backgroundColor: announceBusy ? "#334155" : "#2563eb",
+            borderRadius: 8, paddingVertical: 10, alignItems: "center",
+          }}
+        >
+          {announceBusy
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
+                Tüm Kullanıcılara Gönder
+              </Text>
+          }
+        </TouchableOpacity>
+        {!!announceResult && (
+          <Text style={{ color: announceResult.startsWith("✅") ? "#4ade80" : "#f87171", fontSize: 12 }}>
+            {announceResult}
+          </Text>
+        )}
+      </View>
+
       {/* Başlık */}
       <View style={{ padding: 16, paddingBottom: 8, gap: 8 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
