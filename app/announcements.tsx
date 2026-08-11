@@ -6,6 +6,7 @@ import {
 import { useFocusEffect } from "expo-router";
 import BackBar from "../components/BackBar";
 import { apiFetch } from "../lib/apiFetch";
+import { t, useLang } from "../lib/i18n";
 
 type Announcement = {
   id: string;
@@ -24,6 +25,7 @@ function fmtDate(iso: string) {
 }
 
 export default function AnnouncementsScreen() {
+  useLang();
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,7 +36,7 @@ export default function AnnouncementsScreen() {
     try {
       const res = await apiFetch("/api/push/announcements?limit=50");
       const j = await res.json().catch(() => null);
-      if (!res.ok || !j?.ok) throw new Error(j?.error || "Yüklenemedi");
+      if (!res.ok || !j?.ok) throw new Error(j?.error || t("annLoadFailed"));
       setItems(Array.isArray(j.items) ? j.items : []);
     } catch (e: any) {
       setErr(String(e?.message || e));
@@ -58,7 +60,7 @@ export default function AnnouncementsScreen() {
 
   return (
     <View style={s.screen}>
-      <BackBar title="Duyurular" />
+      <BackBar title={t("annTitle")} />
 
       {loading ? (
         <View style={s.center}><ActivityIndicator color="#60a5fa" size="large" /></View>
@@ -73,7 +75,7 @@ export default function AnnouncementsScreen() {
           ListEmptyComponent={
             <View style={s.center}>
               <Text style={s.emptyIcon}>🔔</Text>
-              <Text style={s.emptyText}>Henüz duyuru yok</Text>
+              <Text style={s.emptyText}>{t("annEmpty")}</Text>
             </View>
           }
           renderItem={({ item }) => (

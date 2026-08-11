@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import { useRouter } from "expo-router";
 import { apiFetch } from "../lib/apiFetch";
 import { hataMesaji } from "../lib/hataMesaji";
 import { t, useLang } from "../lib/i18n";
-import { ulkeAdi, ulkeBayragi } from "../lib/ulkeler";
+import { ulkeAdi, ulkeBayragi, ulkeAnahtari } from "../lib/ulkeler";
+import { useUserId } from "../lib/useUserId";
 import BackBar from "../components/BackBar";
 import Colors, { on } from "../constants/colors";
 import { usePolling } from "../hooks/usePolling";
@@ -125,7 +126,7 @@ function statusLabel(m: Match) {
   return m.startTime || "—";
 }
 
-function MatchRow({ match: m, onPredict }: { match: Match; onPredict: () => void }) {
+function MatchRow({ match: m, onPredict, resolving }: { match: Match; onPredict: () => void; resolving?: boolean }) {
   const active = m.isLive || m.isHT;
   const liveColor = Colors.live;
 
@@ -226,7 +227,9 @@ function MatchRow({ match: m, onPredict }: { match: Match; onPredict: () => void
           borderColor: active ? "#22c55e44" : "#334155",
         }}
       >
-        <Text style={{ fontSize: 10, color: active ? "#4ade80" : "#64748b", fontWeight: "700" }}>⚽ →</Text>
+        {resolving
+          ? <ActivityIndicator size="small" color={active ? "#4ade80" : "#64748b"} />
+          : <Text style={{ fontSize: 10, color: active ? "#4ade80" : "#64748b", fontWeight: "700" }}>⚽ →</Text>}
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -237,9 +240,11 @@ function MatchRow({ match: m, onPredict }: { match: Match; onPredict: () => void
 function LeagueSection({
   league,
   onPredict,
+  resolvingKey,
 }: {
   league: League;
   onPredict: (m: Match) => void;
+  resolvingKey?: string | null;
 }) {
   const live = liveCount(league);
 
@@ -312,7 +317,12 @@ function LeagueSection({
               maça taşır ve GolAni önceki skoru yanlış maçla kıyaslayıp sahte
               GOL patlatırdı. */}
           {matches.map((m) => (
-            <MatchRow key={`${m.homeTeam}|${m.awayTeam}|${m.matchDate}`} match={m} onPredict={() => onPredict(m)} />
+            <MatchRow
+              key={`${m.homeTeam}|${m.awayTeam}|${m.matchDate}`}
+              match={m}
+              onPredict={() => onPredict(m)}
+              resolving={resolvingKey === `${m.homeTeam}|${m.awayTeam}`}
+            />
           ))}
         </View>
       ))}
@@ -427,6 +437,39 @@ export default function LiveScoresScreen() {
   const [error, setError]           = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [resolvingKey, setResolvingKey] = useState<string | null>(null);
+  const userId = useUserId();
+
+  /* KULLANICININ ÜLKESİ — liste onun ligleriyle açılsın.
+   *
+   * ⚠️ Ekran ülke süzgecini zaten destekliyordu ama başlangıç değeri `null`
+   * olduğu için hiç devreye girmiyordu: Türk kullanıcı ekranı açtığında
+   * üstte Brezilya/İsveç maçları görüyordu. Süzgeç makinesi vardı, onu
+   * besleyen tercih yoktu.
+   *
+   * ⚠️ KULLANICI ELLE SEÇERSE ONUN SEÇİMİ KAZANIR — profil değeri yalnızca
+   * ilk açılışı tohumlar (`dokunuldu` bayrağı). Yoksa "Tümü"ne basan
+   * kullanıcı bir sonraki yenilemede kendi ülkesine geri fırlatılırdı. */
+  const [ulkeDokunuldu, setUlkeDokunuldu] = useState(false);
+  useEffect(() => {
+    if (!userId || ulkeDokunuldu) return;
+    let iptal = false;
+    (async () => {
+      try {
+        const r = await apiFetch(`/api/users/profile?userId=${encodeURIComponent(userId)}`);
+        const j = await r.json().catch(() => null);
+        const ulke = j?.ok && j.profile?.country ? String(j.profile.country) : null;
+        if (!iptal && ulke) setSelectedCountry(ulke);
+      } catch {}
+    })();
+    return () => { iptal = true; };
+  }, [userId, ulkeDokunuldu]);
+
+  /** Ülke süzgecini kullanıcı eliyle değiştirdi — artık profil ezmesin. */
+  const ulkeSec = useCallback((c: string | null) => {
+    setUlkeDokunuldu(true);
+    setSelectedCountry(c);
+  }, []);
 
   const load = useCallback(async (silent = false) => {
     try {
@@ -476,8 +519,17 @@ export default function LiveScoresScreen() {
     if (!selectedCountry) {
       return { displayLeagues: sortByLive(allLeagues), isFallback: false, splitAt: -1 };
     }
-    const countryLeagues = allLeagues.filter((l) => l.country === selectedCountry);
-    const otherLeagues   = allLeagues.filter((l) => l.country !== selectedCountry);
+    /* ⚠️ HAM AD KARŞILAŞTIRMASI YETMEZ — kanonik ad kuralı. Profildeki ülke
+     * kanonik yazımda ("England", "Spain"), kazıma ise Türkçe basıyor
+     * ("İngiltere", "İspanya"). `===` ile karşılaştırmak Türkiye dışındaki
+     * her ülkede sessizce boş liste verirdi; bu deponun tekrar eden hata
+     * sınıfı (bkz. ülke yazım bölünmesi). İki taraf da anahtara indiriliyor. */
+    const hedefK = ulkeAnahtari(selectedCountry);
+    const ayniUlke = (l: League) =>
+      hedefK ? ulkeAnahtari(l.country) === hedefK : l.country === selectedCountry;
+
+    const countryLeagues = allLeagues.filter(ayniUlke);
+    const otherLeagues   = allLeagues.filter((l) => !ayniUlke(l));
     if (countryLeagues.some((l) => l.matches.length > 0)) {
       const sorted = sortByLive(countryLeagues);
       const rest   = getGlobalHighlights(otherLeagues);
@@ -497,8 +549,44 @@ export default function LiveScoresScreen() {
     return displayLeagues[0]?.matches[0] ?? null;
   }, [displayLeagues]);
 
-  function goPredict(m?: Match) {
-    router.push({ pathname: "/(tabs)/live", params: { tab: "open" } } as any);
+  /**
+   * TIKLANAN MAÇIN tahmin ekranına götürür.
+   *
+   * ⚠️ ESKİDEN `m` PARAMETRESİ HİÇ KULLANILMIYORDU: hangi maça basılırsa
+   * basılsın herkes aynı genel "açık maçlar" listesine düşüyordu ve kullanıcı
+   * az önce tıkladığı maçı elle aramak zorunda kalıyordu.
+   *
+   * Kazınan canlı satırda `fixtureId` YOK (yalnızca takım adları). Köprüyü
+   * `/api/livescore/resolve` kuruyor — takım adından fikstürü bulur.
+   *
+   * ⚠️ ÇÖZÜLEMEZSE ESKİ DAVRANIŞA DÜŞÜLÜR, hata gösterilmez. Canlı akışta
+   * tahmine açık olmayan maçlar var (kapsam dışı lig, rezerv takım); orada
+   * kullanıcıyı hata ekranıyla durdurmak, listeye götürmekten kötü.
+   */
+  async function goPredict(m?: Match) {
+    const geneleDus = () =>
+      router.push({ pathname: "/(tabs)/live", params: { tab: "open" } } as any);
+
+    if (!m?.homeTeam || !m?.awayTeam) return geneleDus();
+
+    setResolvingKey(`${m.homeTeam}|${m.awayTeam}`);
+    try {
+      const qs = `home=${encodeURIComponent(m.homeTeam)}&away=${encodeURIComponent(m.awayTeam)}`;
+      const res = await apiFetch(`/api/livescore/resolve?${qs}`);
+      const j = await res.json().catch(() => null);
+      if (j?.ok && j.fixtureId) {
+        router.push({
+          pathname: "/(tabs)/predict",
+          params: { fixtureId: String(j.fixtureId), userId },
+        } as any);
+        return;
+      }
+    } catch {
+      /* ağ hatası da genel listeye düşer — sessiz, çünkü bu bir yan yol */
+    } finally {
+      setResolvingKey(null);
+    }
+    geneleDus();
   }
 
   return (
@@ -540,7 +628,7 @@ export default function LiveScoresScreen() {
             contentContainerStyle={{ gap: 6, paddingHorizontal: 12, paddingBottom: 8 }}
           >
             <TouchableOpacity
-              onPress={() => setSelectedCountry(null)}
+              onPress={() => ulkeSec(null)}
               style={{
                 paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
                 backgroundColor: selectedCountry === null ? Colors.primary : "#0f172a",
@@ -551,12 +639,17 @@ export default function LiveScoresScreen() {
               <Text style={{ color: on(selectedCountry === null ? Colors.primary : "#0f172a"), fontWeight: "700", fontSize: 11 }}>{t("allTab")}</Text>
             </TouchableOpacity>
             {countries.map((c) => {
-              const active  = selectedCountry === c;
+              /* ⚠️ ÇİP VURGUSU DA ANAHTAR ÜZERİNDEN. Profilden gelen ülke
+               * kanonik ("England"), çip ise kazıma adını taşıyor
+               * ("İngiltere"); ham `===` ile seçili ülkenin çipi sönük
+               * görünür, kullanıcı süzgecin çalışmadığını sanırdı. */
+              const active  = !!selectedCountry &&
+                (ulkeAnahtari(selectedCountry) ?? selectedCountry) === (ulkeAnahtari(c) ?? c);
               const liveCnt = allLeagues.filter((l) => l.country === c).reduce((s, l) => s + liveCount(l), 0);
               return (
                 <TouchableOpacity
                   key={c}
-                  onPress={() => setSelectedCountry(active ? null : c)}
+                  onPress={() => ulkeSec(active ? null : c)}
                   style={{
                     flexDirection: "row", alignItems: "center", gap: 4,
                     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
@@ -645,7 +738,7 @@ export default function LiveScoresScreen() {
                   </View>
                 )}
 
-                <LeagueSection league={league} onPredict={(m) => goPredict(m)} />
+                <LeagueSection league={league} onPredict={(m) => goPredict(m)} resolvingKey={resolvingKey} />
 
                 {/* Her 5 ligde bir araya promo */}
                 {(idx + 1) % 5 === 0 && idx < displayLeagues.length - 1 && (

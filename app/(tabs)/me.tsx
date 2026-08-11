@@ -2024,7 +2024,7 @@ export default function Me() {
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Text style={{ fontSize: 20 }}>🔔</Text>
-            <Text style={{ fontWeight: "800", fontSize: 14, color: Colors.slate900 }}>Duyurular</Text>
+            <Text style={{ fontWeight: "800", fontSize: 14, color: Colors.slate900 }}>{t("annTitle")}</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             {unreadAnnouncements > 0 && (

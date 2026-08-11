@@ -104,7 +104,7 @@ export default function AdminResultsScreen() {
     const title = announceTitle.trim();
     const body = announceBody.trim();
     if (!title || !body) {
-      Alert.alert("Eksik alan", "Başlık ve içerik zorunlu.");
+      Alert.alert(t("annMissingTitle"), t("annMissingMsg"));
       return;
     }
     setAnnounceBusy(true);
@@ -116,8 +116,8 @@ export default function AdminResultsScreen() {
         body: JSON.stringify({ title, body }),
       });
       const j = await res.json().catch(() => null);
-      if (!res.ok || !j?.ok) throw new Error(j?.error || "Gönderilemedi");
-      setAnnounceResult(`✅ Gönderildi — push: ${j.push?.sent ?? "?"} cihaz`);
+      if (!res.ok || !j?.ok) throw new Error(j?.error || t("annSendFailed"));
+      setAnnounceResult(`✅ ${t("annSentOk", { n: j.push?.sent ?? "?" })}`);
       setAnnounceTitle("");
       setAnnounceBody("");
     } catch (e: any) {
@@ -300,17 +300,17 @@ export default function AdminResultsScreen() {
         borderWidth: 1, borderColor: "#1e293b", gap: 10,
       }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ color: "#f1f5f9", fontWeight: "800", fontSize: 14 }}>📣 Duyuru Gönder</Text>
+          <Text style={{ color: "#f1f5f9", fontWeight: "800", fontSize: 14 }}>📣 {t("annSendTitle")}</Text>
           {pushStatus && (
             <Text style={{ color: "#64748b", fontSize: 11 }}>
-              {pushStatus.devices} cihaz ({pushStatus.users} kullanıcı)
+              {t("annDevices", { d: pushStatus.devices, u: pushStatus.users })}
             </Text>
           )}
         </View>
         <TextInput
           value={announceTitle}
           onChangeText={setAnnounceTitle}
-          placeholder="Başlık"
+          placeholder={t("annSendHeading")}
           placeholderTextColor="#475569"
           style={{
             backgroundColor: "#1e293b", borderRadius: 8, padding: 10,
@@ -320,7 +320,7 @@ export default function AdminResultsScreen() {
         <TextInput
           value={announceBody}
           onChangeText={setAnnounceBody}
-          placeholder="İçerik..."
+          placeholder={t("annSendBody")}
           placeholderTextColor="#475569"
           multiline
           numberOfLines={3}
@@ -340,7 +340,7 @@ export default function AdminResultsScreen() {
           {announceBusy
             ? <ActivityIndicator color="#fff" size="small" />
             : <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
-                Tüm Kullanıcılara Gönder
+                {t("annSendBtn")}
               </Text>
           }
         </TouchableOpacity>

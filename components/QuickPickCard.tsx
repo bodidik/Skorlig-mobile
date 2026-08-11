@@ -62,9 +62,9 @@ function TriButton({
   value, onChange, disabled,
 }: { value: boolean | null; onChange: (v: boolean | null) => void; disabled: boolean }) {
   const opts: { label: string; val: boolean | null; color: string }[] = [
-    { label: "Evet", val: true, color: "#22c55e" },
-    { label: "Hayır", val: false, color: "#ef4444" },
-    { label: "—", val: null, color: "#475569" },
+    { label: t("qpYes"), val: true, color: "#22c55e" },
+    { label: t("qpNo"), val: false, color: "#ef4444" },
+    { label: t("qpNeutral"), val: null, color: "#475569" },
   ];
   return (
     <View style={{ flexDirection: "row", gap: 4 }}>
@@ -130,7 +130,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
       });
       const j = await res.json().catch(() => null);
       if (!res.ok || j?.ok === false) {
-        Alert.alert("Tahmin kaydedilemedi", hataMesaji(j?.error));
+        Alert.alert(t("qpPredFailed"), hataMesaji(j?.error));
         setSelected(null);
         return;
       }
@@ -155,7 +155,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
       [
         { text: t("cancel"), style: "cancel" },
         {
-          text: "Sil",
+          text: t("qpDelete"),
           style: "destructive",
           onPress: async () => {
             setBusy(true);
@@ -167,7 +167,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
               });
               const j = await res.json().catch(() => null);
               if (!res.ok || j?.ok === false) {
-                Alert.alert("Silinemedi", hataMesaji(j?.error));
+                Alert.alert(t("qpDeleteFailed"), hataMesaji(j?.error));
                 return;
               }
               // Kartı başa sıfırla
@@ -189,7 +189,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
   // Detay alanlarını gönder (skor + penaltı + kırmızı)
   async function handleDetayGonder() {
     if (!skorGirildi && penaltyVal === null && redVal === null) {
-      Alert.alert("Detay girilmedi", "En az bir detay seç: skor, penaltı veya kırmızı kart.");
+      Alert.alert(t("qpNoDetailTitle"), t("qpNoDetailMsg"));
       return;
     }
     setDetayBusy(true);
@@ -206,7 +206,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
       });
       const j = await res.json().catch(() => null);
       if (!res.ok || j?.ok === false) {
-        Alert.alert("Detay kaydedilemedi", hataMesaji(j?.error));
+        Alert.alert(t("qpDetailFailed"), hataMesaji(j?.error));
         return;
       }
       setDetayGonderildi(true);
@@ -272,10 +272,14 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
           <View style={s.doneRow}>
             <View style={s.doneLeft}>
               <Text style={s.doneText}>
-                ✅ {selected === "home" ? fixture.home : selected === "away" ? fixture.away : "Beraberlik"} seçildi
+                ✅ {t("qpPicked", {
+                  p: selected === "home" ? fixture.home
+                    : selected === "away" ? fixture.away
+                    : t("qpDrawLbl"),
+                })}
               </Text>
               {detayGonderildi && (
-                <Text style={s.detayDoneText}>+skor & detay ✓</Text>
+                <Text style={s.detayDoneText}>{t("qpDetailDone")}</Text>
               )}
             </View>
             <Animated.Text style={[s.lcBadge, { opacity: lcOpacity, transform: [{ translateY: lcY }] }]}>
@@ -295,7 +299,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
               style={s.detayToggle}
             >
               <Text style={s.detayToggleText}>
-                {detayAcik ? "▲ Detayı kapat" : "▾ Skor & detay ekle"}
+                {detayAcik ? t("qpDetailClose") : t("qpDetailOpen")}
               </Text>
             </TouchableOpacity>
           )}
@@ -305,7 +309,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
             <View style={s.detayPanel}>
               {/* Skor */}
               <View style={s.detayRow}>
-                <Text style={s.detayLbl}>Skor</Text>
+                <Text style={s.detayLbl}>{t("qpScoreLbl")}</Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <ScoreCounter
                     value={homeScore}
@@ -323,13 +327,13 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
 
               {/* Penaltı */}
               <View style={s.detayRow}>
-                <Text style={s.detayLbl}>Penaltı?</Text>
+                <Text style={s.detayLbl}>{t("qpPenaltyQ")}</Text>
                 <TriButton value={penaltyVal} onChange={setPenaltyVal} disabled={detayBusy} />
               </View>
 
               {/* Kırmızı kart */}
               <View style={s.detayRow}>
-                <Text style={s.detayLbl}>Kırmızı?</Text>
+                <Text style={s.detayLbl}>{t("qpRedQ")}</Text>
                 <TriButton value={redVal} onChange={setRedVal} disabled={detayBusy} />
               </View>
 
@@ -341,7 +345,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
               >
                 {detayBusy
                   ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={s.detayGonderText}>Detayı Kaydet</Text>
+                  : <Text style={s.detayGonderText}>{t("qpSaveDetail")}</Text>
                 }
               </TouchableOpacity>
             </View>
