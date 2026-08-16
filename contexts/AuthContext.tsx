@@ -134,6 +134,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    /* Cihaz jetonunu SUNUCUDAN sök — signOut'tan ÖNCE, token hâlâ
+     * geçerliyken (unregister ucu kimlik istiyor; sonra çağrılsa 401).
+     * Sökülmezse eski kullanıcının jetonu kayıtlı kalır ve aynı cihaza
+     * yeni biri girene kadar ONUN bildirimleri bu cihaza düşer. */
+    try { await require("../lib/push").unregisterPush(); } catch {}
     try { if (GoogleSignin) await GoogleSignin.signOut(); } catch {}
     await signOut(auth);
     // Çıkıştan sonra onAuthStateChanged tetiklenir → yeni anonim oturum açılır
