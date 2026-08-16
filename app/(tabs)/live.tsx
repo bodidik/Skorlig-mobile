@@ -419,12 +419,28 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
 
   const waitingResult = isFinished && !hasScore;
 
+  /* Sonucu alınamamış geçmiş maç: kickoff geçmiş ama durum FT/LIVE değil. */
+  const sonucBekliyor =
+    st === "OVERDUE_NO_STATE" || st === "OVERDUE_NO_RESULT";
+
+  /* Kickoff GEÇMİŞ maç tahmine açık görünmesin — durum ne derse desin.
+   * Durum alanı bayat olabilir (Render uykusunda NS kalmış maç). */
+  const koMs = new Date(item.kickoffISO || 0).getTime();
+  const kickoffGecmis = Number.isFinite(koMs) && koMs > 0 && koMs < Date.now();
+
   /* ⚠️ 96 SAAT KURALI SUNUCUDA YOK — pred/submit yalnızca maç başlayınca
    * kilitler. Buradaki yerel kural Tahmin düğmesini 4 günden uzak maçlarda
    * GİZLİYORDU: kullanıcı 5 gün sonraki GS maçını görüyor ama tahmin
    * kapısı bulamıyordu ("detaylı tahmin açılmıyor" şikayeti). Başlamamış
-   * her maç tahmine açık; sunucu kilidi son sözü zaten söylüyor. */
-  const tahmineAcik = !isFinished && !isLive;
+   * her maç tahmine açık; sunucu kilidi son sözü zaten söylüyor.
+   *
+   * ⚠️ OVERDUE/GEÇMİŞ MAÇ TAHMİNE AÇIK DEĞİL (2026-08-16, kullanıcı
+   * bildirimi): eski hâli yalnızca FT ve LIVE'ı dışlıyordu; sonucu hiç
+   * yazılmamış dünkü maç (OVERDUE_NO_STATE) "tahmin edilebilir" kart gibi
+   * çiziliyor ve kullanıcıyı sunucunun 409 ile reddedeceği çıkmaz bir
+   * tahmin ekranına götürüyordu — "geçmiş maça tahmin gönderilebiliyor"
+   * algısının kaynağı buydu. Sunucu kilidi zaten sağlamdı; kusur kapıda. */
+  const tahmineAcik = !isFinished && !isLive && !sonucBekliyor && !kickoffGecmis;
 
   const highlight = mode === "open" ? true : isLive;
   const cardBg = selected ? "#1e1b4b" : isLive ? "#071a0f" : "#0f172a";
@@ -449,7 +465,11 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
          * tahmin açıksa tahmin ekranı, değilse (canlı/biten) yarış panosu. */
         if (adminMode) { onSelect(item); return; }
         if (tahmineAcik) { onPredict(item); return; }
-        if (hasPred === true || isLive || (isFinished && hasScore)) onRace(item);
+        /* Başlamış/bitmiş HER maç yarış panosuna gider. Eski hâlde skorsuz
+         * FT ve OVERDUE maçta hiçbir dal tutmuyordu — dokunuş sessizce
+         * ölüyordu ve kullanıcı "bitmiş maçı açamıyorum" diyordu. Yarış
+         * panosu skorsuz maçta da anlamlı: tahminler ve sıralama görünür. */
+        onRace(item);
       }}
     >
       <View
@@ -885,7 +905,12 @@ export default function LiveScreen() {
       const cq = userCountry ? `&country=${encodeURIComponent(userCountry)}` : "";
       const tq = userMainTeam ? `&team=${encodeURIComponent(userMainTeam)}` : "";
       const eq = userExtraLeagues.length ? `&extraLeagues=${encodeURIComponent(userExtraLeagues.join(","))}` : "";
-      const r = await apiFetch(`/api/live2/schedule?backH=${SCHEDULE_BACK_HOURS}&fwdDays=${SCHEDULE_FWD_DAYS}${cq}${tq}${eq}`);
+      /* ⚠️ `backDays` GÖNDERİLİYOR, `backH` DEĞİL: sunucu (/live2/schedule)
+       * yalnızca backDays okuyor; backH sessizce yok sayılıyor ve varsayılan
+       * 1 güne düşülüyordu. Etiket "-8sa" derken liste 24+ saat geriye
+       * gidiyordu — pencere artık istediğimiz şey: DÜN + bugün + ileri,
+       * bitmiş maçlar da bu sekmede görünsün diye. */
+      const r = await apiFetch(`/api/live2/schedule?backDays=1&fwdDays=${SCHEDULE_FWD_DAYS}${cq}${tq}${eq}`);
       const j: Live2Resp = await r.json();
 
       if (!j?.ok) {
@@ -1312,9 +1337,11 @@ export default function LiveScreen() {
   const headerLine2 = useMemo(() => {
     const parts: string[] = [];
     if (mode === "schedule") {
-      const bd = winDays?.backH ?? SCHEDULE_BACK_HOURS;
+      /* Etiket sunucunun GERÇEK penceresini söyler: backDays (gün) —
+       * eski "-8sa" etiketi hiç uygulanmayan bir pencereyi anlatıyordu. */
+      const bd = winDays?.backDays ?? 1;
       const fd = winDays?.fwdDays ?? SCHEDULE_FWD_DAYS;
-      parts.push(`Liste: -${bd}sa / +${fd}g`);
+      parts.push(`Liste: -${bd}g / +${fd}g`);
       parts.push(`Tahmin: +${PREDICT_OPEN_AHEAD_HOURS}h`);
     } else {
       const backH = typeof win?.backH === "number" ? win.backH : null;

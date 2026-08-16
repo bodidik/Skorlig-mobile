@@ -80,14 +80,49 @@ async function playerAl() {
   return _playerSoz;
 }
 
-/** Gol sesi — tercihe bağlı; hata sessizce yutulur (his katmanı kuralı). */
+/**
+ * Sesi ISIT — oynatıcıyı önceden kurar, ÇALMAZ.
+ *
+ * NEDEN VAR (2026-08-16, "sesler oynatılmıyor" bildirimi): oynatıcı ilk gol
+ * anında kuruluyor ve AYNI tick'te `play()` çağrılıyordu. WAV henüz
+ * yüklenmemişken çalma sessizce yutuluyor — oturumun İLK golü hiç
+ * duyulmuyordu. Isıtma açılışta yapılınca ilk gol de çalıyor.
+ *
+ * Uygulama kökünde bir kez çağrılır; hata his katmanı kuralınca yutulur
+ * (ses çalmaması oyunu düşürmez) ama geliştirmede görünür.
+ */
+export function sesiIsit() {
+  if (!tercih.ses) return;
+  playerAl().catch((e) => {
+    if (__DEV__) console.warn("[hisler] ses isitma basarisiz:", e?.message || e);
+  });
+}
+
+let _sonCalmaMs = 0;
+
+/**
+ * Gol sesi — tercihe bağlı; hata sessizce yutulur (his katmanı kuralı).
+ *
+ * ⚠️ 2 SANİYELİK HIZ SINIRI VAR. Canlı skor listesinde aynı yoklama turunda
+ * birden çok maç gol atabilir; sınırsız çalma "ses kakofonisi" üretir — bu
+ * korku yüzünden liste ekranı tamamen SESSİZE alınmıştı ve kullanıcı golü
+ * hiç duymuyordu. Sınır sayesinde liste ekranında ses açılabildi: aynı anda
+ * 3 gol = 1 ses, yeterli sinyal.
+ */
 export async function golSesiCal() {
   if (!tercih.ses) return;
+  const simdi = Date.now();
+  if (simdi - _sonCalmaMs < 2000) return;
+  _sonCalmaMs = simdi;
   try {
     const p = await playerAl();
     p.seekTo(0);
     p.play();
-  } catch {}
+  } catch (e) {
+    /* Üretimde sessiz (his katmanı kuralı) ama geliştirmede GÖRÜNÜR:
+     * bare catch yüzünden "ses çalmıyor" aylarca teşhissiz kalmıştı. */
+    if (__DEV__) console.warn("[hisler] gol sesi calinamadi:", (e as any)?.message || e);
+  }
 }
 
 /* ── Titreşim ───────────────────────────────────────────────────────────── */

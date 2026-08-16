@@ -91,6 +91,9 @@ function AuthGuard() {
     if (!user || pushDone.current) return;
     pushDone.current = true;
     registerForPush();
+    // Ses oynatıcısını ısıt: oturumun İLK gol sesi yutulmasın
+    // (oynatıcı gol anında kurulursa WAV yüklenmeden play çağrılıyordu).
+    require("../lib/hisler").sesiIsit();
   }, [user]);
 
   // Onboarding'de seçilen ülke oturum yokken gönderilememiş olabilir —

@@ -175,10 +175,12 @@ function MatchRow({ match: m, onPredict, resolving }: { match: Match; onPredict:
 
       {/* Skor */}
       <View style={{ width: 54, alignItems: "center" }}>
-        {/* Sessiz gol patlaması: 10+ maçlık tabloda ses kakofonisi olmasın,
-            ses yalnızca maç odasında (match-race) çalar. */}
+        {/* Gol sesi burada da AÇIK: kakofoni korkusuyla liste tamamen
+            sessize alınmıştı ve kullanıcı golü hiç duymuyordu. Kakofoni
+            artık kaynakta çözülü — golSesiCal 2 sn hız sınırlı (bkz.
+            lib/hisler.ts): aynı turda 3 gol = 1 ses. */}
         <GolAni
-          home={m.homeScore} away={m.awayScore} canli={!!m.isLive} sessiz
+          home={m.homeScore} away={m.awayScore} canli={!!m.isLive}
           kimlik={`${m.homeTeam}|${m.awayTeam}|${m.matchDate}`}
         />
         {m.homeScore != null && m.awayScore != null ? (
