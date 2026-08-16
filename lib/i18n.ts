@@ -1344,6 +1344,9 @@ const strings = {
     annDevices:       "{d} cihaz ({u} kullanıcı)",
     annSentOk:        "Gönderildi — push: {n} cihaz",
     annSendFailed:    "Gönderilemedi",
+    // Skor merkezi şeridi
+    finishedStripTitle: "Tamamlanan maçlar",
+    allScores:        "Tüm skorlar",
 
     myPredTitle:      "Benim tahminim",
     segmentNow:       "Şu an:",
@@ -2657,6 +2660,9 @@ const strings = {
     annDevices:       "{d} devices ({u} users)",
     annSentOk:        "Sent — push: {n} devices",
     annSendFailed:    "Could not send",
+    // Score center strip
+    finishedStripTitle: "Finished matches",
+    allScores:        "All scores",
 
     myPredTitle:      "My prediction",
     segmentNow:       "Current:",

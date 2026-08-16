@@ -25,6 +25,7 @@ import Picks1987 from "../../components/Picks1987";
 import GuestBanner from "../../components/GuestBanner";
 import DailyMatchCard from "../../components/DailyMatchCard";
 import KuponKarti from "../../components/KuponKarti";
+import SkorMerkezi from "../../components/SkorMerkezi";
 import GradyanZemin from "../../components/GradyanZemin";
 import { Gradyan } from "../../constants/colors";
 import { hataMesaji } from "../../lib/hataMesaji";
@@ -1614,6 +1615,15 @@ export default function LiveScreen() {
             )}
             {/* ===== MİSAFİR ŞERTI ===== */}
             <GuestBanner />
+
+            {/* ===== SKOR MERKEZİ =====
+                "Bitmiş maçları görmek zor" bildirimi: gerçek sonuç ekranı
+                listenin dibindeki tek düğmenin arkasındaydı. Bu şerit canlı
+                nabzı + son bitenleri en tepede gösterir, /livescores'a
+                götürür. Veri yoksa kendini gizler. */}
+            {(mode === "schedule" || mode === "open") && (
+              <SkorMerkezi country={userCountry} />
+            )}
 
             {/* ===== HAFTALIK KUPON — BİRİNCİL EYLEM =====
                 ⚠️ SIRA DEĞİŞTİ (2026-08-06). Kupon `OyunModlari` içinde altı
