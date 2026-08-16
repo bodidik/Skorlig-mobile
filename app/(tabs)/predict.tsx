@@ -617,12 +617,23 @@ export default function PredictScreen() {
 
   useEffect(() => {
     if (!liveState) {
-      setPredLock({ locked: false });
+      /* ⚠️ DURUM DOSYASI OLMAYAN MAÇ KİLİTSİZ SAYILMAZ (2026-08-16).
+       * Eski hâl `locked:false` basıyordu; oysa sonucu hiç yazılmamış
+       * GEÇMİŞ maçların (OVERDUE_NO_STATE) durum dosyası zaten yok — tam
+       * bu yüzden form açık görünüyor, kullanıcı dolduruyor ve sunucu
+       * 409 ile reddediyordu. Elimizde kickoff varsa kilit kararını
+       * ondan veririz; hiçbir bilgi yoksa eski davranış (kilitsiz) kalır
+       * ki bilinmeyen maçta formu haksız yere kapatmayalım. */
+      const ko = nextMatch?.kickoffISO || (qKickoff ? String(qKickoff) : null);
+      const st = nextMatch?.status || null;
+      setPredLock(
+        ko || st ? computePredLock({ status: st, kickoffISO: ko }) : { locked: false }
+      );
       return;
     }
     setPredLock(computePredLock(liveState));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState]);
+  }, [liveState, nextMatch, qKickoff]);
 
     // URL param değişince fixture'ı güncelle (aynı route'a tekrar push edilse bile)
 useEffect(() => {
