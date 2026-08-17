@@ -139,7 +139,7 @@ export default function MatchRaceScreen() {
       ).then((x) => x.json());
       setData(r);
     } catch (e: any) {
-      setData({ ok: false, error: String(e?.message || e) });
+      setData({ ok: false, error: hataMesaji(e) });
     } finally {
       setLoading(false);
     }

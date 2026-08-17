@@ -74,7 +74,7 @@ export default function PremiumScreen() {
       const r = await apiFetch(`/api/rt/lc-wallet/premium/status?userId=${encodeURIComponent(userId)}`).then((x) => x.json());
       setData(r);
     } catch (e: any) {
-      setData({ ok: false, error: String(e?.message || e) });
+      setData({ ok: false, error: hataMesaji(e) });
     } finally {
       setLoading(false);
     }

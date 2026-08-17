@@ -94,7 +94,7 @@ export default function MiniBoardScreen() {
       const r = await apiFetch(`/api/mini/board?id=${encodeURIComponent(id)}&userId=${encodeURIComponent(userId)}`).then((x) => x.json());
       setData(r);
     } catch (e: any) {
-      setData({ ok: false, error: String(e?.message || e) });
+      setData({ ok: false, error: hataMesaji(e) });
     } finally {
       setLoading(false);
     }

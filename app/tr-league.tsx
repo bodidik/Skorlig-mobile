@@ -13,6 +13,7 @@ import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 import { puanYaz } from "../lib/lcBicim";
+import { hataMesaji } from "../lib/hataMesaji";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -98,7 +99,7 @@ export default function TrLeagueScreen() {
       const r = await apiFetch(path).then((x) => x.json());
       setData(r);
     } catch (e: any) {
-      setData({ ok: false, error: String(e?.message || e) });
+      setData({ ok: false, error: hataMesaji(e) });
     } finally {
       setLoading(false);
     }
