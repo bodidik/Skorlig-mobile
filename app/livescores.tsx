@@ -485,7 +485,10 @@ export default function LiveScoresScreen() {
         setLastUpdate(new Date(j.ts).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }));
       }
     } catch (e: any) {
-      setError(e.message || t("connError"));
+      /* Ekranda zaten `hataMesaji(error)` ile basılıyor ama ham
+       * `Error.message` sözlükte olmadığı için yedek cümleye düşmüyor,
+       * olduğu gibi geçiyordu — çeviri kaynakta yapılınca tek yerde dürüst. */
+      setError(hataMesaji(e?.message || e, t("connError")));
     } finally {
       setLoading(false);
       setRefreshing(false);

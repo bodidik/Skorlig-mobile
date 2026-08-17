@@ -11,6 +11,7 @@ import { auth } from "../lib/firebase";
 /* Jetonu otomatik ekler — sunucu kendi tahminini yalnızca doğrulanmış
  * kimliğe veriyor (bkz. api/routes/weekly-picks.cjs). */
 import { apiFetch } from "../lib/apiFetch";
+import { hataMesaji } from "../lib/hataMesaji";
 import { ligEtiketi } from "../lib/ulkeler";
 import { t, useLang } from "../lib/i18n";
 
@@ -85,7 +86,8 @@ export default function BigFourPicks() {
       if (j.ok) setPicks(j.picks ?? []);
       else setError(j.error ?? "Hata");
     } catch (e: any) {
-      setError(e.message);
+      // Ham hata nesnesi kullanıcıya basılmaz (bkz. lib/hataMesaji.ts).
+      setError(hataMesaji(e?.message || e, t("connError")));
     } finally {
       setLoading(false);
       setRefreshing(false);
