@@ -675,7 +675,7 @@ export default function DuelScreen() {
             body: JSON.stringify({ duelId: duel.id }),
           });
           const j = await r.json();
-          if (!j?.ok) { showToast(j?.error || "Hata", false); return; }
+          if (!j?.ok) { showToast(j?.error || t("error"), false); return; }
           showToast(`Meydan okuma iptal edildi. ${duel.stake} LC iade edildi.`);
           loadAll();
         },

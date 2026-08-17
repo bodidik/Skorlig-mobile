@@ -84,7 +84,7 @@ export default function BigFourPicks() {
       const res = await apiFetch(`/api/weekly-picks${qs}`);
       const j = await res.json();
       if (j.ok) setPicks(j.picks ?? []);
-      else setError(j.error ?? "Hata");
+      else setError(j.error ?? t("error"));
     } catch (e: any) {
       // Ham hata nesnesi kullanıcıya basılmaz (bkz. lib/hataMesaji.ts).
       setError(hataMesaji(e?.message || e, t("connError")));
@@ -204,7 +204,7 @@ export default function BigFourPicks() {
             ) : pick.open ? (
               <View style={s.btnRow}>
                 {(["H", "D", "A"] as Outcome[]).map(o => {
-                  const label  = o === "H" ? "1 Ev" : o === "D" ? "X Beraberlik" : "2 Dep";
+                  const label  = o === "H" ? `1 ${t("home")}` : o === "D" ? `X ${t("draw")}` : `2 ${t("awayAbbr")}`;
                   const active = pick.pred?.outcome === o;
                   const busy   = submitting === pick.fixtureId + o;
                   return (

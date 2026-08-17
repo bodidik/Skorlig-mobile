@@ -1504,7 +1504,7 @@ export default function LiveScreen() {
         setAddKickoff("");
         onRefresh();
       } else {
-        setAddMsg(`Hata: ${j?.error || "?"}`);
+        setAddMsg(`${t("error")}: ${j?.error || "?"}`);
       }
     } finally {
       setAddBusy(false);
@@ -2299,7 +2299,7 @@ export default function LiveScreen() {
 
                 <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 11, color: Colors.muted, marginBottom: 4 }}>Skor (H)</Text>
+                    <Text style={{ fontSize: 11, color: Colors.muted, marginBottom: 4 }}>{t("scoreHomeLbl")}</Text>
                     <TextInput
                       value={admHome}
                       onChangeText={setAdmHome}
@@ -2316,7 +2316,7 @@ export default function LiveScreen() {
                     />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 11, color: Colors.muted, marginBottom: 4 }}>Skor (A)</Text>
+                    <Text style={{ fontSize: 11, color: Colors.muted, marginBottom: 4 }}>{t("scoreAwayLbl")}</Text>
                     <TextInput
                       value={admAway}
                       onChangeText={setAdmAway}
@@ -2553,7 +2553,7 @@ export default function LiveScreen() {
                       alignItems: "center",
                     }}
                   >
-                    <Text style={{ color: "#111827", fontWeight: "800", fontSize: 12 }}>Kapat</Text>
+                    <Text style={{ color: "#111827", fontWeight: "800", fontSize: 12 }}>{t("close")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -2584,7 +2584,7 @@ export default function LiveScreen() {
                   <View style={{ padding: 12, gap: 10 }}>
                     <View style={{ flexDirection: "row", gap: 8 }}>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 11, color: Colors.muted, marginBottom: 4 }}>Ev Sahibi</Text>
+                        <Text style={{ fontSize: 11, color: Colors.muted, marginBottom: 4 }}>{t("home")}</Text>
                         <TextInput
                           value={addHome}
                           onChangeText={setAddHome}
@@ -2593,7 +2593,7 @@ export default function LiveScreen() {
                         />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 11, color: Colors.muted, marginBottom: 4 }}>Deplasman</Text>
+                        <Text style={{ fontSize: 11, color: Colors.muted, marginBottom: 4 }}>{t("away")}</Text>
                         <TextInput
                           value={addAway}
                           onChangeText={setAddAway}

@@ -211,7 +211,7 @@ export default function TrLeagueScreen() {
         <>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
             <Text style={{ fontWeight: "800", fontSize: 15, color: Colors.slate900 }}>
-              {data.weekKey?.replace(/^\d+-W/, "Hafta ")}
+              {data.weekKey?.replace(/^\d+-W/, t("weekPrefix"))}
             </Text>
             {data.weekRange?.fromISO && (
               <Text style={{ color: Colors.muted, fontSize: 11 }}>

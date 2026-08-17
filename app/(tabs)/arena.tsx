@@ -143,7 +143,7 @@ function MiniDuelRow({ duel, userId, myName, lcBalance, onAccepted, onError }: {
       setAccepted(true);
       onAccepted(duel.id);
     } catch (e: any) {
-      onError(String(e?.message || "Hata"));
+      onError(String(e?.message || t("error")));
     } finally {
       setSitting(false);
     }

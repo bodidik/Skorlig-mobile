@@ -62,7 +62,7 @@ export default function Gs1987VerifyScreen() {
         j = txt ? JSON.parse(txt) : null;
       } catch {
         Alert.alert(
-          "Hata",
+          t("error"),
           t("unexpectedResp") + `\n\n${txt.slice(0, 300)}`
         );
         return;

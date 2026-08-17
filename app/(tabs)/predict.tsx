@@ -876,7 +876,7 @@ useEffect(() => {
       j = rawText ? JSON.parse(rawText) : null;
     } catch {
       Alert.alert(
-        "Hata",
+        t("error"),
         t("unexpectedResp") + `\n\n${rawText.slice(0, 300)}`
       );
       return;

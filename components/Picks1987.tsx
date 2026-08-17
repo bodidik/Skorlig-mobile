@@ -75,7 +75,7 @@ function MicroPanel({
       <Text style={mp.label}>{t("matchOutcomeTitle")}</Text>
       <View style={mp.row}>
         {(["H", "D", "A"] as Outcome[]).map(o => {
-          const lbl = o === "H" ? `1  ${pick.home.split(" ")[0]}` : o === "D" ? "X  Beraberlik" : `2  ${pick.away.split(" ")[0]}`;
+          const lbl = o === "H" ? `1  ${pick.home.split(" ")[0]}` : o === "D" ? `X  ${t("draw")}` : `2  ${pick.away.split(" ")[0]}`;
           const on  = draft.outcome === o;
           return (
             <TouchableOpacity key={o} style={[mp.btn, on && mp.btnOn]} onPress={() => set("outcome", on ? null : o)}>

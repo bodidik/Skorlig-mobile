@@ -258,7 +258,7 @@ export default function Me() {
         setBanReason("");
         loadBannedList();
       } else {
-        setBanMsg(`Hata: ${j.error}`);
+        setBanMsg(`${t("error")}: ${j.error}`);
       }
     } catch (e: any) { setBanMsg(e.message); }
     setBanBusy(false);
@@ -1111,7 +1111,7 @@ export default function Me() {
                   backgroundColor: Colors.primary,
                 }}
               >
-                <Text style={{ color: Colors.onAccent, fontWeight: "900", fontSize: 12 }}>Kaydet</Text>
+                <Text style={{ color: Colors.onAccent, fontWeight: "900", fontSize: 12 }}>{t("save")}</Text>
               </TouchableOpacity>
             </View>
 
