@@ -5,6 +5,8 @@ import GradyanZemin from "./GradyanZemin";
 import { Gradyan } from "../constants/colors";
 
 type Tier = { threshold: number; bonus: number; label: string } | null;
+/** Sunucunun yayımladığı eşik listesi (/api/live/streak → tiers). */
+export type SunucuTier = { threshold: number; bonus?: number; label?: string; badge?: string | null };
 
 type Props = {
   seriesCumOdds: number;
@@ -12,6 +14,8 @@ type Props = {
   activeSeries: boolean;
   bestSeries: number;
   currentTier: Tier;
+  /** Sunucudan gelen eşikler; verilmezse yedek liste kullanılır. */
+  tiers?: SunucuTier[] | null;
 };
 
 /* StringKey tipi: t() dinamik anahtarla çağrılınca TS 1222 seçenekli union
@@ -22,15 +26,48 @@ export const TIER_KEYS: Record<string, StringKey> = {
   "Ateşte": "streakOnFire",
   "Durdurulamıyor": "streakUnstoppable",
 };
-const TIERS: { threshold: number; labelKey: StringKey; emoji: string }[] = [
-  { threshold: 5, labelKey: "streakWarmup", emoji: "🔥" },
-  { threshold: 10, labelKey: "streakOnFire", emoji: "🔥🔥" },
-  { threshold: 20, labelKey: "streakUnstoppable", emoji: "💥" },
+/**
+ * ⚠️ EŞİKLER SUNUCUDAN GELİR — BURADAKİ LİSTE YALNIZCA YEDEK.
+ *
+ * ÖLÇÜLEN KUSUR (2026-08-17): bu dosya kendi eşik kopyasını tutuyordu ve
+ * sunucudan AYRIŞMIŞTI:
+ *
+ *     sunucu (services/streak.cjs) : 10 · 20 · 40
+ *     ekran  (bu dosya)            :  5 · 10 · 20
+ *
+ * Sonuç: kullanıcı 5'e ulaşınca çubuk DOLUYOR ve ipucu "Isınıyor'a ulaştın"
+ * diyordu, ama sunucu bonusu 10'da veriyor — ödül hiç gelmiyordu. Ekran
+ * ödül vaat edip tutmayınca mekanik bağlayıcı olmaktan çıkar, bozuk görünür.
+ *
+ * `/api/live/streak` yanıtı `tiers` dizisini ZATEN yayımlıyordu; ekran onu
+ * kullanmıyordu. Bu depoda yazılı kural: kuralı sunucu bilir, ekran tahmin
+ * etmez. Yedek liste yalnızca sunucu alanı hiç göndermezse devreye girer ve
+ * sunucudaki değerlerle AYNI tutulur.
+ */
+const YEDEK_TIERS: { threshold: number; labelKey: StringKey; emoji: string }[] = [
+  { threshold: 10, labelKey: "streakWarmup", emoji: "🔥" },
+  { threshold: 20, labelKey: "streakOnFire", emoji: "🔥🔥" },
+  { threshold: 40, labelKey: "streakUnstoppable", emoji: "💥" },
 ];
 
-export default function StreakBar({ seriesCumOdds, seriesCount, activeSeries, bestSeries, currentTier }: Props) {
+/** Sunucudan gelen eşikleri ekran biçimine çevirir. */
+function tierListesi(sunucu?: SunucuTier[] | null) {
+  if (!Array.isArray(sunucu) || !sunucu.length) return YEDEK_TIERS;
+  const emoji = ["🔥", "🔥🔥", "💥"];
+  return sunucu
+    .filter((x) => Number.isFinite(Number(x?.threshold)))
+    .sort((a, b) => Number(a.threshold) - Number(b.threshold))
+    .map((x, i) => ({
+      threshold: Number(x.threshold),
+      labelKey: TIER_KEYS[String(x.label)] ?? YEDEK_TIERS[i]?.labelKey ?? "streakWarmup",
+      emoji: emoji[i] ?? "🔥",
+    }));
+}
+
+export default function StreakBar({ seriesCumOdds, seriesCount, activeSeries, bestSeries, currentTier, tiers }: Props) {
   useLang(); // dil değişince yeniden çizilsin
 
+  const TIERS = tierListesi(tiers);
   const nextTier = TIERS.find(ti => ti.threshold > seriesCumOdds) || TIERS[TIERS.length - 1];
   const progress = nextTier ? Math.min(1, seriesCumOdds / nextTier.threshold) : 1;
 

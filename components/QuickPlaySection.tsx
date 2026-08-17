@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, StyleSheet, ScrollView } from "react-native";
 import QuickPickCard, { PickFixture } from "./QuickPickCard";
-import StreakBar from "./StreakBar";
+import StreakBar, { type SunucuTier } from "./StreakBar";
 import { apiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 
@@ -16,6 +16,9 @@ type StreakData = {
   activeSeries: boolean;
   bestSeries: number;
   currentTier: { threshold: number; bonus: number; label: string } | null;
+  /* ⚠️ Eşikler sunucudan taşınır; ekranın kendi kopyası sunucudan ayrışmıştı
+   * (5/10/20 ↔ 10/20/40) ve çubuk ulaşılmamış bir ödülü vaat ediyordu. */
+  tiers?: SunucuTier[] | null;
 };
 
 export default function QuickPlaySection({ country, userId }: Props) {
@@ -88,6 +91,7 @@ export default function QuickPlaySection({ country, userId }: Props) {
           activeSeries={streak.activeSeries}
           bestSeries={streak.bestSeries}
           currentTier={streak.currentTier}
+          tiers={streak.tiers}
         />
       )}
 
