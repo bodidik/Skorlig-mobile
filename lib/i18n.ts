@@ -33,6 +33,10 @@ const strings = {
     myCountry:     "Ülkem",
     selectTeam:    "Takım Seç",
     selectCountry: "Ülke Seç",
+    /* Katalogda takımı olmayan ülkeler için (ölçüldü: seçilebilir 96 ülkenin
+     * 68'i). Boş liste sessiz kalmamalı; kullanıcı takımsız da oynayabildiğini
+     * bilmeli, yoksa akış tıkanmış gibi görünür. */
+    teamListEmpty: "Bu ülkenin takım listesi henüz hazır değil. Takım seçmeden de oynayabilirsin; maçlar ve sıralama açık.",
     appTagline:    "Tahmin et, seri yap, zirveye oyna",
     youWonTitle:   "KAZANDIN!",
     youWonSub:     "Sen yokken maçların sonuçlandı — tahminlerin tuttu.",
@@ -1411,6 +1415,7 @@ const strings = {
     myCountry:     "My Country",
     selectTeam:    "Select Team",
     selectCountry: "Select Country",
+    teamListEmpty: "The team list for this country isn't ready yet. You can play without picking a team; matches and rankings are open.",
     appTagline:    "Predict, streak, play for the top",
     youWonTitle:   "YOU WON!",
     youWonSub:     "Matches settled while you were away — your predictions hit.",

@@ -1964,6 +1964,15 @@ export default function Me() {
               />
               {teamsLoading ? (
                 <ActivityIndicator size="small" color={Colors.accent} />
+              ) : !countryTeams.length ? (
+                /* ⚠️ BOŞ LİSTE SESSİZ KALMAZ. Ölçüldü (2026-08-17): seçilebilir
+                 * 96 ülkenin 68'inde takım kataloğu boş ve seçici bu durumda
+                 * arama kutusunun altında HİÇBİR ŞEY basmıyordu — kullanıcı
+                 * akışın tıkandığını sanıyor. Eksik olan içerik; kullanıcının
+                 * yapabileceği bir yanlış yok ve takımsız da oynayabiliyor. */
+                <Text style={{ color: Colors.muted, fontSize: 13, lineHeight: 18 }}>
+                  {t("teamListEmpty")}
+                </Text>
               ) : (
                 <View style={{ gap: 4 }}>
                   {(teamSearch
