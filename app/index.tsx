@@ -491,8 +491,16 @@ export default function WelcomeScreen() {
                 );
               }}
               ListEmptyComponent={
-                <Text style={{ color: "#475569", fontSize: 13, textAlign: "center", paddingVertical: 24 }}>
-                  {t("noTeamMatch")}
+                /* ⚠️ İKİ BOŞ DURUM AYRI ŞEY.
+                 *
+                 * "Eşleşen takım yok" bir ARAMA sonucudur. Ölçüldü
+                 * (2026-08-17): seçilebilir 96 ülkenin 68'inde takım kataloğu
+                 * boş, yani o ülkelerden gelen kullanıcı hiçbir şey YAZMADAN
+                 * bu mesajı görüyordu — kendi yaptığı bir yanlış varmış gibi.
+                 * Eksik olan içerik ve takım adımı zaten isteğe bağlı; metin
+                 * bunu söylüyor ve oyuna devam yolunu gösteriyor. */
+                <Text style={{ color: "#475569", fontSize: 13, textAlign: "center", paddingVertical: 24, paddingHorizontal: 24, lineHeight: 19 }}>
+                  {allTeams.length === 0 ? t("teamListEmpty") : t("noTeamMatch")}
                 </Text>
               }
             />
