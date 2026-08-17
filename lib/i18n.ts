@@ -1307,6 +1307,9 @@ const strings = {
     rowStats:         "{m} maç · {p} puan · Ceza: {c}",
     needMoreMatches:  "Sıralamaya girmek için {n} maç daha",
     matchAvg:         "maç ort.",
+    /* Eşik altındaki satırda gösterilen tavansız değer. "maç ort." demek
+     * yanıltıcı olurdu: bu sayı sıralamayı açıklar ama henüz resmî değil. */
+    provisionalAvg:   "geçici ort.",
     showMore:         "Daha fazla göster ({n} kaldı)",
     teamOf:           "Takım: {t}",
     myDetails:        "Benim detaylarım (global sezon)",
@@ -2624,6 +2627,7 @@ const strings = {
     rowStats:         "{m} matches · {p} points · Penalty: {c}",
     needMoreMatches:  "{n} more matches to enter the rankings",
     matchAvg:         "match avg.",
+    provisionalAvg:   "provisional",
     showMore:         "Show more ({n} left)",
     teamOf:           "Team: {t}",
     myDetails:        "My details (global season)",

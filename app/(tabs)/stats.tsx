@@ -29,6 +29,9 @@ type TotRow = {
   matches: number;
   /** Sıralama anahtarı: güven ağırlıklı maç-başı ortalama (API: rating) */
   rating?: number;
+  /** Tavansız hâli (API: ratingRaw). Eşik ALTINDA gösterilen sayı budur —
+   *  `rating` orada herkeste tavana sabit olduğu için tabloyu okunamaz kılıyor. */
+  ratingRaw?: number;
   /** Ham maç-başı ortalama (API: avg) */
   avg?: number;
   /**
@@ -350,6 +353,9 @@ export default function StatsScreen() {
             totalPenalty: penalties,
             matches,
             rating: t.rating != null ? Number(t.rating) : undefined,
+            // ⚠️ Eşlemeye kopyalanmayan alan ekranda HİÇ görünmez — bu dosyada
+            // aynı tuzağa qualified/minPlayed/cups ile üç kez düşülmüş.
+            ratingRaw: t.ratingRaw != null ? Number(t.ratingRaw) : undefined,
             avg: t.avg != null ? Number(t.avg) : undefined,
             // ⚠️ Bu iki alan eşlemede DÜŞÜYORDU: sunucu gönderiyor, tip tanımı
             // vardı, satır bileşeni okuyordu — ama buraya kopyalanmadığı için
@@ -1060,15 +1066,30 @@ export default function StatsScreen() {
                                 (yeşil), sıfır altı başarısız (kırmızı). Puan LC gibi
                                 değil — eksi görünmeli ki kesintiler anlam taşısın. */}
                             {(() => {
-                              const deger = r.rating != null ? r.rating : Number(r.totalPoints || 0);
+                              /* ⚠️ EŞİK ALTINDA GÖSTERİLEN SAYI `rating` DEĞİL.
+                               *
+                               * ÖLÇÜLDÜ (2026-08-17, canlı): tablodaki 200 satırın
+                               * tamamı eşik altında, yani hepsinin `rating` değeri
+                               * tavana (havuz ortalaması) sabit — ekranda 200 satır da
+                               * "3.7" yazıyor ama sıraları farklı. Kullanıcı aynı sayıya
+                               * sahip 200 kişinin neden farklı sırada olduğunu göremiyor,
+                               * tablo keyfî görünüyor.
+                               *
+                               * Sırayı belirleyen değer tavansız `ratingRaw`; eşik
+                               * altında onu "geçici" olarak gösteriyoruz. Eşik üstünde
+                               * iki değer zaten eşit. Sıralama DEĞİŞMEDİ — bu yalnızca
+                               * gösterim. */
+                              const gecici = r.qualified === false && r.ratingRaw != null;
+                              const gosterilen = gecici ? r.ratingRaw! : r.rating;
+                              const deger = gosterilen != null ? gosterilen : Number(r.totalPoints || 0);
                               const artida = deger >= 0;
                               return (
                                 <View style={{ alignItems: "flex-end" }}>
                                   <Text style={{ color: artida ? "#a3e635" : "#f87171", fontWeight: "700", fontSize: 15 }}>
-                                    {artida ? "" : ""}{r.rating != null ? r.rating.toFixed(1) : r.totalPoints}
+                                    {gosterilen != null ? gosterilen.toFixed(1) : r.totalPoints}
                                   </Text>
                                   <Text style={{ color: Colors.muted, fontSize: 9 }}>
-                                    {r.rating != null ? t("matchAvg") : t("points")}
+                                    {gosterilen == null ? t("points") : gecici ? t("provisionalAvg") : t("matchAvg")}
                                   </Text>
                                 </View>
                               );
