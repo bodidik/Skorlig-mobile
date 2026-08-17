@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import QuickPickCard, { PickFixture } from "./QuickPickCard";
 import { apiFetch } from "../lib/apiFetch";
+import { hataMesaji } from "../lib/hataMesaji";
 import { t, useLang } from "../lib/i18n";
 
 type Props = {
@@ -71,10 +72,13 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
         setCreatedCode(json.tournament.code);
         onCreated?.(json.tournament.code);
       } else {
-        Alert.alert(t("error"), json.error || t("createFailed2"));
+        /* ⚠️ SUNUCU KODU HAM GÖSTERİLİYORDU: `json.error` "LC_NOT_ENOUGH"
+         * gibi bir dize ve kullanıcı bunu okuyamaz. `hataMesaji` sözlüğü
+         * tam bunun için var (bkz. lib/hataMesaji.ts başlığı). */
+        Alert.alert(t("error"), hataMesaji(json.error, t("createFailed2")));
       }
     } catch (e: any) {
-      Alert.alert("Hata", e.message);
+      Alert.alert(t("error"), hataMesaji(e?.message || e, t("createFailed2")));
     }
     setCreating(false);
   }

@@ -142,7 +142,11 @@ export default function ProfileUserScreen() {
         setLcBalance(walRes.value.user?.balance ?? null);
       }
     } catch (e: any) {
-      setError(String(e?.message || e));
+      /* Ham hata nesnesi kullanıcıya basılmaz. Ekranda zaten
+       * `hataMesaji(error, ...)` ile gösteriliyor ama ham `Error.message`
+       * sözlükte olmadığı için yedek cümleye düşmüyor, olduğu gibi
+       * geçiyordu — kod burada çevrilirse tek yerde dürüst olur. */
+      setError(hataMesaji(e?.message || e, t("userUnreachable")));
     } finally {
       setLoading(false);
     }

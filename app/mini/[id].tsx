@@ -13,6 +13,7 @@ import * as Clipboard from "expo-clipboard";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
 import { puanYaz } from "../../lib/lcBicim";
 const t2 = t; // `t` degiskeni (turnuva) golgelemesi icin takma ad
@@ -127,16 +128,21 @@ export default function MiniBoardScreen() {
         Alert.alert("SkorLig", r.already ? t2("alreadyInTour") : t2("addedToTour", { u: friendUserId }));
         load();
       } else {
+        /* ⚠️ `r?.error` HAM KOD (ör. "LC_NOT_ENOUGH") — kullanıcı okuyamaz.
+         * Bilinen iki kod için özel cümle korunuyor, geri kalan sözlüğe
+         * düşüyor (bkz. lib/hataMesaji.ts). */
         const msg =
           r?.error === "NOT_FRIENDS"
             ? t2("notInFriends")
             : r?.error === "TOURNAMENT_FULL"
             ? t2("tourFull")
-            : r?.error || t2("inviteFailed2");
+            : hataMesaji(r?.error, t2("inviteFailed2"));
         Alert.alert("SkorLig", msg);
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      // Ham hata nesnesi kullanıcıya basılmaz (bkz. lib/hataMesaji.ts).
+      // ⚠️ `t` bu dosyada YEREL bir değişkenle gölgeli; i18n çağrısı `t2`.
+      Alert.alert("SkorLig", hataMesaji(e?.message || e, t2("inviteFailed2")));
     } finally {
       setInviting(null);
     }

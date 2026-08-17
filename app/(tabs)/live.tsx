@@ -945,7 +945,12 @@ export default function LiveScreen() {
       if (list.length === 0) setError(null);
     } catch (e: any) {
       // Eski liste korunur — bkz. yukarıdaki !ok yolundaki not.
-      setError(String(e?.message || e));
+      /* ⚠️ HAM HATA KULLANICIYA BASILMAZ. `String(e.message)` ekrana
+       * "AbortError: The operation was aborted due to timeout" gibi bir
+       * satır yazıyordu; kullanıcı bunu okuyamaz ve okuyamadığı bir
+       * hatada yapabileceği bir şey de yoktur. `hataMesaji` kodu insan
+       * cümlesine çeviriyor, ham kodu yalnızca __DEV__'de gösteriyor. */
+      setError(hataMesaji(e?.message || e, t("connError")));
       setWin(null);
       setWinDays(null);
       setCap(null);
@@ -994,7 +999,12 @@ export default function LiveScreen() {
       if (list.length === 0) setError(null);
     } catch (e: any) {
       // Eski liste korunur — bkz. yukarıdaki !ok yolundaki not.
-      setError(String(e?.message || e));
+      /* ⚠️ HAM HATA KULLANICIYA BASILMAZ. `String(e.message)` ekrana
+       * "AbortError: The operation was aborted due to timeout" gibi bir
+       * satır yazıyordu; kullanıcı bunu okuyamaz ve okuyamadığı bir
+       * hatada yapabileceği bir şey de yoktur. `hataMesaji` kodu insan
+       * cümlesine çeviriyor, ham kodu yalnızca __DEV__'de gösteriyor. */
+      setError(hataMesaji(e?.message || e, t("connError")));
       setWin(null);
       setWinDays(null);
       setCap(null);

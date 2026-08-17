@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors, { on } from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
 import { useUserId } from "../../lib/useUserId";
 
@@ -140,7 +141,8 @@ export default function MiniCreateScreen() {
         Alert.alert(t("error"), r?.error || t("createFailed"));
       }
     } catch (e: any) {
-      Alert.alert("Hata", String(e?.message || e));
+      // Ham hata nesnesi kullanıcıya basılmaz (bkz. lib/hataMesaji.ts).
+      Alert.alert(t("error"), hataMesaji(e?.message || e, t("createFailed")));
     } finally {
       setCreating(false);
     }

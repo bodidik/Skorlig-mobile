@@ -6,6 +6,7 @@ import {
 import { useFocusEffect } from "expo-router";
 import BackBar from "../components/BackBar";
 import { apiFetch } from "../lib/apiFetch";
+import { hataMesaji } from "../lib/hataMesaji";
 import { t, useLang } from "../lib/i18n";
 
 type Announcement = {
@@ -39,7 +40,8 @@ export default function AnnouncementsScreen() {
       if (!res.ok || !j?.ok) throw new Error(j?.error || t("annLoadFailed"));
       setItems(Array.isArray(j.items) ? j.items : []);
     } catch (e: any) {
-      setErr(String(e?.message || e));
+      // Ham hata nesnesi kullanıcıya basılmaz (bkz. lib/hataMesaji.ts).
+      setErr(hataMesaji(e?.message || e, t("annLoadFailed")));
     }
   }, []);
 
