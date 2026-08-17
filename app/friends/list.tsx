@@ -328,12 +328,12 @@ export default function FriendsListScreen() {
             marginBottom: 6,
           }}
         >
-          Gönderdiğim İstekler
+          {t("sentRequests")}
         </Text>
 
         {pendingOut.length === 0 ? (
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Halen bekleyen gönderilmiş isteğin yok.
+            {t("noPendingSent")}
           </Text>
         ) : (
           pendingOut.map((r, ix) => {
@@ -388,13 +388,12 @@ export default function FriendsListScreen() {
             marginBottom: 6,
           }}
         >
-          Arkadaş Listesi
+          {t("friendListTitle")}
         </Text>
 
         {friends.length === 0 ? (
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
-            Henüz arkadaşın yok. Profil ekranından veya Arkadaş Ligi ekranından
-            istek gönderebilirsin.
+            {t("noFriendsYet")}
           </Text>
         ) : (
           friends.map((f, ix) => {

@@ -896,6 +896,16 @@ const strings = {
     leagueLoadFailed: "Lig yüklenemedi: {e}",
     // küçük bileşenler (11. dalga)
     yourCountryGrp:   "Ülkeniz",
+    /* Çöküş ekranı — kullanıcıların çoğu Türkçe konuşmuyor (ölçüldü: son beş
+     * gerçek kaydın dördü USA). Uygulamanın en kötü anında anlamadığı bir dil
+     * görmesi, hatayı iki kat kötü yapar. */
+    sentRequests:     "Gönderdiğim İstekler",
+    noPendingSent:    "Halen bekleyen gönderilmiş isteğin yok.",
+    friendListTitle:  "Arkadaş Listesi",
+    noFriendsYet:     "Henüz arkadaşın yok. Profil ekranından veya Arkadaş Ligi ekranından istek gönderebilirsin.",
+    crashTitle:       "Bir şeyler ters gitti",
+    crashBody:        "Beklenmeyen bir hata oluştu ve ekran yüklenemedi. Verilerin güvende; tekrar denemen yeterli.",
+    crashRetry:       "Tekrar dene",
     /* Ülkenin en üst ligi ayrı başlık aldı; bu, aynı ülkenin alt lig ve
      * kupa maçlarının başlığı (bkz. components/GroupHeader). */
     countryOtherGrp:  "Diğer ligler ve kupalar",
@@ -2233,6 +2243,13 @@ const strings = {
     thisWeekMatches:  "This Week's Matches",
     leagueLoadFailed: "Could not load the league: {e}",
     yourCountryGrp:   "Your Country",
+    sentRequests:     "Sent Requests",
+    noPendingSent:    "No pending sent requests.",
+    friendListTitle:  "Friends",
+    noFriendsYet:     "No friends yet. Send a request from a profile or from the Friends League screen.",
+    crashTitle:       "Something went wrong",
+    crashBody:        "An unexpected error stopped this screen from loading. Your data is safe — just try again.",
+    crashRetry:       "Try again",
     countryOtherGrp:  "Other leagues & cups",
     cupsGrp:          "European & World Cups",
     bigLeagues:       "Big Leagues",
