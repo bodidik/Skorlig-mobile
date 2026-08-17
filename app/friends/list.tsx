@@ -82,7 +82,7 @@ export default function FriendsListScreen() {
       setFriends([]);
       setPendingIn([]);
       setPendingOut([]);
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setLoading(false);
     }
@@ -120,7 +120,7 @@ export default function FriendsListScreen() {
         Alert.alert(t("error"), hataMesaji(j?.error));
       }
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     }
   }
 
@@ -145,7 +145,7 @@ export default function FriendsListScreen() {
         Alert.alert(t("error"), hataMesaji(j?.error));
       }
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     }
   }
 

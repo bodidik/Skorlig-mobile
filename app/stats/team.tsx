@@ -14,6 +14,7 @@ import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
 import { puanYaz } from "../../lib/lcBicim";
+import { hataMesaji } from "../../lib/hataMesaji";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -72,10 +73,14 @@ export default function TeamTotalsScreen() {
     try {
       setLoading(true);
 
-      // Not: backend path'in farklıysa sadece bu satırı değiştir.
-      const url = `/api/rt/team-totals?team=${encodeURIComponent(
-        tName
-      )}&userId=${encodeURIComponent(userId)}`;
+      /* ⚠️ YOL DÜZELTİLDİ: `/api/rt/team-totals` diye bir uç YOK (404) — bu
+       * ekran hiçbir zaman veri göstermedi. Aynı sınıf hata kings, board2,
+       * live-fav ve stats-fav ekranlarında da vardı; bu, listede parkta
+       * bekleyen sonuncularından biriydi.
+       *
+       * Gerçek uç `/api/stats/team-ranks` ve `userId` İSTEMİYOR: takımın
+       * kadrosunu ve puanlarını takım adından çözüyor. */
+      const url = `/api/stats/team-ranks?team=${encodeURIComponent(tName)}`;
 
       const j: any = await fetchJson(url);
 
@@ -88,7 +93,12 @@ export default function TeamTotalsScreen() {
       const rows: TeamRow[] = Array.isArray(j.items)
         ? j.items.map((x: any) => ({
             userId: String(x.userId || x.userIdLower || ""),
-            points: Number(x.points ?? x.totalPoints ?? 0),
+            /* ⚠️ ALAN ADI `total`. Uç `points` DEĞİL `total` döndürüyor;
+             * yalnızca yolu düzeltmek yetmezdi — her satır 0 puan görünür ve
+             * ekran "çalışıyor ama herkes sıfır" gibi, daha da yanıltıcı
+             * olurdu. Bu depoda aynı tuzağa qualified/minPlayed/cups ve
+             * ratingRaw ile de düşülmüş. */
+            points: Number(x.total ?? x.points ?? x.totalPoints ?? 0),
             team: x.team ?? null,
             flag: x.flag ?? null,
           }))
@@ -101,7 +111,9 @@ export default function TeamTotalsScreen() {
     } catch (e: any) {
       setItems([]);
       setUpdatedAt(null);
-      Alert.alert(t("error"), String(e?.message || e));
+      /* ⚠️ HAM HATA BASILMIYOR: kullanıcı "AbortError: ..." okuyamaz ve
+       * okuyamadığı bir hatada yapabileceği bir şey de yoktur. */
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setLoading(false);
     }

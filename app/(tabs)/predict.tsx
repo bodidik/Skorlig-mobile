@@ -10,6 +10,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { sharePrediction } from "../../lib/share";
 import { t, useLang } from "../../lib/i18n";
 import { TIER_KEYS } from "../../components/StreakBar";
+import { hataMesaji } from "../../lib/hataMesaji";
 
 type Outcome = "H" | "D" | "A" | null;
 type Side = "H" | "A" | null;
@@ -334,7 +335,7 @@ export default function PredictScreen() {
               Alert.alert(t("error"), j?.error || t("cancelFailed"));
             }
           } catch (e: any) {
-            Alert.alert(t("error"), String(e?.message || e));
+            Alert.alert(t("error"), hataMesaji(e));
           }
         },
       },
@@ -892,7 +893,7 @@ useEffect(() => {
     const gain = sel.gain;
     setJustSubmitted({ wasUpdate, gain });
   } catch (e: any) {
-    Alert.alert(t("error"), String(e?.message || e));
+    Alert.alert(t("error"), hataMesaji(e));
   } finally {
     setSending(false);
   }

@@ -254,7 +254,7 @@ export default function Picks1987() {
       /* ⚠️ SESSIZ CATCH IDI: API hatasi bildiriliyordu ama AG hatasi degil.
        * Cevrimdisiyken kullanici secimini gonderiyor, hicbir sey olmuyor ve
        * hata da gormuyor — secimi kaydedildi saniyor. */
-      Alert.alert(t("connError"), String(e?.message || e));
+      Alert.alert(t("connError"), hataMesaji(e));
     }
     setSubmitting(null);
   };

@@ -14,6 +14,7 @@ import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
+import { hataMesaji } from "../../lib/hataMesaji";
 const t2 = t; // map(t) golgelemesi icin takma ad
 
 /**
@@ -95,7 +96,7 @@ export default function MiniTournamentsScreen() {
         Alert.alert("SkorLig", msg);
       }
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setJoining(false);
     }

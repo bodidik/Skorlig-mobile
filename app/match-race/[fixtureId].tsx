@@ -246,7 +246,7 @@ export default function MatchRaceScreen() {
               }
               setBlocked(!blocked);
             } catch (e: any) {
-              Alert.alert(t("connError"), String(e?.message || e));
+              Alert.alert(t("connError"), hataMesaji(e));
             }
           },
         },

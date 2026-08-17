@@ -13,6 +13,7 @@ import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
+import { hataMesaji } from "../../lib/hataMesaji";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -110,7 +111,7 @@ export default function StatsMeScreen() {
       setTeam("");
       setTotal(0);
       setItems([]);
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setLoading(false);
     }

@@ -126,7 +126,7 @@ export default function FriendsBoardScreen() {
           Alert.alert(t("error"), hataMesaji(j?.error));
         }
       } catch (e: any) {
-        Alert.alert(t("error"), String(e?.message || e));
+        Alert.alert(t("error"), hataMesaji(e));
       }
     },
     [userId]

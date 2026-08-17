@@ -12,6 +12,7 @@ import Colors from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
+import { hataMesaji } from "../lib/hataMesaji";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -106,7 +107,7 @@ export default function PremiumScreen() {
                 Alert.alert("SkorLig", r?.detail || r?.error || t("subFailed"));
               }
             } catch (e: any) {
-              Alert.alert(t("error"), String(e?.message || e));
+              Alert.alert(t("error"), hataMesaji(e));
             } finally {
               setSubscribing(null);
             }

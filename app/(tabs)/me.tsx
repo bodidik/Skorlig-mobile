@@ -421,7 +421,7 @@ export default function Me() {
         Alert.alert(t("error"), msg);
       }
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setInviteBusy(false);
     }
@@ -543,7 +543,7 @@ export default function Me() {
 
       await loadPendingCountIfAdmin(isEff);
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     }
   }, [userId, isAdminLocal, loadIsAdmin, loadWalletSummary, loadPredCount, loadPendingCountIfAdmin, loadInviteCode]);
 
@@ -626,7 +626,7 @@ export default function Me() {
                 Alert.alert("SkorLig", r?.detail || r?.error || t("buyFailed"));
               }
             } catch (e: any) {
-              Alert.alert(t("error"), String(e?.message || e));
+              Alert.alert(t("error"), hataMesaji(e));
             } finally {
               setBuying(null);
             }
@@ -663,7 +663,7 @@ export default function Me() {
         Alert.alert(t("error"), hataMesaji(r?.error));
       }
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setCountrySaving(false);
     }
@@ -695,7 +695,7 @@ export default function Me() {
         Alert.alert(t("error"), msg);
       }
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setNicknameSaving(false);
     }
@@ -713,7 +713,7 @@ export default function Me() {
         load();
       } else Alert.alert(t("error"), hataMesaji(r?.error));
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     }
   }
 
@@ -740,7 +740,7 @@ export default function Me() {
         Alert.alert(t("error"), r1?.error || r2?.error || "SAVE_FAILED");
       }
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setCountrySaving(false);
     }
@@ -759,7 +759,7 @@ export default function Me() {
         Alert.alert("SkorLig", t("leaguesSaved"));
       } else Alert.alert(t("error"), hataMesaji(r?.error));
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setLeagueSaving(false);
     }
@@ -780,7 +780,7 @@ export default function Me() {
         Alert.alert("SkorLig", t("langSaved"));
       } else Alert.alert(t("error"), hataMesaji(r?.error));
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setLangSaving(false);
     }
@@ -849,7 +849,7 @@ export default function Me() {
         load();
       }
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     }
   }
 
@@ -879,7 +879,7 @@ export default function Me() {
         Alert.alert(t("error"), hataMesaji(r?.error));
       }
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     }
   }
 
@@ -910,7 +910,7 @@ export default function Me() {
         Alert.alert("SkorLig", msg);
       }
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setClaiming(false);
     }

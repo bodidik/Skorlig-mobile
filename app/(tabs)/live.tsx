@@ -1179,7 +1179,7 @@ export default function LiveScreen() {
         Alert.alert(t("error"), j?.error || t("joinFailed"));
       }
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setJoinBusy(null);
     }
@@ -1333,7 +1333,7 @@ export default function LiveScreen() {
             if (j?.ok) await loadMyPreds();
             else Alert.alert(t("error"), j?.error || "Silinemedi");
           } catch (e: any) {
-            Alert.alert(t("error"), String(e?.message || e));
+            Alert.alert(t("error"), hataMesaji(e));
           }
         },
       },

@@ -277,7 +277,7 @@ export default function StatsScreen() {
             if (j?.ok) Alert.alert("SkorLig", t("friendReqSentOk"));
             else Alert.alert(t("error"), hataMesaji(j?.error));
           } catch (e: any) {
-            Alert.alert(t("error"), String(e?.message || e));
+            Alert.alert(t("error"), hataMesaji(e));
           }
         },
       },
@@ -584,7 +584,7 @@ export default function StatsScreen() {
       Alert.alert("SkorLig", t("runtimeUpdated2"));
       setAdminModalOpen(false);
     } catch (e: any) {
-      Alert.alert(t("error"), String(e?.message || e));
+      Alert.alert(t("error"), hataMesaji(e));
     } finally {
       setAdminSaving(false);
     }
