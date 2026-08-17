@@ -146,7 +146,7 @@ export default function TrLeagueScreen() {
       contentContainerStyle={{ padding: 16, gap: 12 }}
     >
       <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 4 }}>
-        <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+        <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
       </TouchableOpacity>
 
       <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>{t("trLeagueTitle")}</Text>

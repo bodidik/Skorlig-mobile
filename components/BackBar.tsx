@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
+import { t, useLang } from "../lib/i18n";
 
 type Props = {
   title?: string;
@@ -8,6 +9,7 @@ type Props = {
 };
 
 export default function BackBar({ title, homeRoute = "/(tabs)/live" }: Props) {
+  useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
 
   return (
@@ -40,7 +42,7 @@ export default function BackBar({ title, homeRoute = "/(tabs)/live" }: Props) {
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Text style={{ color: "#94a3b8", fontSize: 18, lineHeight: 20 }}>‹</Text>
-        <Text style={{ color: "#94a3b8", fontWeight: "700", fontSize: 13 }}>Geri</Text>
+        <Text style={{ color: "#94a3b8", fontWeight: "700", fontSize: 13 }}>{t("backPlain")}</Text>
       </TouchableOpacity>
 
       {title ? (
@@ -65,7 +67,7 @@ export default function BackBar({ title, homeRoute = "/(tabs)/live" }: Props) {
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Text style={{ color: "#94a3b8", fontSize: 14 }}>🏠</Text>
-        <Text style={{ color: "#94a3b8", fontWeight: "700", fontSize: 13 }}>Ana Sayfa</Text>
+        <Text style={{ color: "#94a3b8", fontWeight: "700", fontSize: 13 }}>{t("homeScreen")}</Text>
       </TouchableOpacity>
     </View>
   );

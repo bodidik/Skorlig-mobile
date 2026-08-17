@@ -190,7 +190,7 @@ export default function ProfileUserScreen() {
           onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/live" as any)}
           style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: Colors.border }}
         >
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
         </TouchableOpacity>
         <Text style={{ flex: 1, fontSize: 17, fontWeight: "800", color: Colors.slate900 }}>Profil</Text>
       </View>

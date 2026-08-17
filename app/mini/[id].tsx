@@ -173,7 +173,7 @@ export default function MiniBoardScreen() {
       contentContainerStyle={{ padding: 16, gap: 12 }}
     >
       <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 4 }}>
-        <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+        <Text style={{ color: Colors.muted, fontSize: 12 }}>{t2("back")}</Text>
       </TouchableOpacity>
 
       {loading && (

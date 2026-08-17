@@ -106,7 +106,7 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
         </TouchableOpacity>
         {onClose && (
           <TouchableOpacity style={s.closeBtn} onPress={onClose}>
-            <Text style={s.closeBtnText}>Kapat</Text>
+            <Text style={s.closeBtnText}>{t("close")}</Text>
           </TouchableOpacity>
         )}
       </View>

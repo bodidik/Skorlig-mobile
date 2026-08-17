@@ -126,7 +126,7 @@ export default function Gs1987VerifyScreen() {
             marginRight: 8,
           }}
         >
-          <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+          <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text

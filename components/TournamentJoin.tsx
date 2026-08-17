@@ -73,7 +73,7 @@ export default function TournamentJoin({ userId, onJoined, onClose }: Props) {
 
       {onClose && (
         <TouchableOpacity style={s.closeBtn} onPress={onClose}>
-          <Text style={s.closeBtnText}>Geri</Text>
+          <Text style={s.closeBtnText}>{t("backPlain")}</Text>
         </TouchableOpacity>
       )}
     </View>

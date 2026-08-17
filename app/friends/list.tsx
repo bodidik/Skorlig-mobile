@@ -162,7 +162,7 @@ export default function FriendsListScreen() {
         onPress={() => router.back()}
         style={{ marginBottom: 4 }}
       >
-        <Text style={{ color: Colors.muted, fontSize: 12 }}>← Geri</Text>
+        <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
       </TouchableOpacity>
 
       {/* Başlık */}
