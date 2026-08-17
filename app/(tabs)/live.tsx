@@ -42,7 +42,7 @@ type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
  * İstemcide yeniden hesaplanmıyor: aynı kuralı iki yerde tanımlamak bu projede
  * defalarca sessiz ayrışmaya yol açtı.
  */
-type PriorityGroup = "country" | "global" | "big" | "other" | "friendly";
+type PriorityGroup = "countryTop" | "country" | "global" | "big" | "other" | "friendly";
 
 type Fx = {
   fixtureId: string;

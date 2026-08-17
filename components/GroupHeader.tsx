@@ -19,7 +19,7 @@ import { ulkeAdi } from "../lib/ulkeler";
  * istemcide yeniden yazmak bu projede defalarca sessiz ayrışma yarattı.
  */
 
-export type PriorityGroup = "country" | "global" | "big" | "other" | "friendly";
+export type PriorityGroup = "countryTop" | "country" | "global" | "big" | "other" | "friendly";
 
 type Props = {
   group: PriorityGroup | string;
@@ -31,9 +31,15 @@ const GOLD = "#f59e0b";
 
 function baslikIcin(group: string, country?: string | null) {
   switch (group) {
-    case "country":
-      // Ülke adı varsa onu yaz: "Türkiye" başlığı "Ülkeniz"den daha net.
+    /* ⚠️ ÜLKENİN EN ÜST LİGİ AYRI BAŞLIK. Kullanıcı kararı: "ülkenin en üst
+     * düzey ilk ligi o ülkedekilere öncelikle sunulsun." Sunucu bu grubu ayrı
+     * etiketliyor (lib/fixture-priority → countryTop); başlık da ayrılmazsa
+     * Süper Lig ile 1. Lig aynı bloğun içinde görünür ve ayrım kaybolur. */
+    case "countryTop":
       return { icon: "⭐", text: ulkeAdi(country) || t("yourCountryGrp"), color: GOLD };
+    case "country":
+      // Aynı ülkenin alt ligleri/kupaları — üst ligden sonra gelir.
+      return { icon: "⚽", text: t("countryOtherGrp"), color: "#fbbf24" };
     case "global":
       return { icon: "🏆", text: t("cupsGrp"), color: "#818cf8" };
     case "big":

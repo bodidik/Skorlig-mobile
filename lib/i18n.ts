@@ -896,6 +896,9 @@ const strings = {
     leagueLoadFailed: "Lig yüklenemedi: {e}",
     // küçük bileşenler (11. dalga)
     yourCountryGrp:   "Ülkeniz",
+    /* Ülkenin en üst ligi ayrı başlık aldı; bu, aynı ülkenin alt lig ve
+     * kupa maçlarının başlığı (bkz. components/GroupHeader). */
+    countryOtherGrp:  "Diğer ligler ve kupalar",
     cupsGrp:          "Avrupa & Dünya Kupaları",
     bigLeagues:       "Büyük Ligler",
     otherLeagues:     "Diğer Ligler",
@@ -2230,6 +2233,7 @@ const strings = {
     thisWeekMatches:  "This Week's Matches",
     leagueLoadFailed: "Could not load the league: {e}",
     yourCountryGrp:   "Your Country",
+    countryOtherGrp:  "Other leagues & cups",
     cupsGrp:          "European & World Cups",
     bigLeagues:       "Big Leagues",
     otherLeagues:     "Other Leagues",
