@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useRouter, usePathname } from "expo-router";
+import { useRouter, usePathname, useSegments } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { t, useLang } from "../lib/i18n";
 
@@ -17,16 +17,29 @@ import { t, useLang } from "../lib/i18n";
  * ikinci bir gezinme katmanı gürültü olur.
  */
 
-/** Alt sekme çubuğu olan (ya da kendi akışını yöneten) yollar — pill gizli. */
-const GIZLI = new Set(["/", "/login", "/live", "/predict", "/arena", "/stats", "/me"]);
+/**
+ * Sekme grubu DIŞINDA, kendi akışını yöneten yollar — pill burada da gizli.
+ *
+ * ⚠️ SEKME YOLLARI BU LİSTEDE TUTULMAZ. Eskiden tutuluyordu
+ * (`"/live", "/predict", "/arena", "/stats", "/me"`) ve liste dosya
+ * sisteminden SAPTI: `kings` sekmesi sonradan eklendi, listeye girmedi ve o
+ * sekmede alt sekme çubuğunun üstüne ikinci bir gezinme katmanı — üstelik
+ * yığında geri gidecek bir şey olmayan bir "geri" oku — basılıyordu.
+ * Elle tutulan liste, içerik büyürken sessizce yalana dönüşür; sekme olup
+ * olmadığı artık rotanın KENDİSİNDEN okunuyor.
+ */
+const GIZLI_YOL = new Set(["/", "/login"]);
 
 export default function GeriEv() {
   useLang(); // dil değişince erişilebilirlik etiketleri tazelensin
   const router = useRouter();
   const pathname = usePathname();
+  const segments = useSegments();
   const insets = useSafeAreaInsets();
 
-  if (GIZLI.has(pathname)) return null;
+  // Sekme grubundaki her ekran: alt sekme çubuğu zaten her an duruyor.
+  if (segments[0] === "(tabs)") return null;
+  if (GIZLI_YOL.has(pathname)) return null;
 
   return (
     <View style={[s.kap, { top: insets.top + 8 }]} pointerEvents="box-none">
