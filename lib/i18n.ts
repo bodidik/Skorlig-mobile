@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Platform, NativeModules } from "react-native";
+/* ⚠️ react-native BİLEREK STATİK İÇE AKTARILMIYOR — `detectLang` içinde
+ * tembel `require` ile alınıyor (hemen yanındaki expo-localization ile aynı
+ * kalıp). Sebep: statik içe aktarım bu 3499 satırlık modülü Node altında
+ * YÜKLENEMEZ yapıyor ve `t()` ile sözlüğün tamamı test edilemiyordu. RN
+ * bağımlılığı yalnızca cihaz dilini okuyan ~15 satırda; bütün modülü onun
+ * için ölçüm dışında bırakmak pahalıydı.
+ *
+ * Buraya yeni bir react-native içe aktarımı EKLEME: modül yine kapanır ve
+ * i18n testleri sessizce çalışmaz olur (tests/i18n.test.ts bunu sınıyor). */
 
 const strings = {
   tr: {
@@ -3422,12 +3430,15 @@ function detectLang(): Lang {
       const l0 = loc?.getLocales?.()?.[0];
       if (l0?.languageCode) tag = String(l0.languageCode);
     } catch {}
-    if (!tag && Platform.OS === "ios") {
-      const settings = NativeModules.SettingsManager?.settings;
+    /* RN yalnızca burada gerekiyor; yoksa (Node/test) sessizce atlanır. */
+    let RN: any = null;
+    try { RN = require("react-native"); } catch {}
+    if (!tag && RN?.Platform?.OS === "ios") {
+      const settings = RN.NativeModules?.SettingsManager?.settings;
       const langs: string[] | undefined = settings?.AppleLanguages;
       if (langs?.[0]) tag = langs[0];
-    } else if (!tag && Platform.OS === "android") {
-      const locale = NativeModules.I18nManager?.localeIdentifier;
+    } else if (!tag && RN?.Platform?.OS === "android") {
+      const locale = RN.NativeModules?.I18nManager?.localeIdentifier;
       if (locale) tag = locale.replace("_", "-");
     }
     if (!tag) tag = String(Intl?.DateTimeFormat?.().resolvedOptions?.().locale || "en");
