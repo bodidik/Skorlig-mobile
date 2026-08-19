@@ -1,4 +1,7 @@
 import Constants from "expo-constants";
+import {
+  yerelAdresMi, ilanEdilenAdresKarari, guvenliBaseSec,
+} from "./apiBaseKurallari";
 import { NativeModules, Platform } from "react-native";
 
 let resolvedBase: string | null = null;
@@ -25,19 +28,11 @@ let resolvedBase: string | null = null;
  * yapılandırma da yerel bir adres gösteriyorsa (ya da hiç yoksa) devreye girer.
  */
 
-/** Adres yerel ağ/loopback mi? (LAN IP, localhost, .local) */
-function isLocalAddress(url: string): boolean {
-  const u = String(url || "").trim().toLowerCase();
-  if (!u) return true; // yapılandırma yok sayılır → otomatik tespit serbest
-  return (
-    /^https?:\/\/localhost\b/.test(u) ||
-    /^https?:\/\/127\./.test(u) ||
-    /^https?:\/\/10\./.test(u) ||
-    /^https?:\/\/192\.168\./.test(u) ||
-    /^https?:\/\/172\.(1[6-9]|2\d|3[01])\./.test(u) ||
-    /\.local(:\d+)?/.test(u)
-  );
-}
+/* Yerel adres tespiti ve adres kabul kuralları SAF ÇEKİRDEKTE:
+ * lib/apiBaseKurallari.ts — bu dosya expo-constants ve react-native içe
+ * aktardığı için Node altında yüklenemiyor ve kurallar hiç ölçülemiyordu.
+ * İkisi de üretimde kesintiye yol açmıştı. */
+const isLocalAddress = yerelAdresMi;
 
 function resolveApiBase(): string {
   const pick = (x?: string | null) =>
@@ -165,28 +160,27 @@ function resolveApiBase(): string {
  * sessizce kırık bir sürüm yayınlamaktan iyidir.
  */
 function guvenliBase(aday: string): string {
-  if (__DEV__) return aday;
-  if (!isLocalAddress(aday)) return aday;
-
   const uzakYedek =
     (Constants?.expoConfig?.extra?.apiBase as string) ||
     (Constants as any)?.manifest?.extra?.apiBase ||
     "";
 
-  if (uzakYedek && !isLocalAddress(uzakYedek)) {
+  const karar = guvenliBaseSec(aday, String(uzakYedek || ""), !!__DEV__);
+
+  if (karar.durum === "yedege-dusuldu") {
     console.warn(
       `[apiBase] YAYIN derlemesinde yerel adres (${aday}) yok sayildi; ` +
-        `app.json'daki ${uzakYedek} kullaniliyor.`
+        `app.json'daki ${karar.base} kullaniliyor.`
     );
-    return String(uzakYedek);
+  } else if (karar.durum === "yedek-yok") {
+    console.error(
+      `[apiBase] YAYIN derlemesi YEREL adrese isaret ediyor (${aday}) ve uzak ` +
+        `yedek yok. Uygulama sunucuya ULASAMAZ. .env'deki ` +
+        `EXPO_PUBLIC_API_BASE degerini derlemeden once production adresi yapin.`
+    );
   }
 
-  console.error(
-    `[apiBase] YAYIN derlemesi YEREL adrese isaret ediyor (${aday}) ve uzak ` +
-      `yedek yok. Uygulama sunucuya ULASAMAZ. .env'deki ` +
-      `EXPO_PUBLIC_API_BASE degerini derlemeden once production adresi yapin.`
-  );
-  return aday;
+  return karar.base;
 }
 
 // guvenliBase: yayın derlemesinde yerel adrese düşmeyi engeller (bkz. yukarı).
@@ -234,12 +228,14 @@ export async function getApiBase(): Promise<string> {
        * maç yok". İki kural:
        *   1. https → http DÜŞÜŞÜ hiçbir modda kabul edilmez.
        *   2. Yayın derlemesinde yalnızca https kabul edilir. */
-      const dususVar = resolvedBase.startsWith("https://") && aday.startsWith("http://");
-      const yayindaHttp = !__DEV__ && !aday.startsWith("https://");
-      if (aday && !dususVar && !yayindaHttp) {
+      const karar = ilanEdilenAdresKarari(resolvedBase, aday, !!__DEV__);
+      if (karar.kabul) {
         resolvedBase = aday;
-      } else if (aday) {
-        console.warn(`[apiBase] sunucunun ilan ettigi adres reddedildi (${aday}); ${resolvedBase} kullaniliyor.`);
+      } else if (karar.sebep !== "bos") {
+        console.warn(
+          `[apiBase] sunucunun ilan ettigi adres reddedildi (${aday}, ` +
+          `sebep: ${karar.sebep}); ${resolvedBase} kullaniliyor.`
+        );
       }
     }
   } catch (e) {
