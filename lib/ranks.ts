@@ -25,11 +25,26 @@ export function getRank(totalPoints: number): Rank {
   return r;
 }
 
+/**
+ * Bir sonraki rütbe; en üstteyse null.
+ *
+ * ⚠️ EKSİ PUAN DÜZELTİLDİ (2026-08-18, mobil testler yazılırken ölçüldü).
+ * Eski sürüm "eşiği puandan büyük olan İLK rütbe" diyordu. Puan negatifken
+ * bu, MEVCUT rütbeyi (Çaylak, eşik 0) döndürüyordu; `rankProgress` de
+ * `range = 0` görüp 1 dönüyordu. Sonuç profilde şuydu:
+ *
+ *     -100 puan → rütbe "Çaylak", sonraki "Çaylak", ilerleme %100
+ *
+ * Yani sıfırın altındaki kullanıcı, çubuğu TAMAMEN DOLU görüyordu.
+ * Eksi puan bu oyunda gerçek: settle2 ceza yazıyor ve üretim liderlik
+ * verisinde negatif satırlar ölçüldü.
+ *
+ * Doğrusu mevcut rütbenin BİR SONRAKİSİ: puan ne kadar düşük olursa olsun
+ * hedef değişmez, yalnızca ilerleme 0'a kırpılır.
+ */
 export function getNextRank(totalPoints: number): Rank | null {
-  for (const rank of RANKS) {
-    if (totalPoints < rank.minPts) return rank;
-  }
-  return null;
+  const i = RANKS.indexOf(getRank(totalPoints));
+  return i >= 0 && i + 1 < RANKS.length ? RANKS[i + 1] : null;
 }
 
 export function rankProgress(totalPoints: number): number {
