@@ -1,4 +1,11 @@
 {
-  "compilerOptions": {},
+  "compilerOptions": {
+    /* Node'un `--experimental-strip-types` çalıştırıcısı göreli ESM
+     * içe aktarımlarında AÇIK `.ts` uzantısı istiyor; tsc bunu varsayılan
+     * olarak reddediyor. Uygulama Metro ile derlendiği ve tsc yalnızca
+     * `--noEmit` ile tip denetimi yaptığı için bayrak güvenli.
+     * Yalnızca tests/ altındaki dosyalar bu biçimi kullanıyor. */
+    "allowImportingTsExtensions": true
+  },
   "extends": "expo/tsconfig.base"
 }
