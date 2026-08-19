@@ -45,15 +45,6 @@ function resolveApiBase(): string {
 export const API_BASE = resolveApiBase();
 
 /** Backend runtime-mode yapısı ile uyumlu tip */
-export type RuntimeMode = {
-  profile: string; // DEV_4_TEAMS | TR_30_TEAMS | GLOBAL_100_TEAMS | GLOBAL_456_TEAMS | ...
-  maxTeams?: number | null;
-  maxLeagues?: number | null;
-  notes?: string | null;
-  updatedAt?: string | null;
-  updatedBy?: string | null;
-  [key: string]: any;
-};
 
 export type FeaturesConfig = {
   mode?: "GS_ONLY" | "MULTI_LEAGUE" | string;
@@ -87,15 +78,15 @@ export type ApiConfigPayload = {
   [key: string]: any;
 };
 
-export type RuntimeStage =
-  | {
-      profile: string;
-      maxTeams: number | null;
-      maxLeagues: number | null;
-      label: string;
-      level: "DEV" | "TR" | "GLOBAL_LIGHT" | "GLOBAL_FULL" | "CUSTOM";
-    }
-  | null;
+/* Aşama eşlemesi SAF ÇEKİRDEKTE: lib/runtimeStage.ts — bu dosya
+ * expo-constants içe aktarıyor ve API_BASE'i modül yüklenirken hesaplıyor,
+ * yani Node altında hiç çalıştırılamıyor. Eşleme ise tamamen saf; ayrılınca
+ * ölçülebilir oldu (tests/runtimeStage.test.ts). Adlar buradan yeniden dışa
+ * aktarılıyor ki mevcut çağıranlar değişmesin. */
+import { mapRuntimeStage } from "./runtimeStage";
+import type { RuntimeMode, RuntimeStage } from "./runtimeStage";
+export { mapRuntimeStage };
+export type { RuntimeMode, RuntimeStage };
 
 export type RuntimeConfigState = {
   loading: boolean;
@@ -109,59 +100,6 @@ export type RuntimeConfigState = {
 
   reload: () => void;
 };
-
-export function mapRuntimeStage(mode: RuntimeMode | null | undefined): RuntimeStage {
-  if (!mode) return null;
-
-  const profile = String(mode.profile || "").toUpperCase();
-  const maxTeams = typeof mode.maxTeams === "number" ? mode.maxTeams : null;
-  const maxLeagues = typeof mode.maxLeagues === "number" ? mode.maxLeagues : null;
-
-  if (profile === "DEV_4_TEAMS") {
-    return {
-      profile,
-      maxTeams: maxTeams ?? 4,
-      maxLeagues: maxLeagues ?? 1,
-      label: "4 takımlı geliştirme modu",
-      level: "DEV",
-    };
-  }
-  if (profile === "TR_30_TEAMS") {
-    return {
-      profile,
-      maxTeams: maxTeams ?? 30,
-      maxLeagues: maxLeagues ?? 1,
-      label: "Türkiye ligi testi (≈30 takım)",
-      level: "TR",
-    };
-  }
-  if (profile === "GLOBAL_100_TEAMS") {
-    return {
-      profile,
-      maxTeams: maxTeams ?? 100,
-      maxLeagues: maxLeagues ?? 5,
-      label: "Kısıtlı global test modu (≈100 takım)",
-      level: "GLOBAL_LIGHT",
-    };
-  }
-  if (profile === "GLOBAL_456_TEAMS") {
-    return {
-      profile,
-      maxTeams: maxTeams ?? 456,
-      maxLeagues: maxLeagues ?? 20,
-      label: "Tam global yüksek yük modu",
-      level: "GLOBAL_FULL",
-    };
-  }
-
-  return {
-    profile,
-    maxTeams,
-    maxLeagues,
-    label: mode.notes || `Custom profil: ${profile}`,
-    level: "CUSTOM",
-  };
-}
 
 export function useRuntimeConfig(): RuntimeConfigState {
   const defaultFeatures: FeaturesConfig = useMemo(
