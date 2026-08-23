@@ -1,6 +1,7 @@
 import { auth } from "./firebase";
 import { getApiBase, resetApiBase } from "./apiBase";
 import { fetchWithPolicy, PolicyOptions } from "./fetchPolicy";
+import { govdeCoz } from "./govdeCoz";
 
 /**
  * Tüm API istekleri buradan geçer. Çıplak fetch'e göre üç ek politika:
@@ -60,10 +61,46 @@ function basarisizligiBildir(path: string, res: Response) {
   console.warn(`[apiFetch] ${res.status} ${path}${ipucu}`);
 }
 
+/**
+ * YANITIN `.json()`i FIRLATMAZ — 170 ÇAĞRI YERİNİ TEK NOKTADAN KORUR.
+ *
+ * ⚠️ ÖLÇÜLDÜ: uygulamada 49 dosyada 170 doğrudan `.json()` çağrısı var;
+ * güvenli sarmalayıcı `apiJson` yalnızca 5 dosyada kullanılıyor. Yani
+ * "ortak katmana taşındı" diyen yorum yazıldı ama GÖÇ HİÇ YAPILMADI.
+ *
+ * Sunucu JSON döndürmediğinde (Render 502/504 HTML sayfası, askıya alınmış
+ * serviste 503 + "Service Suspended" HTML, soğuk kapta boş gövde) o 170
+ * noktanın hepsi FIRLATIYOR ve sessiz bir `catch`e düşüyor: ekran boş kalıyor,
+ * kullanıcı sebebini hiçbir yerde göremiyor.
+ *
+ * ⚠️ ÇAĞIRANLARIN DESENİ BU DÜZELTMEYİ GÜVENLİ KILIYOR — ölçüldü: baskın
+ * kalıp `const j = await r.json(); if (!j?.ok) { … }`, yani zaten `ok` alanı
+ * taşıyan bir NESNE bekleniyor. Fırlatma yerine `{ ok:false, error:… }`
+ * dönmek o dalı ÇALIŞTIRIR ve `lib/hataMesaji.ts` sözlüğü (BAD_JSON /
+ * EMPTY_RESPONSE zaten yazılı) doğru cümleyi gösterir. Tek satır kod
+ * değişmeden 170 ekran kazanıyor.
+ *
+ * ⚠️ GÖVDE BİR KEZ OKUNUR. `text()` ve `json()` aynı önbelleklenmiş metinden
+ * beslenir; yoksa ikisini birden çağıran bir ekran (predict.tsx, gs1987-verify,
+ * competition-kings) "body already read" hatası alırdı.
+ *
+ * Durum kodu ve başlıklar DEĞİŞMEZ: `res.ok` / `res.status` okuyanlar
+ * etkilenmez.
+ */
+function govdeyiGuvenliYap(res: Response): Response {
+  const hamText = res.text.bind(res);
+  let metinSozu: Promise<string> | null = null;
+  const metin = () => (metinSozu ||= hamText().catch(() => ""));
+
+  (res as any).text = metin;
+  (res as any).json = async () => govdeCoz(await metin());
+  return res;
+}
+
 export async function apiFetch(path: string, opts: FetchOptions = {}): Promise<Response> {
   const res = await istekYap(path, opts, false);
   basarisizligiBildir(path, res);
-  return res;
+  return govdeyiGuvenliYap(res);
 }
 
 /**
@@ -134,10 +171,7 @@ export async function apiJson(path: string, opts: FetchOptions = {}): Promise<an
     // Ağ/zaman aşımı: apiFetch kendi politikasını uyguladı ve yine de başarısız.
     return { ok: false, error: "NETWORK", detail: String(e?.message || e) };
   }
-  if (!metin) return { ok: false, error: "EMPTY_RESPONSE" };
-  try {
-    return JSON.parse(metin);
-  } catch {
-    return { ok: false, error: "BAD_JSON", detail: metin.slice(0, 240) };
-  }
+  // Ayrıştırma TEK KAYNAKTAN: lib/govdeCoz.ts. İki ayrı kopya tutmak, biri
+  // düzeltilip öteki unutulduğunda sessizce ayrışırdı.
+  return govdeCoz(metin);
 }
