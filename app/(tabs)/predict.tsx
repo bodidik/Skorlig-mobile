@@ -32,6 +32,7 @@ type MatchWeights = {
      * (routes/pred-weights.cjs), yani yeni kalem uç tarafında iş
      * gerektirmiyor — burada yalnızca tipe bildiriliyor. */
     btts: number;
+    over25: number; over35: number;
   };
 };
 
@@ -161,6 +162,12 @@ export default function PredictScreen() {
    * korunuyor, bkz. models/preds.cjs). */
   const [btts, setBtts] = useState<boolean | null>(null);
 
+  /* Toplam gol: iki aşamalı — kırmızı kart kalıbının aynısı.
+   * İkinci aşama yalnızca "üst" seçilince açılır, çünkü 4+ gol varsa 3+ gol
+   * zaten vardır: "alt + 4 gol var" imkânsız bir iddia olurdu. */
+  const [over25, setOver25] = useState<boolean | null>(null);
+  const [over35, setOver35] = useState<boolean | null>(null);
+
   // Kırmızı kart: iki aşamalı
   const [redAny, setRedAny] = useState<boolean | null>(null);
   const [redSide, setRedSide] = useState<Side>(null);
@@ -208,6 +215,13 @@ export default function PredictScreen() {
     if (redAny !== true) setRedSide(null);
   }, [redAny]);
 
+  /* "Üst"ten vazgeçildiğinde ikinci aşama TEMİZLENİR. Kalsaydı ekranda
+   * görünmeyen ama gönderilen bir cevap kalırdı (sunucu onu zaten null'a
+   * çeviriyor, ama iki taraf aynı kuralı uygulamalı). */
+  useEffect(() => {
+    if (over25 !== true) setOver35(null);
+  }, [over25]);
+
   useEffect(() => {
     if (penaltyAny !== true) setPenaltySide(null);
   }, [penaltyAny]);
@@ -227,6 +241,8 @@ export default function PredictScreen() {
     if (d.firstGoal) setFirstGoal(String(d.firstGoal).toUpperCase() as Side);
     if (d.firstHalf) setFirstHalf(String(d.firstHalf).toUpperCase() as Outcome);
     if (typeof d.btts === "boolean") setBtts(d.btts);
+    if (typeof d.over25 === "boolean") setOver25(d.over25);
+    if (typeof d.over35 === "boolean") setOver35(d.over35);
     if (typeof d.redAny === "boolean") setRedAny(d.redAny);
     if (d.redSide) setRedSide(String(d.redSide).toUpperCase() as Side);
     if (typeof d.penaltyAny === "boolean") setPenaltyAny(d.penaltyAny);
@@ -456,6 +472,8 @@ export default function PredictScreen() {
           if (myRec.firstGoal) setFirstGoal(String(myRec.firstGoal).toUpperCase() as Side);
           if (myRec.firstHalf) setFirstHalf(String(myRec.firstHalf).toUpperCase() as Outcome);
           if (typeof myRec.btts === "boolean") setBtts(myRec.btts);
+          if (typeof myRec.over25 === "boolean") setOver25(myRec.over25);
+          if (typeof myRec.over35 === "boolean") setOver35(myRec.over35);
           if (typeof myRec.redAny === "boolean") setRedAny(myRec.redAny);
           if (myRec.redSide) setRedSide(String(myRec.redSide).toUpperCase() as Side);
           if (typeof myRec.penaltyAny === "boolean") setPenaltyAny(myRec.penaltyAny);
@@ -738,6 +756,8 @@ useEffect(() => {
     /* KG riski ilk gol ile aynı: ikisi de ikili seçim. Kırmızı/penaltı
      * 0.3 çünkü onlarda "yok" cevabı çok daha sık doğru çıkıyor. */
     if (btts !== null) risk += 0.2;
+    if (over25 !== null) risk += 0.2;
+    if (over25 === true && over35 !== null) risk += 0.2;
     if (redAny !== null) risk += 0.3;
     if (redAny === true && redSide !== null) risk += 0.2;
     if (penaltyAny !== null) risk += 0.3;
@@ -745,7 +765,7 @@ useEffect(() => {
 
     const count = (outcome !== null ? 1 : 0) + (hasScore ? 1 : 0) +
       (firstGoal !== null ? 1 : 0) + (firstHalf !== null ? 1 : 0) +
-      (btts !== null ? 1 : 0) +
+      (btts !== null ? 1 : 0) + (over25 !== null ? 1 : 0) +
       (redAny !== null ? 1 : 0) + (penaltyAny !== null ? 1 : 0);
 
     if (!BASE || !weights) return { gain: null as number | null, risk: fmtPts(risk), count };
@@ -760,6 +780,8 @@ useEffect(() => {
     if (firstGoal !== null)  gain += fmtPts(BASE.firstGoal  * diff);
     if (firstHalf !== null)  gain += fmtPts(BASE.firstHalf  * diff);
     if (btts !== null)       gain += fmtPts(BASE.btts       * diff);
+    if (over25 !== null)     gain += fmtPts(BASE.over25     * diff);
+    if (over25 === true && over35 !== null)          gain += fmtPts(BASE.over35     * diff);
     if (redAny !== null)     gain += fmtPts(BASE.redAny     * diff);
     if (redAny === true && redSide !== null)         gain += fmtPts(BASE.redSide     * diff);
     if (penaltyAny !== null) gain += fmtPts(BASE.penaltyAny * diff);
@@ -873,6 +895,8 @@ useEffect(() => {
   /* `!== null` ŞART — `if (btts)` yazılsaydı "hayır" (false) hiç
    * gönderilmez ve oyuncunun cevabı sessizce kaybolurdu. */
   if (btts !== null) body.btts = btts;
+  if (over25 !== null) body.over25 = over25;
+  if (over25 === true && over35 !== null) body.over35 = over35;
 
   if (redAny !== null) body.redAny = redAny;
   if (redAny === true && redSide) body.redSide = redSide;
@@ -919,7 +943,7 @@ useEffect(() => {
   }
 }
 
-  const hasExtras = firstGoal !== null || firstHalf !== null || btts !== null || redAny !== null || penaltyAny !== null;
+  const hasExtras = firstGoal !== null || firstHalf !== null || btts !== null || over25 !== null || redAny !== null || penaltyAny !== null;
   const homeName = paramHome || nextMatch?.home || t("home");
   const awayName = paramAway || nextMatch?.away || t("away");
   const hasScore = homeScore.trim() !== "" && awayScore.trim() !== "";
@@ -1385,6 +1409,44 @@ useEffect(() => {
                 </View>
               </View>
 
+              {/* Toplam gol — İKİ AŞAMALI (kırmızı kart kalıbı).
+                *
+                * ⚠️ İkinci soru yalnızca "üst" seçilince açılır ve bu bir
+                * tasarım tercihi değil MANTIKSAL ZORUNLULUK: 4+ gol varsa
+                * 3+ gol zaten vardır. Serbest bıraksaydık "alt + 4 gol var"
+                * seçilebilir ve oyuncu garanti ceza alırdı. Ayrıca ölçüldü
+                * (2369 maç): maçların %44.2'sinde "alt" doğru ve orada
+                * ikinci sorunun cevabı KESİN — puanlamak bir öngörüye iki
+                * ödül vermek olurdu. Aynı kural sunucuda da uygulanıyor. */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>🎯 {t("totalGoalsQ")}</Text>
+                  <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("plusPts", { n: 0.4 })}</Text>
+                </View>
+                <View style={{ flexDirection: "row", gap: 6 }}>
+                  {([true, false] as boolean[]).map((v) => (
+                    <TouchableOpacity key={String(v)} onPress={() => setOver25(cur => cur === v ? null : v)}
+                      style={{ flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: over25 === v ? Colors.accent : "#1e293b", backgroundColor: over25 === v ? "#1d4ed822" : "#0a1120", alignItems: "center" }}>
+                      <Text style={{ color: over25 === v ? "#60a5fa" : "#64748b", fontWeight: over25 === v ? "800" : "500", fontSize: 12 }}>
+                        {v ? t("over25Lbl") : t("under25Lbl")}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {over25 === true && (
+                  <View style={{ flexDirection: "row", gap: 6 }}>
+                    {([true, false] as boolean[]).map((v) => (
+                      <TouchableOpacity key={String(v)} onPress={() => setOver35(cur => cur === v ? null : v)}
+                        style={{ flex: 1, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: over35 === v ? Colors.accent : "#1e293b", backgroundColor: over35 === v ? "#1d4ed822" : "#0a1120", alignItems: "center" }}>
+                        <Text style={{ color: over35 === v ? "#60a5fa" : "#64748b", fontWeight: over35 === v ? "700" : "500", fontSize: 11 }}>
+                          {v ? t("over35Lbl") : t("under35Lbl")}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
               {/* İlk Yarı */}
               <View style={{ gap: 6 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -1474,6 +1536,7 @@ useEffect(() => {
                     { label: t("firstGoalLbl"), pts: "+1", risk: "-0.2" },
                     { label: t("firstHalfLbl"), pts: "+2", risk: "-0.4" },
                     { label: t("bttsLbl"), pts: "+0.4", risk: "-0.2" },
+                    { label: t("totalGoalsLbl"), pts: "+0.4", risk: "-0.2" },
                     { label: t("redLbl"), pts: "+1.5", risk: "-0.3" },
                     { label: t("penalty"), pts: "+1.5", risk: "-0.3" },
                   ].map(({ label, pts, risk }) => (
@@ -1594,6 +1657,9 @@ useEffect(() => {
                 if (d.firstHalf) { const fh = String(d.firstHalf).toUpperCase(); rows.push({ label: t("firstHalfLbl"), value: fh === "H" ? t("homeAhead") : fh === "D" ? t("drawLbl") : t("awayAhead") }); }
                 /* `!= null` — false GEÇERLİ bir cevap ve satırı basılmalı. */
                 if (d.btts != null) rows.push({ label: t("bttsLbl"), value: d.btts ? t("yesLbl") : t("noLbl"), color: d.btts ? "#4ade80" : "#94a3b8" });
+                /* Iki asama TEK satirda: "3+ gol" ya da "4+ gol". Ayri iki
+                 * satir, birbirini iceren iki tahmini bagimsiz gosterirdi. */
+                if (d.over25 != null) rows.push({ label: t("totalGoalsLbl"), value: d.over25 === false ? t("under25Lbl") : (d.over35 === true ? t("over35Lbl") : d.over35 === false ? t("under35Lbl") : t("over25Lbl")), color: d.over25 ? "#4ade80" : "#94a3b8" });
                 if (d.redAny != null) rows.push({ label: t("redLbl"), value: d.redAny ? (d.redSide === "H" ? homeName : d.redSide === "A" ? awayName : t("varLbl")) : t("yokLbl"), color: d.redAny ? "#ef4444" : "#94a3b8" });
                 if (d.penaltyAny != null) rows.push({ label: t("penalty"), value: d.penaltyAny ? (d.penaltySide === "H" ? homeName : d.penaltySide === "A" ? awayName : t("varLbl")) : t("yokLbl"), color: d.penaltyAny ? "#f59e0b" : "#94a3b8" });
                 return (

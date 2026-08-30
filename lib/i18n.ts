@@ -320,6 +320,15 @@ const strings = {
     bttsLbl:          "Karşılıklı Gol",
     yesLbl:           "Evet",
     noLbl:            "Hayır",
+    /* Toplam gol iki aşamalı. Etiketler eşiği ("2.5") değil GOL SAYISINI
+     * söylüyor: "üst 2.5" bahis terminolojisi, "3 gol veya üstü" ise
+     * futbolu bilen herkesin anladığı düz ifade. */
+    totalGoalsQ:      "Maçta Kaç Gol Olur?",
+    totalGoalsLbl:    "Toplam Gol",
+    over25Lbl:        "3 gol ve üstü",
+    under25Lbl:       "En fazla 2 gol",
+    over35Lbl:        "4 gol ve üstü",
+    under35Lbl:       "Tam 3 gol",
     plusPts:          "+{n} puan",
     firstHalfRes:     "İlk Yarı Sonucu",
     homeAhead:        "Ev önde",
@@ -1695,6 +1704,12 @@ const strings = {
     bttsLbl:          "Both Teams Score",
     yesLbl:           "Yes",
     noLbl:            "No",
+    totalGoalsQ:      "How Many Goals?",
+    totalGoalsLbl:    "Total Goals",
+    over25Lbl:        "3 or more",
+    under25Lbl:       "2 at most",
+    over35Lbl:        "4 or more",
+    under35Lbl:       "Exactly 3",
     plusPts:          "+{n} points",
     firstHalfRes:     "First Half Result",
     homeAhead:        "Home ahead",
