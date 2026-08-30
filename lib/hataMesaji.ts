@@ -165,6 +165,21 @@ const SOZLUK: Record<string, string> = {
   // ── Ülke / altyapı ───────────────────────────────────────────────
   COUNTRY_NOT_SUPPORTED: "Bu ülke henüz desteklenmiyor.",
   NO_DB: "Veritabanına şu an ulaşılamıyor. Birazdan tekrar dene.",
+
+  // ── Maç odası tepkileri ──────────────────────────────────────────
+  // Sayı YAZILMIYOR: bekleme (3 sn) ve kişi başı tavan (40) env ile
+  // ayarlanabiliyor; sabit bir sayı söylemek yarın yalan olur. Aynı gerekçe
+  // yukarıdaki RATE_LIMIT satırında da yazılı.
+  UNKNOWN_REACTION: "Bu tepki tanınmıyor. Listedeki tepkilerden birini seç.",
+  TOO_FAST: "Çok hızlı tepki verdin. Birkaç saniye bekleyip tekrar dene.",
+  REACTION_LIMIT: "Bu maç için tepki hakkın doldu.",
+
+  // ── Dış sağlayıcı ────────────────────────────────────────────────
+  // Maç verisi üçüncü taraftan geliyor (API-Football). Sunucu artık bunu
+  // kendi kusuru gibi 500 ile değil, 504/502 ile bildiriyor; kullanıcıya da
+  // "biz mi bozuğuz" hissi değil, beklenecek bir durum söylenmeli.
+  PROVIDER_TIMEOUT: "Maç verisi sağlayıcısı şu an yanıt vermiyor. Birazdan tekrar dene.",
+  PROVIDER_UNAVAILABLE: "Maç verisi sağlayıcısına ulaşılamadı. Birazdan tekrar dene.",
 };
 
 /** Sunucu doğrulama kodları: "…_REQUIRED", "…_MISSING" → tek ortak cümle. */
