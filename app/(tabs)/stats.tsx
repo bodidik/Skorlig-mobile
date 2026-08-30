@@ -16,7 +16,7 @@ import Colors from "../../constants/colors";
 import { useRuntimeConfig } from "../../lib/runtimeConfig";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
-import { withAdminHeaders } from "../../lib/adminToken";
+import { hasAdminToken, withAdminHeaders } from "../../lib/adminToken";
 import { t, useLang } from "../../lib/i18n";
 import { ulkeAdi } from "../../lib/ulkeler";
 
@@ -129,6 +129,32 @@ export default function StatsScreen() {
   }
 
   // 🔹 Shadow runtime (POST sonrası badge'in anında güncellenmesi için)
+  /* Yonetim panelini ACAN kosul: cihazda admin jetonu var mi?
+   *
+   * Panel eskiden YALNIZCA 5 saniyelik uzun basmayla aciliyordu (gizli kapi).
+   * Olculdu: jeton girisi Profil sekmesinde zaten var ve panelin YAPTIGI is
+   * (POST /api/admin/runtime-mode) o jetonu istiyor. Yani jetonu olan kisi
+   * zaten yetkili; ondan ayrica gizli bir el hareketi beklemek pratik degil.
+   *
+   * Uzun basma KALDIRILMADI: jetonu henuz girmemis bir gelistirici paneli
+   * yine acabilsin (kaydetme sunucuda zaten reddedilir).
+   */
+  const [adminJetonuVar, setAdminJetonuVar] = useState(false);
+
+  useEffect(() => {
+    let iptal = false;
+    hasAdminToken()
+      .then((v) => {
+        if (!iptal) setAdminJetonuVar(!!v);
+      })
+      .catch(() => {
+        if (!iptal) setAdminJetonuVar(false);
+      });
+    return () => {
+      iptal = true;
+    };
+  }, []);
+
   const [runtimeShadow, setRuntimeShadow] = useState<any | null>(null);
 
   async function refreshRuntimeShadow() {
@@ -536,6 +562,18 @@ export default function StatsScreen() {
   const runtimeLabel =
     mapProfileLabel(effectiveRuntime?.profile) || (features?.mode === "GS_ONLY" ? "GS-only mod" : null);
 
+  /* Tek kaynak: hem kisa dokunus hem uzun basma bunu cagirir. Iki ayri
+   * kopya birakmak, form alanlarini dolduran satirlarin zamanla
+   * ayrismasina yol acardi (bu depoda tekrar eden "iki gerceklik" sinifi). */
+  function paneliAc() {
+    const m = effectiveRuntime || null;
+    setAdminProfile((m?.profile as string) || "DEV_4_TEAMS");
+    setAdminMaxTeams(m?.maxTeams != null ? String(m.maxTeams) : "");
+    setAdminMaxLeagues(m?.maxLeagues != null ? String(m.maxLeagues) : "");
+    setAdminNotes(m?.notes || "");
+    setAdminModalOpen(true);
+  }
+
   const presetProfiles = [
     { key: "DEV_4_TEAMS", label: t("profDev4Short"), maxTeams: 4, maxLeagues: 1, notes: t("profDev4") },
     { key: "TR_30_TEAMS", label: t("profTr30Short"), maxTeams: 30, maxLeagues: 1, notes: t("profTr30Full") },
@@ -632,14 +670,8 @@ export default function StatsScreen() {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   delayLongPress={5000}
-                  onLongPress={() => {
-                    const m = effectiveRuntime || null;
-                    setAdminProfile((m?.profile as string) || "DEV_4_TEAMS");
-                    setAdminMaxTeams(m?.maxTeams != null ? String(m.maxTeams) : "");
-                    setAdminMaxLeagues(m?.maxLeagues != null ? String(m.maxLeagues) : "");
-                    setAdminNotes(m?.notes || "");
-                    setAdminModalOpen(true);
-                  }}
+                  onPress={adminJetonuVar ? paneliAc : undefined}
+                  onLongPress={paneliAc}
                 >
                   <View
                     style={{
