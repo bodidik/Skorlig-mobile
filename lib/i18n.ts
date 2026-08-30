@@ -313,6 +313,13 @@ const strings = {
     extrasHint:       "isteğe bağlı · +6 puana kadar",
     selectedChip:     "seçildi",
     firstGoalQ:       "İlk Golü Kim Atar?",
+    /* ⚠️ "KG Var/Yok" DEĞİL — o bahis terminolojisi. Soru düz Türkçe
+     * soruluyor; cevaplar da mevcut varLbl/yokLbl ("Var"/"Yok") yerine
+     * Evet/Hayır, çünkü "Var/Yok" tam olarak kaçınılan kalıbın kendisi. */
+    bttsQ:            "İki Takım da Gol Atar mı?",
+    bttsLbl:          "Karşılıklı Gol",
+    yesLbl:           "Evet",
+    noLbl:            "Hayır",
     plusPts:          "+{n} puan",
     firstHalfRes:     "İlk Yarı Sonucu",
     homeAhead:        "Ev önde",
@@ -1684,6 +1691,10 @@ const strings = {
     extrasHint:       "optional · up to +6 points",
     selectedChip:     "selected",
     firstGoalQ:       "Who Scores First?",
+    bttsQ:            "Will Both Teams Score?",
+    bttsLbl:          "Both Teams Score",
+    yesLbl:           "Yes",
+    noLbl:            "No",
     plusPts:          "+{n} points",
     firstHalfRes:     "First Half Result",
     homeAhead:        "Home ahead",

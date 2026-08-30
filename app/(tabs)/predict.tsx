@@ -28,6 +28,10 @@ type MatchWeights = {
     firstGoal: number; firstHalf: number;
     redAny: number; redSide: number;
     penaltyAny: number; penaltySide: number;
+    /* Sunucu `basePoints: MW.BASE_POINTS` ile objenin TAMAMINI yolluyor
+     * (routes/pred-weights.cjs), yani yeni kalem uç tarafında iş
+     * gerektirmiyor — burada yalnızca tipe bildiriliyor. */
+    btts: number;
   };
 };
 
@@ -151,6 +155,12 @@ export default function PredictScreen() {
   const [firstGoal, setFirstGoal] = useState<Side>(null);
   const [firstHalf, setFirstHalf] = useState<Outcome | null>(null);
 
+  /* İki takım da gol atar mı — ÜÇ DURUMLU: true/false gerçek bir cevap,
+   * null "girilmedi". `boolean` yapıp false'a düşürmek, hiç dokunmayan
+   * oyuncuyu "hayır" demiş saymak olurdu (sunucu tarafında da aynı ayrım
+   * korunuyor, bkz. models/preds.cjs). */
+  const [btts, setBtts] = useState<boolean | null>(null);
+
   // Kırmızı kart: iki aşamalı
   const [redAny, setRedAny] = useState<boolean | null>(null);
   const [redSide, setRedSide] = useState<Side>(null);
@@ -216,6 +226,7 @@ export default function PredictScreen() {
     if (d.away != null) setAwayScore(String(d.away));
     if (d.firstGoal) setFirstGoal(String(d.firstGoal).toUpperCase() as Side);
     if (d.firstHalf) setFirstHalf(String(d.firstHalf).toUpperCase() as Outcome);
+    if (typeof d.btts === "boolean") setBtts(d.btts);
     if (typeof d.redAny === "boolean") setRedAny(d.redAny);
     if (d.redSide) setRedSide(String(d.redSide).toUpperCase() as Side);
     if (typeof d.penaltyAny === "boolean") setPenaltyAny(d.penaltyAny);
@@ -444,6 +455,7 @@ export default function PredictScreen() {
           if (myRec.away != null) setAwayScore(String(myRec.away));
           if (myRec.firstGoal) setFirstGoal(String(myRec.firstGoal).toUpperCase() as Side);
           if (myRec.firstHalf) setFirstHalf(String(myRec.firstHalf).toUpperCase() as Outcome);
+          if (typeof myRec.btts === "boolean") setBtts(myRec.btts);
           if (typeof myRec.redAny === "boolean") setRedAny(myRec.redAny);
           if (myRec.redSide) setRedSide(String(myRec.redSide).toUpperCase() as Side);
           if (typeof myRec.penaltyAny === "boolean") setPenaltyAny(myRec.penaltyAny);
@@ -723,6 +735,9 @@ useEffect(() => {
     if (hasScore) risk += 0.1;
     if (firstGoal !== null) risk += 0.2;
     if (firstHalf !== null) risk += 0.4;
+    /* KG riski ilk gol ile aynı: ikisi de ikili seçim. Kırmızı/penaltı
+     * 0.3 çünkü onlarda "yok" cevabı çok daha sık doğru çıkıyor. */
+    if (btts !== null) risk += 0.2;
     if (redAny !== null) risk += 0.3;
     if (redAny === true && redSide !== null) risk += 0.2;
     if (penaltyAny !== null) risk += 0.3;
@@ -730,6 +745,7 @@ useEffect(() => {
 
     const count = (outcome !== null ? 1 : 0) + (hasScore ? 1 : 0) +
       (firstGoal !== null ? 1 : 0) + (firstHalf !== null ? 1 : 0) +
+      (btts !== null ? 1 : 0) +
       (redAny !== null ? 1 : 0) + (penaltyAny !== null ? 1 : 0);
 
     if (!BASE || !weights) return { gain: null as number | null, risk: fmtPts(risk), count };
@@ -743,6 +759,7 @@ useEffect(() => {
     // Yan kalemler maç zorluğuyla çarpılır — sunucu da böyle yapıyor
     if (firstGoal !== null)  gain += fmtPts(BASE.firstGoal  * diff);
     if (firstHalf !== null)  gain += fmtPts(BASE.firstHalf  * diff);
+    if (btts !== null)       gain += fmtPts(BASE.btts       * diff);
     if (redAny !== null)     gain += fmtPts(BASE.redAny     * diff);
     if (redAny === true && redSide !== null)         gain += fmtPts(BASE.redSide     * diff);
     if (penaltyAny !== null) gain += fmtPts(BASE.penaltyAny * diff);
@@ -853,6 +870,9 @@ useEffect(() => {
   if (outcome !== null) body.outcome = outcome;
   if (firstGoal !== null) body.firstGoal = firstGoal;
   if (firstHalf !== null) body.firstHalf = firstHalf;
+  /* `!== null` ŞART — `if (btts)` yazılsaydı "hayır" (false) hiç
+   * gönderilmez ve oyuncunun cevabı sessizce kaybolurdu. */
+  if (btts !== null) body.btts = btts;
 
   if (redAny !== null) body.redAny = redAny;
   if (redAny === true && redSide) body.redSide = redSide;
@@ -899,7 +919,7 @@ useEffect(() => {
   }
 }
 
-  const hasExtras = firstGoal !== null || firstHalf !== null || redAny !== null || penaltyAny !== null;
+  const hasExtras = firstGoal !== null || firstHalf !== null || btts !== null || redAny !== null || penaltyAny !== null;
   const homeName = paramHome || nextMatch?.home || t("home");
   const awayName = paramAway || nextMatch?.away || t("away");
   const hasScore = homeScore.trim() !== "" && awayScore.trim() !== "";
@@ -1340,6 +1360,31 @@ useEffect(() => {
                 </View>
               </View>
 
+              {/* İki takım da gol atar mı
+                *
+                * ⚠️ ADLANDIRMA BİLİNÇLİ: "KG Var/Yok" bahis terminolojisi.
+                * Ürün bir tahmin bilgi yarışması; soruyu düz Türkçe sormak
+                * hem daha anlaşılır hem konumlanmayla tutarlı.
+                *
+                * Üç durumlu: seçili düğmeye tekrar basmak seçimi KALDIRIR
+                * (null'a döner), yani oyuncu fikrini geri alabiliyor. */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ fontWeight: "700", color: "#e2e8f0", fontSize: 13 }}>🥅 {t("bttsQ")}</Text>
+                  <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("plusPts", { n: 0.4 })}</Text>
+                </View>
+                <View style={{ flexDirection: "row", gap: 6 }}>
+                  {([true, false] as boolean[]).map((v) => (
+                    <TouchableOpacity key={String(v)} onPress={() => setBtts(cur => cur === v ? null : v)}
+                      style={{ flex: 1, paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: btts === v ? Colors.accent : "#1e293b", backgroundColor: btts === v ? "#1d4ed822" : "#0a1120", alignItems: "center" }}>
+                      <Text style={{ color: btts === v ? "#60a5fa" : "#64748b", fontWeight: btts === v ? "800" : "500", fontSize: 12 }}>
+                        {v ? t("yesLbl") : t("noLbl")}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
               {/* İlk Yarı */}
               <View style={{ gap: 6 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -1428,6 +1473,7 @@ useEffect(() => {
                   {[
                     { label: t("firstGoalLbl"), pts: "+1", risk: "-0.2" },
                     { label: t("firstHalfLbl"), pts: "+2", risk: "-0.4" },
+                    { label: t("bttsLbl"), pts: "+0.4", risk: "-0.2" },
                     { label: t("redLbl"), pts: "+1.5", risk: "-0.3" },
                     { label: t("penalty"), pts: "+1.5", risk: "-0.3" },
                   ].map(({ label, pts, risk }) => (
@@ -1546,6 +1592,8 @@ useEffect(() => {
                 if (hs != null && as2 != null) rows.push({ label: t("scoreLbl"), value: `${hs} – ${as2}`, color: "#a3e635" });
                 if (d.firstGoal) rows.push({ label: t("firstGoalLbl"), value: d.firstGoal === "H" ? homeName : awayName });
                 if (d.firstHalf) { const fh = String(d.firstHalf).toUpperCase(); rows.push({ label: t("firstHalfLbl"), value: fh === "H" ? t("homeAhead") : fh === "D" ? t("drawLbl") : t("awayAhead") }); }
+                /* `!= null` — false GEÇERLİ bir cevap ve satırı basılmalı. */
+                if (d.btts != null) rows.push({ label: t("bttsLbl"), value: d.btts ? t("yesLbl") : t("noLbl"), color: d.btts ? "#4ade80" : "#94a3b8" });
                 if (d.redAny != null) rows.push({ label: t("redLbl"), value: d.redAny ? (d.redSide === "H" ? homeName : d.redSide === "A" ? awayName : t("varLbl")) : t("yokLbl"), color: d.redAny ? "#ef4444" : "#94a3b8" });
                 if (d.penaltyAny != null) rows.push({ label: t("penalty"), value: d.penaltyAny ? (d.penaltySide === "H" ? homeName : d.penaltySide === "A" ? awayName : t("varLbl")) : t("yokLbl"), color: d.penaltyAny ? "#f59e0b" : "#94a3b8" });
                 return (
