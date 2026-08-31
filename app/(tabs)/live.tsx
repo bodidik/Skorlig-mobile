@@ -1626,6 +1626,28 @@ export default function LiveScreen() {
             {/* ===== MİSAFİR ŞERTI ===== */}
             <GuestBanner />
 
+            {/* ===== OYUN MODLARI — İLK İÇERİK BLOĞU =====
+                ⚠️ SIRA DEĞİŞTİ (2026-08-31, kullanıcı bildirimi): "Ne oynamak
+                istersin en üstte olmalı, altında yakın tarihli popüler maçlar
+                olmalı." Şerit ALTINCI bloktu — marka bandı, misafir şeridi,
+                skor merkezi, kupon ve günün maçı ondan önce geliyordu.
+
+                Altı mod farklı ekranlara dağılmış; yeni kullanıcı maç
+                listesinden ötesini keşfetmiyordu. Keşfedilmeyen özellik,
+                olmayan özelliktir. bkz. components/OyunModlari.tsx
+
+                ⚠️ SKOR MERKEZİ BİR SIRA AŞAĞI İNDİ, KALDIRILMADI — onun kendi
+                başlığı da "en tepede" diyor (ayrı bir kullanıcı bildirimi).
+                İkisi çakışınca sonraki bildirim kazandı; skor merkezi hâlâ
+                maç listesinin ÜSTÜNDE ve canlı maçları taşıdığı için
+                "altında yakın tarihli popüler maçlar" isteğini de karşılıyor. */}
+            <OyunModlari
+              macBedeli={macBedeli}
+              kuponBedeli={kuponBedeli}
+              is1987={is1987Member}
+              onMod={setMode}
+            />
+
             {/* ===== SKOR MERKEZİ =====
                 "Bitmiş maçları görmek zor" bildirimi: gerçek sonuç ekranı
                 listenin dibindeki tek düğmenin arkasındaydı. Bu şerit canlı
@@ -1666,16 +1688,6 @@ export default function LiveScreen() {
               <DailyMatchCard country={userCountry || undefined} userId={userId} />
             )}
 
-            {/* ===== OYUN MODLARI =====
-                Altı mod farklı ekranlara dağılmış; yeni kullanıcı maç
-                listesinden ötesini keşfetmiyordu. Keşfedilmeyen özellik,
-                olmayan özelliktir. bkz. components/OyunModlari.tsx */}
-            <OyunModlari
-              macBedeli={macBedeli}
-              kuponBedeli={kuponBedeli}
-              is1987={is1987Member}
-              onMod={setMode}
-            />
 
             {/* ===== ÜLKEDE MAÇ YOK ŞERİDİ =====
                 Sunucu ülke süzgeci sonuçsuz kalınca dünya listesine geri

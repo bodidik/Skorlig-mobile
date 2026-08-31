@@ -48,6 +48,25 @@ export type OyunModlariProps = {
   onMod?: (mod: "open" | "gs1987") => void;
 };
 
+/**
+ * ⚠️ AÇIKLAMA RENGİ ÖLÇÜLDÜ — `Colors.muted` DEĞİL.
+ *
+ * Kullanıcı bildirimi (2026-08-31): "Renkler ve yazılar sönük ve oturmamış."
+ * Ölçüm bunu doğruladı ve YERİNİ gösterdi — kart zeminleri gradyan yüzünden
+ * mod rengine kayıyor ve `Colors.muted` (#64748b) o zeminlerde:
+ *
+ *   tek 2.69 · kupon 2.53 · mini 2.62 · gs 2.86 · düello 2.71 · havuz 2.76
+ *
+ * WCAG AA eşiği 4.5. Kartın NE OLDUĞUNU anlatan tek satır okunmuyordu.
+ * Bu ton altı zeminin altısında da 4.69+ veriyor (sayfa zemininde 7.62).
+ *
+ * ⚠️ RENGİ ZEMİNE KOYARAK CANLANDIRMA — ölçüldü, ters teper. Gradyan üst
+ * alfası %19→%27 yapılınca açıklama 3.77, bedel 4.12 oluyor: ikisi de eşiğin
+ * altına düşüyor. Renk kimliği METİN TAŞIMAYAN kanallardan gelmeli — sol
+ * kenar şeridi, kenarlık ve emoji rozeti. Onlarda metin eşiği yok.
+ */
+const ACIKLAMA_RENGI = "#94a3b8";
+
 type Mod = {
   key: string;
   ikon: string;
@@ -153,10 +172,14 @@ export default function OyunModlari({
 
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={{ color: Colors.text, fontSize: 14, fontWeight: "800", marginBottom: 2 }}>
+      {/* ⚠️ BU ŞERİT ARTIK EKRANIN İLK İÇERİK BLOĞU (bkz. live.tsx). Başlık
+          14px ve alt yazı `Colors.muted` idi; ikincil bir bölüm başlığı gibi
+          duruyordu. Alt yazının sayfa zemininde ölçülen kontrastı 4.11 —
+          eşiğin altı. */}
+      <Text style={{ color: Colors.text, fontSize: 16, fontWeight: "900", letterSpacing: 0.2 }}>
         {t("whatToPlay")}
       </Text>
-      <Text style={{ color: Colors.muted, fontSize: 11, marginBottom: 10 }}>
+      <Text style={{ color: ACIKLAMA_RENGI, fontSize: 11.5, marginTop: 2, marginBottom: 10 }}>
         {t("sixModes")}
       </Text>
 
@@ -180,13 +203,24 @@ export default function OyunModlari({
                 borderRadius: 14,
                 backgroundColor: Colors.card,
                 borderWidth: 1,
-                borderColor: `${m.renk}66`,
+                borderColor: `${m.renk}99`,
                 overflow: "hidden",
               }}
             >
               {/* Mod renginden karta akan gradyan — düz kart "ayarlar menüsü"
                   gibi duruyordu; renk kimliği karta yayılınca oyun rafı oldu. */}
               <GradyanZemin renkler={[`${m.renk}30`, `${m.renk}05`]} yon="dikey" />
+              {/* ⚠️ RENK KİMLİĞİ BURADAN GELİYOR, ZEMİNDEN DEĞİL. Gradyanı
+                  koyulaştırmak kartın kendi yazısını okunmaz yapıyor (ölçüm
+                  ACIKLAMA_RENGI başlığında). Şerit metin taşımadığı için
+                  eşiğe takılmaz; `position: absolute` ana kabın padding'ini
+                  yok sayar, yani içerik hizası değişmez. */}
+              <View
+                style={{
+                  position: "absolute", left: 0, top: 0, bottom: 0, width: 3,
+                  backgroundColor: m.renk,
+                }}
+              />
               {/* Dilden bağımsız tanınırlık: büyük emoji + renkli rozet zemin.
                   Kullanıcı isteği (2026-08-09): mod kartları yazı okumadan seçilebilsin. */}
               <View
@@ -204,16 +238,26 @@ export default function OyunModlari({
                 {m.ad}
               </Text>
               <Text
-                style={{ color: Colors.muted, fontSize: 10, marginTop: 3, lineHeight: 14, minHeight: 28 }}
+                style={{ color: ACIKLAMA_RENGI, fontSize: 10.5, marginTop: 3, lineHeight: 14, minHeight: 28 }}
                 numberOfLines={2}
               >
                 {m.aciklama}
               </Text>
-              {m.bedel ? (
-                <Text style={{ color: m.renk, fontSize: 10.5, fontWeight: "800", marginTop: 6 }}>
-                  {m.bedel}
-                </Text>
-              ) : null}
+              {/* ⚠️ YÜKSEKLİK SABİT — bedel VERİYE bağlı, düzen olmamalı.
+                  `macBedeli` ve `kuponBedeli` live.tsx'te `null` başlıyor ve
+                  sunucudan sonra doluyor; koşullu render ilk boyamada iki
+                  kartı ötekilerden ~20px kısa bırakıyordu — kullanıcının
+                  "oturmamış" dediği tırtıklı şerit tam olarak buydu. */}
+              <View style={{ height: 20, justifyContent: "flex-end" }}>
+                {m.bedel ? (
+                  <Text
+                    style={{ color: m.renk, fontSize: 10.5, fontWeight: "800" }}
+                    numberOfLines={1}
+                  >
+                    {m.bedel}
+                  </Text>
+                ) : null}
+              </View>
             </View>
           </Basinc>
         ))}
