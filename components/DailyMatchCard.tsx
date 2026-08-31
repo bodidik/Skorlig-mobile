@@ -11,6 +11,7 @@ import { titret } from "../lib/hisler";
 import { MacKartiIskeleti } from "./Iskelet";
 import { Gradyan } from "../constants/colors";
 import { t, useLang } from "../lib/i18n";
+import { macSaatiEtiketi, takvimGunFarki } from "../lib/macSaati";
 import { ligEtiketi } from "../lib/ulkeler";
 import hataMesaji from "../lib/hataMesaji";
 import { apiFetch } from "../lib/apiFetch";
@@ -159,22 +160,11 @@ export default function DailyMatchCard({ country, userId }: Props) {
 
   const kickDt = fixture.kickoffISO ? new Date(fixture.kickoffISO) : null;
   const bugun = new Date();
-  const ayniGun = kickDt
-    ? kickDt.getFullYear() === bugun.getFullYear()
-      && kickDt.getMonth() === bugun.getMonth()
-      && kickDt.getDate() === bugun.getDate()
-    : true;
+  // TAKVİM günü farkı: 24 saate bölen eski hesap, bugün 14:00te bakılırken
+  // YARIN 20:00 maçına "2 gün sonra" diyordu (30/24 -> ceil 2).
+  const gunFarki = kickDt ? Math.max(0, takvimGunFarki(kickDt, bugun)) : 0;
 
-  const gunFarki = kickDt
-    ? Math.max(0, Math.ceil((kickDt.getTime() - Date.now()) / 86400000))
-    : 0;
-
-  const kickoff = kickDt
-    ? ayniGun
-      ? kickDt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
-      : kickDt.toLocaleDateString("tr-TR", { day: "numeric", month: "short" })
-        + " " + kickDt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
-    : null;
+  const kickoff = macSaatiEtiketi(fixture.kickoffISO, { bugun: t("today"), yarin: t("tomorrow") }) || null;
 
   // Bugünkü maçta saatten çok "ne kadar kaldı" heyecan verir: son 6 saatte
   // canlı geri sayım gösterilir, dakikada bir yenilenir.
@@ -196,7 +186,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
       <View style={s.meta}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
           <Text style={s.league}>{ligEtiketi(fixture.league, fixture.country) || t("matchFallback")}</Text>
-          {!ayniGun && gunFarki > 0 && (
+          {gunFarki >= 2 && (
             <View style={s.countdownBadge}>
               <Text style={s.countdownText}>{t("inDays", { n: gunFarki })}</Text>
             </View>

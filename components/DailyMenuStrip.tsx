@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { t, useLang } from "../lib/i18n";
+import { macSaatiEtiketi } from "../lib/macSaati";
 import hataMesaji from "../lib/hataMesaji";
 import { apiFetch } from "../lib/apiFetch";
 
@@ -31,9 +32,7 @@ function MatchCard({ fx, onDone }: { fx: Fixture; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const fade = React.useRef(new Animated.Value(0)).current;
 
-  const kickoff = fx.kickoffISO
-    ? new Date(fx.kickoffISO).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
-    : null;
+  const kickoff = macSaatiEtiketi(fx.kickoffISO, { bugun: t("today"), yarin: t("tomorrow") }) || null;
 
   async function pick(outcomeKey: string) {
     if (done || busy) return;

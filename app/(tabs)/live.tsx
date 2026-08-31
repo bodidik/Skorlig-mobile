@@ -32,6 +32,7 @@ import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { t, useLang } from "../../lib/i18n";
+import { macSaatiEtiketi } from "../../lib/macSaati";
 import { ulkeAdi, ligEtiketi, ligSiraAnahtari } from "../../lib/ulkeler";
 const t2 = t; // turnuva map(t) golgelemesi icin takma ad
 
@@ -190,24 +191,6 @@ function pickList(j: Live2Resp): Fx[] {
   return list.filter((x) => String(x?.fixtureId || "").trim().length > 0);
 }
 
-function formatDateTR(isoOrDate?: string | null) {
-  if (!isoOrDate) return "-";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(isoOrDate)) {
-    const [y, m, d] = isoOrDate.split("-");
-    return `${d}/${m}/${y}`;
-  }
-  try {
-    const d = new Date(isoOrDate);
-    if (!Number.isFinite(d.getTime())) return "-";
-    const dd = d.getDate().toString().padStart(2, "0");
-    const mm = (d.getMonth() + 1).toString().padStart(2, "0");
-    const yy = d.getFullYear().toString();
-    return `${dd}/${mm}/${yy}`;
-  } catch {
-    return "-";
-  }
-}
-
 function formatTimeTR(iso?: string | null) {
   if (!iso) return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
@@ -224,11 +207,10 @@ function formatTimeTR(iso?: string | null) {
 
 function kickoffLabel(fx: Fx) {
   const isoOrDate = (fx.kickoffISO as any) || (fx.kickoffDate as any) || null;
-  const dateStr = formatDateTR(isoOrDate);
-  const timeStr = formatTimeTR(fx.kickoffISO || null);
-  if (timeStr) return `${dateStr} ${timeStr}`;
-  if (dateStr !== "-") return `${dateStr} • saat belirsiz`;
-  return "-";
+  const etiket = macSaatiEtiketi(isoOrDate, { bugun: t("today"), yarin: t("tomorrow") });
+  if (!etiket) return "-";
+  // Saatsiz kayıtta helper yalnızca GÜNÜ döner; saatin bilinmediğini söyle.
+  return formatTimeTR(fx.kickoffISO || null) ? etiket : `${etiket} • saat belirsiz`;
 }
 
 function statusLabel(fx: Fx) {
@@ -2778,7 +2760,7 @@ export default function LiveScreen() {
                           const opensIn = diffH !== null && diffH > PREDICT_OPEN_AHEAD_HOURS
                             ? t("opensInH", { h: Math.round(diffH - PREDICT_OPEN_AHEAD_HOURS) })
                             : t("opensSoon");
-                          const timeStr = formatTimeTR(fx.kickoffISO ?? null);
+                          const timeStr = macSaatiEtiketi(fx.kickoffISO ?? null, { bugun: t("today"), yarin: t("tomorrow") }) || null;
                           return (
                             <View
                               key={fx.fixtureId}

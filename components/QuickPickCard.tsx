@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { t, useLang } from "../lib/i18n";
+import { macSaatiEtiketi } from "../lib/macSaati";
 import {
   View, Text, TouchableOpacity, ActivityIndicator,
   Animated, StyleSheet, Alert,
@@ -109,9 +110,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
   const [detayBusy, setDetayBusy] = useState(false);
   const [detayGonderildi, setDetayGonderildi] = useState(false);
 
-  const kickoff = fixture.kickoffISO
-    ? new Date(fixture.kickoffISO).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
-    : null;
+  const kickoff = macSaatiEtiketi(fixture.kickoffISO, { bugun: t("today"), yarin: t("tomorrow") }) || null;
 
   // 1X2 hızlı submit
   async function handlePick(outcomeKey: "home" | "draw" | "away") {

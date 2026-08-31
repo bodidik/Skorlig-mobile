@@ -9,6 +9,7 @@ import { getApiBase, resetApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { ligEtiketi } from "../../lib/ulkeler";
 import { t, useLang } from "../../lib/i18n";
+import { macSaatiEtiketi } from "../../lib/macSaati";
 import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
 import { usePolling } from "../../hooks/usePolling";
@@ -82,7 +83,7 @@ function kickoffLabel(iso: string | null): string {
     const diff = d.getTime() - now.getTime();
     if (diff < 0) return t("started");
     if (diff < 3600000) return t("nMin", { n: Math.round(diff / 60000) });
-    return d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+    return macSaatiEtiketi(iso, { bugun: t("today"), yarin: t("tomorrow") });
   } catch { return ""; }
 }
 

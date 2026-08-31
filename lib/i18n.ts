@@ -473,6 +473,7 @@ const strings = {
     // livescores
     monthsShort:      "Oca,Şub,Mar,Nis,May,Haz,Tem,Ağu,Eyl,Eki,Kas,Ara",
     today:            "Bugün",
+    tomorrow:         "Yarın",
     todaysMatches:    "Bugünün maçları",
     livePromoLive:    "🔴 Canlı maç devam ediyor! Tahminde tahmin lideri kim?",
     livePromoIdle:    "Bu maçın tahmin krallığı seni bekliyor",
@@ -1851,6 +1852,7 @@ const strings = {
     noTeamMatch:      "No matching team",
     monthsShort:      "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
     today:            "Today",
+    tomorrow:         "Tomorrow",
     todaysMatches:    "Today's matches",
     livePromoLive:    "🔴 A live match is on! Who leads the prediction race?",
     livePromoIdle:    "This match's prediction crown awaits you",
