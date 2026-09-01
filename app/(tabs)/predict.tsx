@@ -21,7 +21,15 @@ type TeamCode = "GS" | "FB" | "BJK" | "TS";
 type MatchWeights = {
   odds: { home: number; draw: number; away: number };
   outcomeMult: { H: number; D: number; A: number };
+  /* ⚠️ matchDifficulty ILK GOL / ILK YARI ICIN DOGRU DEGIL.
+   * settle2 o iki kalemi OLASILIK carpaniyla oduullendiriyor, yani puan
+   * SECIME gore degisiyor; bu alan secimden bagimsiz. Asagidaki iki alan
+   * ucun donduklerinin ta kendisi (routes/pred-weights.cjs).
+   * Kirmizi/penalti/KG/toplam gol GERCEKTEN matchDifficulty kullaniyor. */
   matchDifficulty: number;
+  /* İsteğe bağlı: eski sunucu sürümü bunları göndermiyor → matchDifficulty'ye düşülür. */
+  firstGoalMult?: { H: number; A: number };
+  firstHalfMult?: { H: number; D: number; A: number };
   countryWeight: number;
   basePoints: {
     outcome: number; exactScore: number;
@@ -34,6 +42,9 @@ type MatchWeights = {
     btts: number;
     over25: number; over35: number;
   };
+  /* Sunucu `penaltyPoints: MW.PENALTY_POINTS` yolluyor ama tip bilmiyordu,
+   * bu yuzden puan rehberi SABIT yazilmisti ve eski olcekte kalmisti. */
+  penaltyPoints?: Record<string, number>;
 };
 
 type NextMatchInfo = {
@@ -776,9 +787,13 @@ useEffect(() => {
     let gain = 0;
     if (outcome !== null) gain += fmtPts(BASE.outcome * getOutcomeMultiplier(outcome));
     if (hasScore) gain += fmtPts(BASE.exactScore * getScoreMultiplier(homeScore.trim(), awayScore.trim()));
-    // Yan kalemler maç zorluğuyla çarpılır — sunucu da böyle yapıyor
-    if (firstGoal !== null)  gain += fmtPts(BASE.firstGoal  * diff);
-    if (firstHalf !== null)  gain += fmtPts(BASE.firstHalf  * diff);
+    /* İlk gol ve ilk yarı SEÇİME bağlı çarpan alır (settle2:1159-1162).
+     * Ölçüldü: Galatasaray-Corum FK, ilk golü deplasman atar —
+     *   eski ekran 0.4 x 0.600 = 0.240,  settle 0.4 x 2.083 = 0.833  (%247).
+     * `?? diff` KASITLI: uç eski sürümdeyse eski davranışa düşer. */
+    if (firstGoal !== null)  gain += fmtPts(BASE.firstGoal  * (weights.firstGoalMult?.[firstGoal] ?? diff));
+    if (firstHalf !== null)  gain += fmtPts(BASE.firstHalf  * (weights.firstHalfMult?.[firstHalf] ?? diff));
+    // Kalan yan kalemler GERÇEKTEN maç zorluğuyla çarpılır (settle2 de öyle)
     if (btts !== null)       gain += fmtPts(BASE.btts       * diff);
     if (over25 !== null)     gain += fmtPts(BASE.over25     * diff);
     if (over25 === true && over35 !== null)          gain += fmtPts(BASE.over35     * diff);
@@ -1532,14 +1547,26 @@ useEffect(() => {
               <View style={{ marginTop: 4, padding: 10, backgroundColor: "#0a1120", borderRadius: 8 }}>
                 <Text style={{ color: "#475569", fontSize: 10, marginBottom: 4 }}>{t("rareHint")}</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
-                  {[
-                    { label: t("firstGoalLbl"), pts: "+1", risk: "-0.2" },
-                    { label: t("firstHalfLbl"), pts: "+2", risk: "-0.4" },
-                    { label: t("bttsLbl"), pts: "+0.4", risk: "-0.2" },
-                    { label: t("totalGoalsLbl"), pts: "+0.4", risk: "-0.2" },
-                    { label: t("redLbl"), pts: "+1.5", risk: "-0.3" },
-                    { label: t("penalty"), pts: "+1.5", risk: "-0.3" },
-                  ].map(({ label, pts, risk }) => (
+                  {/* ⚠️ SAYI YAZMA, SAYDIR. Bu liste SABİT yazılmıştı ve
+                    * 2026-08-10 ölçek düşüşünden sonra ESKİ değerlerde kaldı:
+                    *   ilk gol  +1   -> gerçek 0.4      kırmızı +1.5 -> gerçek 0.6
+                    *   ilk yarı +2   -> gerçek 0.8      penaltı +1.5 -> gerçek 0.6
+                    * Yani ekran motorun ~2.5 katını vaat ediyordu; cezalar da
+                    * olduğundan küçük görünüyordu (-0.2 yerine gerçek 0.45).
+                    * Artık uçtan gelen değerlerden türüyor; uç göndermezse
+                    * (eski sürüm) liste hiç basılmıyor — yanlış sayı yerine hiçbir sayı. */}
+                  {(BASE && weights?.penaltyPoints ? [
+                    { label: t("firstGoalLbl"), key: "firstGoal" },
+                    { label: t("firstHalfLbl"), key: "firstHalf" },
+                    { label: t("bttsLbl"), key: "btts" },
+                    { label: t("totalGoalsLbl"), key: "over25" },
+                    { label: t("redLbl"), key: "redAny" },
+                    { label: t("penalty"), key: "penaltyAny" },
+                  ].map(({ label, key }) => ({
+                    label,
+                    pts: "+" + ((BASE as Record<string, number>)[key] ?? 0),
+                    risk: "-" + (weights.penaltyPoints?.[key] ?? 0),
+                  })) : []).map(({ label, pts, risk }) => (
                     <View key={label} style={{ flexDirection: "row", gap: 3, backgroundColor: "#1e293b", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 3 }}>
                       <Text style={{ color: "#64748b", fontSize: 9 }}>{label}</Text>
                       <Text style={{ color: "#4ade80", fontSize: 9, fontWeight: "700" }}>{pts}</Text>
