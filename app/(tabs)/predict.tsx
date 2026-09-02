@@ -37,6 +37,8 @@ type MatchWeights = {
   bttsMult?: { true: number; false: number };
   over25Mult?: { true: number; false: number };
   over35Mult?: { true: number; false: number };
+  redAnyMult?: { true: number; false: number };
+  penaltyAnyMult?: { true: number; false: number };
   countryWeight: number;
   basePoints: {
     outcome: number; exactScore: number;
@@ -810,9 +812,12 @@ useEffect(() => {
     if (btts !== null)       gain += fmtPts(BASE.btts   * diff * yanCarpan(weights.bttsMult, btts));
     if (over25 !== null)     gain += fmtPts(BASE.over25 * diff * yanCarpan(weights.over25Mult, over25));
     if (over25 === true && over35 !== null)          gain += fmtPts(BASE.over35 * diff * yanCarpan(weights.over35Mult, over35));
-    if (redAny !== null)     gain += fmtPts(BASE.redAny     * diff);
+    /* Kirmizi/penalti de olasilik agirlikli (bkz. yanCarpan notu): olculdu
+     * kirmizi VAR %13.2, penalti VAR %16.8 -- carpansiz ekran 'var' diyen
+     * oyuncuya motorun odedigi puanin ucte birini gosteriyordu. */
+    if (redAny !== null)     gain += fmtPts(BASE.redAny     * diff * yanCarpan(weights.redAnyMult, redAny));
     if (redAny === true && redSide !== null)         gain += fmtPts(BASE.redSide     * diff);
-    if (penaltyAny !== null) gain += fmtPts(BASE.penaltyAny * diff);
+    if (penaltyAny !== null) gain += fmtPts(BASE.penaltyAny * diff * yanCarpan(weights.penaltyAnyMult, penaltyAny));
     if (penaltyAny === true && penaltySide !== null) gain += fmtPts(BASE.penaltySide * diff);
 
     // Toplam ülke/lig ağırlığıyla ölçeklenir (settle2: pts * w)
