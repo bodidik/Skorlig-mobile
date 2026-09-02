@@ -25,11 +25,18 @@ type MatchWeights = {
    * settle2 o iki kalemi OLASILIK carpaniyla oduullendiriyor, yani puan
    * SECIME gore degisiyor; bu alan secimden bagimsiz. Asagidaki iki alan
    * ucun donduklerinin ta kendisi (routes/pred-weights.cjs).
-   * Kirmizi/penalti/KG/toplam gol GERCEKTEN matchDifficulty kullaniyor. */
+   * Kirmizi/penalti YALNIZCA matchDifficulty kullaniyor; KG ve toplam gol
+   * ise onu SECIME BAGLI bir carpanla CARPIYOR (bttsMult/over25Mult/
+   * over35Mult) — yani bu alan hala gerekli, tek basina yeterli degil. */
   matchDifficulty: number;
   /* İsteğe bağlı: eski sunucu sürümü bunları göndermiyor → matchDifficulty'ye düşülür. */
   firstGoalMult?: { H: number; A: number };
   firstHalfMult?: { H: number; D: number; A: number };
+  /* KG / toplam gol — SEÇİME bağlı çarpan. ⚠ Bunlar matchDifficulty ile
+   * ÇARPILIR, onun YERİNE geçmez; ilk gol/ilk yarıdan farkı bu. */
+  bttsMult?: { true: number; false: number };
+  over25Mult?: { true: number; false: number };
+  over35Mult?: { true: number; false: number };
   countryWeight: number;
   basePoints: {
     outcome: number; exactScore: number;
@@ -793,10 +800,16 @@ useEffect(() => {
      * `?? diff` KASITLI: uç eski sürümdeyse eski davranışa düşer. */
     if (firstGoal !== null)  gain += fmtPts(BASE.firstGoal  * (weights.firstGoalMult?.[firstGoal] ?? diff));
     if (firstHalf !== null)  gain += fmtPts(BASE.firstHalf  * (weights.firstHalfMult?.[firstHalf] ?? diff));
-    // Kalan yan kalemler GERÇEKTEN maç zorluğuyla çarpılır (settle2 de öyle)
-    if (btts !== null)       gain += fmtPts(BASE.btts       * diff);
-    if (over25 !== null)     gain += fmtPts(BASE.over25     * diff);
-    if (over25 === true && over35 !== null)          gain += fmtPts(BASE.over35     * diff);
+    /* KG ve toplam gol: maç zorluğu ÇARPI seçime bağlı olasılık çarpanı.
+     * Ölçüldü (2027 maç): 3.5 üst %32.8, alt %67.2 — eşit ödemeyle hep
+     * "alt" diyen oyuncu maç başına +0.072 puan KAZANIYORDU. `?? 1` KASITLI:
+     * uç eski sürümdeyse çarpansız eski davranışa düşer (ekran yalan söylemez,
+     * yalnızca eski sayıyı gösterir). */
+    const yanCarpan = (m: { true: number; false: number } | undefined, s: boolean) =>
+      m?.[s ? "true" : "false"] ?? 1;
+    if (btts !== null)       gain += fmtPts(BASE.btts   * diff * yanCarpan(weights.bttsMult, btts));
+    if (over25 !== null)     gain += fmtPts(BASE.over25 * diff * yanCarpan(weights.over25Mult, over25));
+    if (over25 === true && over35 !== null)          gain += fmtPts(BASE.over35 * diff * yanCarpan(weights.over35Mult, over35));
     if (redAny !== null)     gain += fmtPts(BASE.redAny     * diff);
     if (redAny === true && redSide !== null)         gain += fmtPts(BASE.redSide     * diff);
     if (penaltyAny !== null) gain += fmtPts(BASE.penaltyAny * diff);
