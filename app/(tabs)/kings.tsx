@@ -13,12 +13,17 @@ import { useUserId } from "../../lib/useUserId";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { gorunenAd } from "../../lib/gorunenAd";
 
 // ====================
 // Backend modelleri
 // ====================
 type TotalsItem = {
   userId: string;
+  /* Sunucu her siralama satirina bunu ekliyor (lib/ad-cozucu.cjs).
+   * Opsiyonel: eski istemci/uc karisimlarinda satir adsiz gelebilir ve
+   * gorunenAd() o zaman userId'ye duser. */
+  displayName?: string | null;
   totalPoints: number;
   totalPenalty: number;
   matches: number;
@@ -35,6 +40,10 @@ type Row = TotalsItem & { rank: number };
 
 type UserProfile = {
   userId: string;
+  /* Sunucu her siralama satirina bunu ekliyor (lib/ad-cozucu.cjs).
+   * Opsiyonel: eski istemci/uc karisimlarinda satir adsiz gelebilir ve
+   * gorunenAd() o zaman userId'ye duser. */
+  displayName?: string | null;
   mainTeam?: string | null;
   is1987?: boolean;
 };
@@ -655,7 +664,7 @@ export default function KingsScreen() {
                       marginTop: 2,
                     }}
                   >
-                    {champion1987.userId} · {Math.round(champion1987.totalPoints)} p ·{" "}
+                    {gorunenAd(champion1987)} · {Math.round(champion1987.totalPoints)} p ·{" "}
                     {t("nMatches", { n: champion1987.matches })}
                   </Text>
                 </View>
@@ -724,7 +733,7 @@ export default function KingsScreen() {
                             fontSize: 13,
                           }}
                         >
-                          {row.userId}
+                          {gorunenAd(row)}
                           {isMe ? " (ben)" : ""}
                         </Text>
 

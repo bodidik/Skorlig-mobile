@@ -12,6 +12,7 @@ import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
 import { puanYaz } from "../../lib/lcBicim";
+import { gorunenAd } from "../../lib/gorunenAd";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -131,7 +132,7 @@ export default function Board2Screen() {
               <Text style={{ width: 26, textAlign: "center" }}>
                 {x.flag || ""}
               </Text>
-              <Text style={{ flex: 1 }}>{x.userId}</Text>
+              <Text style={{ flex: 1 }}>{gorunenAd(x)}</Text>
               <Text style={{ fontWeight: "800", color: "#e2e8f0" }}>{puanYaz(x.points)}</Text>
             </View>
           ))

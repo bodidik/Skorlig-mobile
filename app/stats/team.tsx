@@ -15,6 +15,7 @@ import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
 import { puanYaz } from "../../lib/lcBicim";
 import { hataMesaji } from "../../lib/hataMesaji";
+import { gorunenAd } from "../../lib/gorunenAd";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -213,7 +214,7 @@ export default function TeamTotalsScreen() {
                 {x.flag || ""}
               </Text>
               <Text style={{ flex: 1 }}>
-                {x.userId}
+                {gorunenAd(x)}
                 {x.team ? ` • ${x.team}` : ""}
               </Text>
               <Text style={{ fontWeight: "800", color: "#e2e8f0" }}>{puanYaz(x.points)}</Text>

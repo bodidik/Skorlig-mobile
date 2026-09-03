@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
+import { gorunenAd } from "../lib/gorunenAd";
 
 type Member = {
   userId: string;
@@ -184,7 +185,7 @@ export default function Gs1987MembersScreen() {
                     fontSize: 13,
                   }}
                 >
-                  {m.userId}
+                  {gorunenAd(m)}
                   {m.label ? ` · ${m.label}` : ""}
                 </Text>
 

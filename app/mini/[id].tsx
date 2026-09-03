@@ -16,6 +16,7 @@ import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
 import { puanYaz } from "../../lib/lcBicim";
+import { gorunenAd } from "../../lib/gorunenAd";
 const t2 = t; // `t` degiskeni (turnuva) golgelemesi icin takma ad
 
 /**
@@ -380,7 +381,7 @@ export default function MiniBoardScreen() {
                     {medal}
                   </Text>
                   <Text style={{ color: "#fff", fontWeight: isMe ? "800" : "500", flex: 1 }} numberOfLines={1}>
-                    {row.userId}{isMe ? " 👤" : ""}
+                    {gorunenAd(row)}{isMe ? " 👤" : ""}
                   </Text>
                   <Text style={{ color: "#a3e635", fontWeight: "800" }}>
                     {puanYaz(row.points)} p

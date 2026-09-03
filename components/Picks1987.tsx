@@ -11,6 +11,7 @@ import { apiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 import { puanYaz } from "../lib/lcBicim";
 import { ulkeAdi } from "../lib/ulkeler";
+import { gorunenAd } from "../lib/gorunenAd";
 
 /* ⚠️ Kendi sabit kodlanmis API tabani vardi; lib/apiBase'in LAN/dev
  * cozumlemesinden habersizdi. Tabani artik paylasilan apiFetch belirliyor. */
@@ -396,7 +397,7 @@ export default function Picks1987() {
           {board.map(row => (
             <View key={row.userId} style={[s.boardRow, row.userId === uid && s.boardRowMe]}>
               <Text style={s.boardRank}>#{row.rank}</Text>
-              <Text style={s.boardUser} numberOfLines={1}>{row.userId}</Text>
+              <Text style={s.boardUser} numberOfLines={1}>{gorunenAd(row)}</Text>
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={s.boardPts}>{puanYaz(row.points)} p</Text>
                 <Text style={s.boardMatches}>{row.correct}/{row.matches}</Text>

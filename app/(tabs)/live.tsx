@@ -2108,7 +2108,13 @@ export default function LiveScreen() {
                     {myTournaments.map((t) => (
                       <TouchableOpacity
                         key={t.id}
-                        onPress={() => router.push({ pathname: "/mini-group", params: { code: t.code, userId } })}
+                        /* ⚠️ HEDEF "/mini-group" İDİ VE ÖYLE BİR EKRAN YOK -> Expo "Unmatched Route"
+                         * basıyordu: kullanıcı kurduğu turnuvaya tekrar tıkladığında
+                         * 404 ekranına düşüyordu. Kardeş üç yönlendirme (mini/index,
+                         * mini/create, me) ZATEN doğru kalıbı kullanıyordu; sapan tek
+                         * yer burasıydı. Turnuvalar /api/mini/* uçlarından geliyor,
+                         * yani ekran app/mini/[id].tsx ve anahtar `code` değil `id`. */
+                        onPress={() => router.push({ pathname: "/mini/[id]", params: { id: t.id, userId } })}
                         style={{ borderRadius: 10, backgroundColor: "#1e2433", borderWidth: 1, borderColor: t.finishedAt ? "#334155" : "#3b82f655", overflow: "hidden" }}
                       >
                         <View style={{ padding: 10, flexDirection: "row", alignItems: "center", gap: 10 }}>

@@ -12,6 +12,7 @@ import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
+import { gorunenAd } from "../../lib/gorunenAd";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -412,7 +413,7 @@ export default function CompetitionKingsScreen() {
               >
                 <View>
                   <Text style={{ color: "#fff", fontWeight: "600" }}>
-                    {ix + 1}. {r.userId}
+                    {ix + 1}. {gorunenAd(r)}
                     {isMe ? " (ben)" : ""}
                   </Text>
                   <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>

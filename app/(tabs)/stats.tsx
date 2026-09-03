@@ -19,6 +19,7 @@ import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { hasAdminToken, withAdminHeaders } from "../../lib/adminToken";
 import { t, useLang } from "../../lib/i18n";
 import { ulkeAdi } from "../../lib/ulkeler";
+import { gorunenAd } from "../../lib/gorunenAd";
 
 const DEFAULT_COMPETITION_ID = process.env.EXPO_PUBLIC_DEFAULT_COMPETITION_ID || "";
 
@@ -1007,7 +1008,7 @@ export default function StatsScreen() {
                       <Text style={{ color: Colors.muted, fontSize: 12, width: 28 }}>{r.sira}.</Text>
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "700" }}>
-                          {r.userId}{benMi ? t("me2") : ""}
+                          {gorunenAd(r)}{benMi ? t("me2") : ""}
                         </Text>
                         <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 2 }}>
                           {t("kuponRow", { n: r.kuponSayisi, d: r.toplamDogru, m: r.toplamMac, p: r.isabetYuzde })}
@@ -1065,7 +1066,7 @@ export default function StatsScreen() {
                             <View>
                               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                                 <Text style={{ color: "#fff", fontWeight: "600" }}>
-                                  {ix + 1}. {r.userId}
+                                  {ix + 1}. {gorunenAd(r)}
                                   {isMe ? t("me2") : ""}
                                 </Text>
                                 {/* Kupa rozeti: puandaşlar arasında ilk ayırıcı.
@@ -1183,7 +1184,7 @@ export default function StatsScreen() {
                         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#020617", padding: 12, borderRadius: 12, marginBottom: 8 }}>
                           <View>
                             <Text style={{ color: "#fff", fontWeight: "600" }}>
-                              {ix + 1}. {r.userId}
+                              {ix + 1}. {gorunenAd(r)}
                               {isMe ? t("me2") : ""}
                               {r.flag ? ` ${r.flag}` : ""}
                             </Text>
@@ -1260,7 +1261,7 @@ export default function StatsScreen() {
                     >
                       <View>
                         <Text style={{ color: "#fff", fontWeight: "600" }}>
-                          {ix + 1}. {r.userId}
+                          {ix + 1}. {gorunenAd(r)}
                           {isMe ? t("me2") : ""}
                         </Text>
                         <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>

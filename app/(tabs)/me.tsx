@@ -27,6 +27,7 @@ import {
 import { shareInvite as shareInviteLink } from "../../lib/share";
 import { sortCountries } from "../../lib/countrySort";
 import { useHisler, hisAyarla, golSesiCal, titret } from "../../lib/hisler";
+import { gorunenAd } from "../../lib/gorunenAd";
 
 /* Dil listesi render dışında: kapalı görünümdeki rozet de bu tablodan
  * etiket okuyor, iki yerde ayrı liste tutmak ayrışma demekti. */
@@ -1248,7 +1249,7 @@ export default function Me() {
                     backgroundColor: "#1a0606", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 }}>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 11, fontWeight: "700", color: "#7f1d1d" }} numberOfLines={1}>
-                        {b.userId}
+                        {gorunenAd(b)}
                       </Text>
                       {b.reason && (
                         <Text style={{ fontSize: 10, color: "#b91c1c" }}>{b.reason}</Text>
@@ -2459,7 +2460,7 @@ export default function Me() {
                         fontSize: 13,
                       }}
                     >
-                      {idx + 1}. {row.name || row.userId}
+                      {idx + 1}. {gorunenAd(row, row.name || "")}
                       {isMe ? t("me2") : ""}
                     </Text>
                   </View>

@@ -14,6 +14,7 @@ import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 import { puanYaz } from "../lib/lcBicim";
 import { hataMesaji } from "../lib/hataMesaji";
+import { gorunenAd } from "../lib/gorunenAd";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -286,7 +287,7 @@ export default function TrLeagueScreen() {
                     }}
                   >
                     <Text style={{ color: "#fff", fontWeight: isMe ? "900" : "600", flex: 1 }} numberOfLines={1}>
-                      {medal} {row.userId}
+                      {medal} {gorunenAd(row)}
                       {isMe ? " (ben)" : ""}
                     </Text>
                     {ix < 3 && reward ? (
