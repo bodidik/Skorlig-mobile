@@ -92,7 +92,13 @@ android {
         applicationId 'com.skorlig'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        /* EAS `appVersionSource: remote` kullaniyor ve bu satiri kendi
+         * sayaciyla EZIYOR -- yani EAS build'i bu degerden etkilenmez.
+         * Ama YEREL derleme bu sayiyi kullanir; 1 kalirsa Play
+         * "versionCode zaten kullanildi" diyerek reddeder.
+         * Play'deki son deger 28 idi (2026-09 olcumu). Her yerel
+         * yayin derlemesinden sonra ELLE artir. */
+        versionCode 29
         versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
@@ -104,15 +110,45 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            /* YEREL YAYIN IMZASI (EAS kuyrugunu beklememek icin).
+             *
+             * Sifreler DEPODA DEGIL: android/gradle.properties git'te
+             * izleniyor, oraya yazmak siri commit'lemek olurdu. Dogru yer
+             * kullanicinin kendi dosyasi:
+             *   C:\Users\<kullanici>\.gradle\gradle.properties
+             * Gradle onu kendiliginden okur ve depoya hic girmez.
+             *
+             * Gereken dort ozellik:
+             *   SKORLIG_STORE_FILE  SKORLIG_STORE_PASSWORD
+             *   SKORLIG_KEY_ALIAS   SKORLIG_KEY_PASSWORD
+             * Degerler EAS'te duruyor: `eas credentials` -> Android ->
+             * production. YENI KEYSTORE URETME - Play'deki upload key
+             * eslesmesi kirilir ve yukleme kalici olarak reddedilir.
+             */
+            if (project.hasProperty('SKORLIG_STORE_FILE')) {
+                storeFile file(SKORLIG_STORE_FILE)
+                storePassword SKORLIG_STORE_PASSWORD
+                keyAlias SKORLIG_KEY_ALIAS
+                keyPassword SKORLIG_KEY_PASSWORD
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            /* Ozellik varsa GERCEK anahtar, yoksa debug'a duser -- ama
+             * SESSIZCE degil: asagidaki uyari basilir. Sessiz debug imzasi
+             * Play'de "upload key eslesmedi" diye GEC ve anlasilmaz bir
+             * hataya donusuyordu. */
+            if (project.hasProperty('SKORLIG_STORE_FILE')) {
+                signingConfig signingConfigs.release
+            } else {
+                logger.warn('UYARI: SKORLIG_STORE_FILE yok -- release DEBUG anahtariyla imzalanacak. Play bu paketi REDDEDER. Kurulum: ~/.gradle/gradle.properties')
+                signingConfig signingConfigs.debug
+            }
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
