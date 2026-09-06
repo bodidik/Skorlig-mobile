@@ -1467,9 +1467,22 @@ export default function LiveScreen() {
     setAddBusy(true);
     setAddMsg(null);
     try {
-      const j = await apiJson("/api/rt/admin-fixture", {
+      /* ⚠️ YOL DÜZELTİLDİ (2026-09-05 uç eşleşme taraması): `/api/rt/admin-fixture`
+       * diye bir uç YOK ve hiç OLMAMIŞ — bu form her gönderimde 404 alıyordu,
+       * yani elle maç ekleme hiçbir zaman çalışmadı. Aynı sınıf hata bu depoda
+       * altıncı kez: kings, board2, stats-team, live-fav, stats-fav, mystatus.
+       *
+       * Gerçek uç `POST /api/admin/fixtures/add` ve `x-admin-token` ŞART
+       * (requireAdminToken) — bu ekranın öteki admin çağrıları gibi
+       * `withAdminHeaders` ile. Header'ı unutmak aynı panelde bir kez daha
+       * yaşandı, bkz. yukarıdaki 401 ADMIN_TOKEN_REQUIRED notu.
+       *
+       * ⚠️ SÖZLEŞME DE UYUŞMUYORDU: sunucu `{ok, fixture}` döner; `action`
+       * ALANI YOKTUR ve GÜNCELLEME YAPMAZ — aynı fixtureId varsa 409
+       * FIXTURE_EXISTS verir. "Güncellendi" dalı hiç gerçekleşemezdi. */
+      const j = await apiJson("/api/admin/fixtures/add", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await withAdminHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           home: addHome.trim(),
           away: addAway.trim(),
@@ -1479,7 +1492,7 @@ export default function LiveScreen() {
         }),
       });
       if (j?.ok) {
-        setAddMsg(t("addedArrow", { a: j.action === "updated" ? t("updatedWord") : t("addedWord"), f: j.fixtureId }));
+        setAddMsg(t("addedArrow", { a: t("addedWord"), f: j.fixture?.fixtureId ?? "" }));
         setAddHome("");
         setAddAway("");
         setAddLeague("");
