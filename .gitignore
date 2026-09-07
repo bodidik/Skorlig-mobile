@@ -24,8 +24,10 @@ yarn-debug.*
 yarn-error.*
 
 # Env / secrets
-.env
-.env.local
+# ⚠️ TAM AD DEĞİL, DESEN. api deposunda ölçüldü (2026-09-07): tam ad kuralı
+# `.env.oncesi-<zaman>` gibi bir yedeği yok saymıyordu ve dosya aylarca
+# `git status`ta görünür durumda kaldı — tek bir `git add -A` yeterdi.
+.env*
 
 # Firebase client config (APK'ya gömülü ama public repo'da durmasın)
 google-services.json
