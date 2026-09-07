@@ -20,6 +20,7 @@ import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
 import { puanYaz } from "../../lib/lcBicim";
 import ReactionBar from "../../components/ReactionBar";
+import TanitimSeridi from "../../components/TanitimSeridi";
 import GolAni from "../../components/GolAni";
 import SiralamaCipi from "../../components/SiralamaCipi";
 
@@ -419,6 +420,11 @@ export default function MatchRaceScreen() {
             {/* Maç öncesi de oda açık: bekleyiş de paylaşılan bir şey. */}
             <ReactionBar fixtureId={fixtureId} pollMs={pollMs} />
 
+            {/* Tanıtım şeridi: maç öncesi bekleyişte, odanın hemen altında.
+              * Tohum fixtureId — aynı maçta kart sabit kalır, kendiliğinden
+              * dönüp gözü çekmez (bkz. components/TanitimSeridi). */}
+            <TanitimSeridi tohum={fixtureId} />
+
             <Text style={{ fontWeight: "700", color: "#e2e8f0", marginTop: 4 }}>
               {t("participants", { n: data.totalPlayers || 0 })}
             </Text>
@@ -557,6 +563,10 @@ export default function MatchRaceScreen() {
               * liste: "ne oldu / ben neredeyim / herkes ne diyor / tam liste".
               */}
             <ReactionBar fixtureId={fixtureId} pollMs={pollMs} />
+
+            {/* Tanıtım şeridi: maç sırasında oda ile tam liste arasında.
+              * Liste uzun; şeridi altına koymak onu ekran dışında bırakırdı. */}
+            <TanitimSeridi tohum={fixtureId} />
 
             <Text style={{ fontWeight: "700", color: "#e2e8f0" }}>
               {t("topOfTotal", { a: (data.top || []).length, b: data.totalPlayers })}

@@ -41,6 +41,12 @@ const PROFILLER: Record<
   { maxTeams: number; maxLeagues: number; label: string; level: NonNullable<RuntimeStage>["level"] }
 > = {
   DEV_4_TEAMS:      { maxTeams: 4,   maxLeagues: 1,  label: "4 takımlı geliştirme modu",            level: "DEV" },
+  /* ⚠️ ÇALIŞAN PROFİL BU TABLODA YOKTU (2026-09-07 TR40 denetimi).
+   * Sunucu TR_40_TEAMS ile çalışırken `mapRuntimeStage` son dala düşüp
+   * level:"CUSTOM" veriyordu ve ekranda "Custom profil: TR_40_TEAMS" yazıyordu
+   * — uygulama, ürünün VARSAYILAN profilini tanımadığını ilan ediyordu.
+   * Sunucu tarafındaki ikizi: server.cjs PROFIL_ETIKET. */
+  TR_40_TEAMS:      { maxTeams: 40,  maxLeagues: 2,  label: "Türkiye: Süper Lig + 1. Lig (≈38 takım)", level: "TR" },
   TR_30_TEAMS:      { maxTeams: 30,  maxLeagues: 1,  label: "Türkiye ligi testi (≈30 takım)",       level: "TR" },
   GLOBAL_100_TEAMS: { maxTeams: 100, maxLeagues: 5,  label: "Kısıtlı global test modu (≈100 takım)", level: "GLOBAL_LIGHT" },
   GLOBAL_456_TEAMS: { maxTeams: 456, maxLeagues: 20, label: "Tam global yüksek yük modu",           level: "GLOBAL_FULL" },

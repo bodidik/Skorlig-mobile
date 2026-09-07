@@ -1433,6 +1433,19 @@ const strings = {
     react_helal:      "Helal",
     react_hakem:      "Hakem?",
     react_yikildim:   "Yıkıldım",
+    /* ⚠️ TANITIM ŞERİDİ (yarış alanı altı). Anahtar `tanitim_<kart>`; kart
+     * listesi components/TanitimSeridi.tsx'te. İkisi ayrışırsa ekranda ham
+     * `tanitim_kupon` görünür — `react_*` ile birebir aynı tuzak, koruma
+     * tests/tanitimSeridi.test.ts'te. Metinler KISA: şerit tek satır. */
+    /* ⚠️ "kupon" kelimesi kullanıcıya görünen metinde YASAK (bahis dili;
+     * Google Play IARC "simulated gambling" → 18+ riski, bkz.
+     * api/tests/bahis-dili-ve-vitrin). Özellik ekranda "Hafta" adıyla
+     * sunuluyor — nöbetçi ilk koşumda bu metni düşürdü. */
+    tanitim_kupon:    "Bu haftanın maçları — herkes aynı listede",
+    tanitim_duello:   "Düelloya çık, rakibini seç",
+    tanitim_gruplar:  "Taraftar gruplarına katıl",
+    tanitim_premium:  "Premium: daha çok maç, daha çok LC",
+    tanitim_kapat:    "Kapat",
   },
   en: {
     matches:       "Matches",
@@ -2771,6 +2784,11 @@ const strings = {
     react_helal:      "Respect",
     react_hakem:      "Ref?",
     react_yikildim:   "Gutted",
+    tanitim_kupon:    "This week's matches — same list for everyone",
+    tanitim_duello:   "Start a duel, pick your rival",
+    tanitim_gruplar:  "Join a supporters group",
+    tanitim_premium:  "Premium: more matches, more LC",
+    tanitim_kapat:    "Dismiss",
   },
   el: {
     matches:       "Αγώνες",
