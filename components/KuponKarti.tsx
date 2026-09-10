@@ -27,6 +27,7 @@ import { useRouter } from "expo-router";
 import { apiJson } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 import { ulkeAdi } from "../lib/ulkeler";
+import { kuponBasligi, birincilKupon } from "../lib/kuponBaslik";
 import GradyanZemin from "./GradyanZemin";
 import IskeletBlok from "./Iskelet";
 import { Gradyan } from "../constants/colors";
@@ -41,7 +42,7 @@ type Mac = {
 
 type KuponT = {
   id: string;
-  tur: "ulke" | "avrupa";
+  tur: "ulke" | "avrupa" | "ortak";
   ulke: string | null;
   maclar: Mac[];
   girisBedeli: number;
@@ -72,12 +73,12 @@ export default function KuponKarti() {
     try {
       const j = await apiJson("/api/kupon/aktif");
       const liste: KuponT[] = j?.ok && Array.isArray(j.kuponlar) ? j.kuponlar : [];
-      /* ⚠️ ÜLKE KUPONU ÖNCELİKLİ. Uç ülke + Avrupa kuponunu birlikte
-       * döndürüyor; ana ekranda kullanıcının KENDİ ligi birincil olmalı.
-       * Ülke kuponu yoksa (ülkesi seçili değil ya da o hafta yeterli maç
-       * yok) Avrupa kuponu gösteriliyor — boş kart göstermekten iyi. */
-      const acik = liste.filter((k) => k.durum === "open");
-      setKupon(acik.find((k) => k.tur === "ulke") || acik[0] || null);
+      /* ⚠️ SIRA ARTIK AÇIK YAZILI (lib/kuponBaslik.ts birincilKupon).
+       * Eski kural "ülke kuponu, yoksa ilki" idi ve ORTAK kupon yalnızca
+       * YEDEK dala düşerek görünüyordu: TR40'ta liste tek elemanlı olduğu
+       * için sonuç tesadüfen doğruydu. İki tür birlikte dönseydi ülke
+       * kuponu ORTAK'ı gizlerdi. */
+      setKupon(birincilKupon(liste));
     } catch {
       setKupon(null);
     }
@@ -106,11 +107,12 @@ export default function KuponKarti() {
   const eksik = Math.max(0, macSayisi - girilen);
 
   /* Başlık `app/kupon.tsx` ile AYNI anahtardan — iki yüzey aynı kuponu farklı
-   * adlandırırsa kullanıcı iki ayrı oyun sanır. */
-  const baslik =
-    kupon.tur === "avrupa"
-      ? t("kuponEurope")
-      : t("kuponCountryLeague", { c: ulkeAdi(kupon.ulke) });
+   * adlandırırsa kullanıcı iki ayrı oyun sanır.
+   *
+   * ⚠️ NİYET TEK KAYNAKTI, GERÇEK KOPYAYDI: aynı üçlü ifade iki dosyada ayrı
+   * ayrı duruyordu ve ikisi birlikte bozuldu (ORTAK kupon "⚽  Ligi"). Artık
+   * gerçekten tek kaynak: lib/kuponBaslik.ts. */
+  const baslik = kuponBasligi(kupon, t, ulkeAdi);
 
   /* İlk iki maç önizleme olarak gösteriliyor: "8 maç" soyut, "Galatasaray -
    * Fenerbahçe" somut. Kartın tıklanma sebebi bu satır. */

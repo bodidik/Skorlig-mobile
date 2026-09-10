@@ -25,6 +25,7 @@ import { apiJson } from "../lib/apiFetch";
 import hataMesaji from "../lib/hataMesaji";
 import { t, useLang } from "../lib/i18n";
 import { ulkeAdi } from "../lib/ulkeler";
+import { kuponBasligi, kuponAltMetni } from "../lib/kuponBaslik";
 
 type Mac = {
   fixtureId: string;
@@ -36,7 +37,7 @@ type Mac = {
 
 type KuponT = {
   id: string;
-  tur: "ulke" | "avrupa";
+  tur: "ulke" | "avrupa" | "ortak";
   ulke: string | null;
   haftaKey: string;
   maclar: Mac[];
@@ -167,21 +168,25 @@ export default function KuponEkrani() {
         <View style={{ marginTop: 20, padding: 14, borderRadius: 12, backgroundColor: Colors.dark }}>
           <Text style={{ color: Colors.text, fontSize: 13 }}>{hata}</Text>
           <TouchableOpacity onPress={yukle} style={{ marginTop: 10 }}>
-            <Text style={{ color: Colors.accent, fontWeight: "700" }}>Tekrar dene</Text>
+            <Text style={{ color: Colors.accent, fontWeight: "700" }}>{t("retry")}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
 
       {!hata && kuponlar.length === 0 ? (
         /* ⚠️ Boş durum sebebini söylüyor. "Kupon yok" demek kullanıcıya bir şey
-           anlatmaz; ülkesi seçili değilse ülke kuponu hiç gelmez. */
+           anlatmaz. Metin İKİ sebebi de sayıyor: TR modunda ülke hiç bakılmıyor,
+           kupon o hafta yeterli maç bulunamadığı için kurulmuyor (api/routes/
+           kupon.cjs YETERSIZ_MAC); ülke kuponu içinse profilde ülke gerekiyor.
+           Eski metin yalnızca ülkeyi söylüyordu ve TR40'ta kullanıcıyı boşuna
+           profiline yolluyordu. */
         <View style={{ marginTop: 24, padding: 16, borderRadius: 12, backgroundColor: Colors.dark }}>
           <Text style={{ color: Colors.text, fontSize: 14, fontWeight: "700" }}>{t("noOpenKupon")}</Text>
           <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
             {t("noOpenKuponHelp")}
           </Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/me")} style={{ marginTop: 12 }}>
-            <Text style={{ color: Colors.accent, fontWeight: "700" }}>Profilime git →</Text>
+            <Text style={{ color: Colors.accent, fontWeight: "700" }}>{t("goToProfile")}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -190,7 +195,10 @@ export default function KuponEkrani() {
         const secim = secimler[k.id] || {};
         const dolu = k.fixtureIds.filter((f) => secim[f]).length;
         const acik = k.durum === "open";
-        const baslik = k.tur === "avrupa" ? t("kuponEurope") : t("kuponCountryLeague", { c: ulkeAdi(k.ulke) });
+        /* ⚠️ Başlık TEK KAYNAKTAN (lib/kuponBaslik.ts): burada ve
+         * KuponKarti.tsx içinde aynı üçlü ifade KOPYAYDI ve ikisi birlikte
+         * bozuldu — ORTAK kupon "⚽  Ligi" diye adsız çiziliyordu. */
+        const baslik = kuponBasligi(k, t, ulkeAdi);
 
         return (
           <View key={k.id} style={{ marginTop: 20, borderRadius: 14, backgroundColor: Colors.dark, overflow: "hidden" }}>
@@ -203,7 +211,7 @@ export default function KuponEkrani() {
               </View>
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
                 {t("kuponHeaderRow", { n: k.maclar.length, g: k.girisBedeli })}
-                {k.tur === "avrupa" ? t("allCountriesSame") : ""}
+                {kuponAltMetni(k, t)}
               </Text>
               {/* Kullanıcı "ilk maça kadar var" sanmasın: kilit 1 saat önce. */}
               <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 2 }}>
