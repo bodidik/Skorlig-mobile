@@ -28,6 +28,7 @@ import { shareInvite as shareInviteLink } from "../../lib/share";
 import { sortCountries } from "../../lib/countrySort";
 import { useHisler, hisAyarla, golSesiCal, titret } from "../../lib/hisler";
 import { gorunenAd } from "../../lib/gorunenAd";
+import { kisiAra, kimlikGibiMi, EN_AZ_HARF, type AramaKisi } from "../../lib/friendSearch";
 
 /* Dil listesi render dışında: kapalı görünümdeki rozet de bu tablodan
  * etiket okuyor, iki yerde ayrı liste tutmak ayrışma demekti. */
@@ -327,6 +328,9 @@ export default function Me() {
 
   const [friendItems, setFriendItems] = useState<FriendRow[]>([]);
   const [friendTarget, setFriendTarget] = useState("");
+  const [friendHits, setFriendHits] = useState<AramaKisi[]>([]);
+  const [friendSearching, setFriendSearching] = useState(false);
+  const [friendArandi, setFriendArandi] = useState(false);
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
@@ -854,8 +858,39 @@ export default function Me() {
     }
   }
 
-  async function sendFriendRequest() {
-    const toId = friendTarget.trim();
+  /**
+   * ⚠️ ARAMA GECİKMELİ, HER TUŞTA DEĞİL. Ölçülen kusur ucun HİÇ
+   * çağrılmamasıydı; çaresi onu ÇOK çağırmak değil. Yazılan metin bir
+   * kimliğe benziyorsa arama hiç yapılmıyor — eski yapıştır-gönder yolu
+   * olduğu gibi duruyor.
+   */
+  useEffect(() => {
+    const terim = friendTarget.trim();
+    if (terim.length < EN_AZ_HARF || kimlikGibiMi(terim)) {
+      setFriendHits([]);
+      setFriendArandi(false);
+      setFriendSearching(false);
+      return;
+    }
+    let iptal = false;
+    setFriendSearching(true);
+    const zamanlayici = setTimeout(async () => {
+      const r = await kisiAra(terim, apiFetch);
+      if (iptal) return;
+      setFriendHits(r.items);
+      setFriendArandi(r.durum === "ok");
+      setFriendSearching(false);
+    }, 350);
+    return () => { iptal = true; clearTimeout(zamanlayici); };
+  }, [friendTarget]);
+
+  /**
+   * ⚠️ HEDEF ARTIK AÇIKÇA VERİLEBİLİYOR. Arama sonucuna dokunulduğunda
+   * isteği GERÇEK kimliğe gönderiyoruz; girdi alanındaki metin (isim,
+   * kullanıcı adı) `/request` tarafından zaten reddediliyordu.
+   */
+  async function sendFriendRequest(hedefId?: string) {
+    const toId = String(hedefId ?? friendTarget).trim();
     if (!toId) {
       Alert.alert("SkorLig", t("friendFirstWrite"));
       return;
@@ -875,6 +910,8 @@ export default function Me() {
       if (r?.ok) {
         Alert.alert("SkorLig", t("friendReqSent"));
         setFriendTarget("");
+        setFriendHits([]);
+        setFriendArandi(false);
         load();
       } else {
         Alert.alert(t("error"), hataMesaji(r?.error));
@@ -2425,14 +2462,54 @@ export default function Me() {
                 fontSize: 13,
               }}
             />
+            {/* ⚠️ `onPress={sendFriendRequest}` İDİ VE ARTIK OLAMAZ: React Native
+              * basma olayını ilk argüman olarak geçiriyor, yeni imzada o argüman
+              * hedef kimlik. Sarmalayıcı olmadan istek olay nesnesine giderdi. */}
             <TouchableOpacity
-              onPress={sendFriendRequest}
+              onPress={() => sendFriendRequest()}
               style={{ marginTop: 4, paddingVertical: 8, borderRadius: 999, backgroundColor: Colors.live }}
             >
               <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700", fontSize: 13 }}>
                 {t("sendFriendReq")}
               </Text>
             </TouchableOpacity>
+
+            {friendSearching ? (
+              <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("friendSearchWait")}</Text>
+            ) : friendHits.length > 0 ? (
+              friendHits.slice(0, 8).map((k) => (
+                <TouchableOpacity
+                  key={k.userId}
+                  onPress={() => sendFriendRequest(k.userId)}
+                  disabled={k.isFriend || k.pendingOut}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingVertical: 7,
+                    borderTopWidth: 1,
+                    borderTopColor: Colors.border,
+                  }}
+                >
+                  <Text style={{ flex: 1, fontSize: 13 }} numberOfLines={1}>
+                    {(k.flag ? k.flag + " " : "") + k.name}
+                  </Text>
+                  <Text style={{ color: Colors.muted, fontSize: 11 }}>
+                    {k.isFriend
+                      ? t("friendAlreadyFriend")
+                      : k.pendingOut
+                      ? t("friendReqPending")
+                      : k.pendingIn
+                      ? t("friendReqIncoming")
+                      : t("sendFriendReq")}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            ) : friendArandi ? (
+              <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("friendSearchNone")}</Text>
+            ) : friendTarget.trim().length > 0 && friendTarget.trim().length < EN_AZ_HARF ? (
+              <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("friendSearchMin")}</Text>
+            ) : null}
           </View>
 
           {friendItems.length === 0 ? (
