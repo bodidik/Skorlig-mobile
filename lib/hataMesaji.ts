@@ -60,6 +60,13 @@ const SOZLUK: Record<string, string> = {
   DUEL_LOCKED_BEFORE_KICKOFF: "Maç başlamak üzere, düello kapandı.",
   MATCH_TOO_LOPSIDED:
     "Bu maç çok tek taraflı, düelloya kapalı. Sürpriz sonucu tek maç tahmininde oynayabilirsin.",
+  /* Sunucu bu sebebi bir dönem MATCH_TOO_LOPSIDED diye gönderiyordu:
+   * dengeli bir 1. Lig maçına düello açan oyuncu 'çok tek taraflı'
+   * mesajını görüyordu. Ölçüldü: TR40 maçlarının %30.6'sı lig kapısına
+   * takılıyor. Sebep ayrıştırıldı; sözlükte karşılığı olmayan kod genel
+   * cümleye düşeceği için bu satır ŞART. */
+  LIG_DUELLOYA_KAPALI:
+    "Bu maçın ligi düelloya kapalı. Süper Lig maçlarında düello açabilirsin.",
   TOURNAMENT_NOT_FOUND: "Turnuva bulunamadı. Kod doğru mu?",
   TOURNAMENT_FULL: "Turnuva dolu.",
   TOO_MANY_OPEN_DUELS: "Aynı anda bu kadar açık düellon olamaz. Birinin sonuçlanmasını bekle.",
