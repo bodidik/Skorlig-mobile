@@ -1,6 +1,7 @@
 import { initializeApp, getApps } from "firebase/app";
 import { initializeAuth, getAuth, type Auth, type Persistence } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 // Firebase config → console.firebase.google.com > Proje Ayarları > Web uygulaması
 const firebaseConfig = {
@@ -55,24 +56,66 @@ function rnPersistenceBul(): ((s: unknown) => Persistence) | null {
   return null;
 }
 
+/**
+ * WEB KALICILIĞI — AYRI BİR ŞEY.
+ *
+ * ⚠️ ÖLÇÜLEN KUSUR (2026-09-11, önizlemede görüldü): kalıcılık yalnızca
+ * `getReactNativePersistence` üzerinden aranıyordu. O fonksiyon
+ * `@firebase/auth`un SADECE RN girişinde var — ölçüldü (1.13.3):
+ *
+ *     react-native  dist/rn/index.js     9 geçiş
+ *     browser       dist/esm/index.js    0
+ *     main          dist/node/index.js   0
+ *
+ * Yani TELEFONDA sorun yok (Metro `react-native` girişini seçiyor). Ama
+ * WEB'de bulunamıyor, kod kalıcılıksız `initializeAuth(app)`a düşüyor ve
+ * oturum YALNIZCA BELLEKTE kalıyor. Ölçüldü: her tam sayfa yüklemesinde
+ * YENİ anonim kimlik alınıyordu (uid her seferinde başka) — puan ve cüzdan
+ * kimliğe bağlı olduğu için web'de hiçbir şey birikmez.
+ *
+ * ⚠️ HATA MESAJI DA YANILTIYORDU: web'de çıkıp "sürümleri kontrol edin"
+ * diyordu, oysa web'in doğru cevabı `browserLocalPersistence`. Yanlış yere
+ * bakan bir uyarı, hiç uyarmamaktan daha çok vakit kaybettirir.
+ *
+ * ⚠️ `browserLocalPersistence` TEMBEL ÇÖZÜLÜYOR: RN girişinde o sembol YOK
+ * (ölçüldü: 0 geçiş), statik içe aktarım telefonda `undefined` olurdu.
+ */
+function webPersistenceBul(): Persistence | null {
+  try {
+    const m = require("firebase/auth");
+    return m?.browserLocalPersistence ?? null;
+  } catch {
+    return null;
+  }
+}
+
 let auth: Auth;
 
-const persistenceFn = rnPersistenceBul();
+const webMi = Platform.OS === "web";
+const persistenceFn = webMi ? null : rnPersistenceBul();
+const webPersistence = webMi ? webPersistenceBul() : null;
 
-if (!persistenceFn) {
+if (webMi ? !webPersistence : !persistenceFn) {
   // ⚠️ GÜRÜLTÜLÜ OL. Bu satır görünüyorsa oturum KALICI DEĞİL ve kullanıcılar
-  // uygulamayı kapatınca çıkış yapmış olur.
+  // uygulamayı kapatınca çıkış yapmış olur. Mesaj PLATFORMA göre: yanlış
+  // yere bakan bir uyarı vakit kaybettirir.
   console.error(
-    "[firebase] getReactNativePersistence bulunamadi — OTURUM KALICI DEGIL. " +
-      "Kullanicilar uygulamayi kapatinca cikis yapmis olacak. " +
-      "firebase / @firebase/auth surumlerini kontrol edin."
+    webMi
+      ? "[firebase] browserLocalPersistence bulunamadi — OTURUM KALICI DEGIL (web). " +
+        "Her sayfa yenilemesinde yeni kimlik alinir."
+      : "[firebase] getReactNativePersistence bulunamadi — OTURUM KALICI DEGIL. " +
+        "Kullanicilar uygulamayi kapatinca cikis yapmis olacak. " +
+        "firebase / @firebase/auth surumlerini kontrol edin."
   );
 }
 
 try {
-  auth = persistenceFn
-    ? initializeAuth(app, { persistence: persistenceFn(AsyncStorage) })
-    : initializeAuth(app);
+  const secilen: Persistence | null = webMi
+    ? webPersistence
+    : persistenceFn
+      ? persistenceFn(AsyncStorage)
+      : null;
+  auth = secilen ? initializeAuth(app, { persistence: secilen }) : initializeAuth(app);
 } catch (e) {
   // Beklenen tek durum: "zaten initialize edilmiş" (hot reload).
   // Başka bir sebep varsa GÖRÜNSÜN — eskiden bu blok her şeyi yutuyordu.
