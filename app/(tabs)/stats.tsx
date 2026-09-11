@@ -20,6 +20,7 @@ import { hasAdminToken, withAdminHeaders } from "../../lib/adminToken";
 import { t, useLang } from "../../lib/i18n";
 import { ulkeAdi } from "../../lib/ulkeler";
 import { gorunenAd } from "../../lib/gorunenAd";
+import { onAyarlar, profilEtiketi } from "../../lib/runtimeStage";
 
 const DEFAULT_COMPETITION_ID = process.env.EXPO_PUBLIC_DEFAULT_COMPETITION_ID || "";
 
@@ -120,13 +121,20 @@ export default function StatsScreen() {
     features,
   } = useRuntimeConfig();
 
+  /**
+   * ⚠️ ELLE TUTULAN ÜÇÜNCÜ KOPYAYDI ve ÜRETİM PROFİLİNİ TANIMIYORDU.
+   *
+   * ÖLÇÜLDÜ (api/data/runtime-mode.json profile: "TR_40_TEAMS"): liste
+   * TR_40_TEAMS içermediği için son dala düşüyor ve rozet HER kullanıcıya
+   * "Çalışma modu: Custom: TR_40_TEAMS" yazıyordu — uygulamanın Türkiye
+   * Süper Lig + 1. Lig odaklı olduğunu söyleyen tek yer, bir mühendislik
+   * sabiti basıyordu. Sunucunun gönderdiği Türkçe `notes` alanı da hiç
+   * okunmuyordu.
+   *
+   * Aynı düzeltme lib/runtimeStage.ts tablosuna 2026-09-07 tarihinde
+   * yapılmıştı; bu kopya atlanmıştı. Artık o tablodan besleniyor. */
   function mapProfileLabel(profile?: string | null) {
-    const p = String(profile || "").toUpperCase();
-    if (p === "DEV_4_TEAMS") return t("profDev4");
-    if (p === "TR_30_TEAMS") return t("profTr30Full");
-    if (p === "GLOBAL_100_TEAMS") return t("profG100Full");
-    if (p === "GLOBAL_456_TEAMS") return t("profG456Full");
-    return p ? `Custom: ${p}` : null;
+    return profilEtiketi(profile, t, effectiveRuntime?.notes);
   }
 
   // 🔹 Shadow runtime (POST sonrası badge'in anında güncellenmesi için)
@@ -575,12 +583,27 @@ export default function StatsScreen() {
     setAdminModalOpen(true);
   }
 
-  const presetProfiles = [
-    { key: "DEV_4_TEAMS", label: t("profDev4Short"), maxTeams: 4, maxLeagues: 1, notes: t("profDev4") },
-    { key: "TR_30_TEAMS", label: t("profTr30Short"), maxTeams: 30, maxLeagues: 1, notes: t("profTr30Full") },
-    { key: "GLOBAL_100_TEAMS", label: t("profG100"), maxTeams: 100, maxLeagues: 5, notes: t("profG100Full") },
-    { key: "GLOBAL_456_TEAMS", label: t("profG456Short"), maxTeams: 456, maxLeagues: 20, notes: t("profG456Full") },
-  ];
+  /**
+   * ⚠️ ÜRETİM PROFİLİ LİSTEDE YOKTU ve TR ÖN AYARI SUNUCUDAN SAPMIŞTI.
+   *
+   * ÖLÇÜLDÜ: sunucunun ön ayarı TR_30_TEAMS için TR_40_ON_AYAR sayılarını
+   * kullanıyor, yani 40/2 (api/routes/admin-runtime.cjs); burada 30/1
+   * yazıyordu. Panel bu sayıları GÖVDEDE gönderiyor ve sunucu onları olduğu
+   * gibi yazıyor, yani TR seçeneğine dokunan yönetici canlı profilin
+   * sınırlarını DARALTIYOR; runtime-mode.cjs Mongo kaydını üstün tuttuğu
+   * için ön ayar bir daha geri gelmiyordu. TR_40_TEAMS listede olmadığı
+   * için panelden geri dönmenin yolu da yoktu ve hiçbir ön ayar SEÇİLİ
+   * görünmüyordu.
+   *
+   * Liste artık lib/runtimeStage.ts tablosundan türetiliyor; sunucuyla
+   * eşitliğini api/tests/profil-on-ayar-tek-kaynak nöbetçisi ölçüyor. */
+  const presetProfiles = onAyarlar().map((p) => ({
+    key: p.key,
+    label: t(p.i18nKisa as any),
+    maxTeams: p.maxTeams,
+    maxLeagues: p.maxLeagues,
+    notes: t(p.i18nUzun as any),
+  }));
 
   async function saveRuntimeProfile() {
     if (!adminProfile) {
