@@ -51,7 +51,11 @@ const DILLER = [
 type Profile = { nickname?: string | null; mainTeam: string | null; country?: string | null; totals: number; is1987?: boolean };
 type CountryOpt = { country: string; flag: string };
 type MiniWin = { id: string; name: string; finishedAt: string; rewardLc: number; shared?: boolean };
-type Group = { id?: string; name: string; members?: any[] };
+/* ⚠️ `code` ALANI YOKTU. Sunucu (`groupSummary`, routes/users.cjs:182)
+ * katılım kodunu baştan beri gönderiyordu; istemci tipi onu tanımadığı
+ * için kod hiçbir yerde çizilmiyordu. Kupon türü kusurunun ikizi: sunucunun
+ * gönderdiği alanı istemci tipinin bilmemesi. */
+type Group = { id?: string; code?: string; name: string; members?: any[]; size?: number };
 type TotRow = {
   userId: string;
   totalPoints: number;
@@ -841,22 +845,12 @@ export default function Me() {
     setPushLoading(false);
   }
 
-  async function createGroup() {
-    try {
-      const name = "Grubum " + Math.random().toString(36).slice(2, 6);
-      const r = await apiFetch(`/api/users/groups/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ownerId: userId, name }),
-      }).then((r) => r.json());
-      if (r?.ok) {
-        Alert.alert("SkorLig", t("groupCreated"));
-        load();
-      }
-    } catch (e: any) {
-      Alert.alert(t("error"), hataMesaji(e));
-    }
-  }
+  /* ⚠️ `createGroup()` BURADAN KALDIRILDI — ölçülen kusurun kendisiydi:
+   * grup adını kullanıcıya sormadan `"Grubum " + Math.random()` üretiyor,
+   * sunucunun döndürdüğü `code`u okumadan atıyordu. Kurma akışı artık
+   * app/groups/index.tsx içinde: ad soruluyor ve kod hemen gösteriliyor.
+   * İstek mantığı lib/gruplar.ts'te ve GERÇEK uca karşı sınanıyor
+   * (api/tests/grup-kablosu.mongo.test.cjs). */
 
   /**
    * ⚠️ ARAMA GECİKMELİ, HER TUŞTA DEĞİL. Ölçülen kusur ucun HİÇ
@@ -2397,8 +2391,15 @@ export default function Me() {
             <Text style={{ color: Colors.muted }}>{t("noGroups")}</Text>
           ) : (
             groups.map((g, i) => (
-              <View
-                key={String(g.id || g.name || "group") + "_" + i}
+              /* Satır artık TIKLANIR ve KODU GÖSTERİYOR: kodu göremeyen
+               * kullanıcı arkadaşını çağıramıyordu. */
+              <TouchableOpacity
+                key={String(g.code || g.id || g.name || "group") + "_" + i}
+                onPress={() =>
+                  g.code
+                    ? nav.push({ pathname: "/groups/[code]", params: { code: g.code } })
+                    : nav.push("/groups")
+                }
                 style={{
                   padding: 8,
                   borderWidth: 1,
@@ -2409,13 +2410,18 @@ export default function Me() {
               >
                 <Text style={{ fontWeight: "600" }}>{g.name}</Text>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
-                  {t("memberCount", { n: Array.isArray(g.members) ? g.members.length : 0 })}
+                  {t("memberCount", { n: Array.isArray(g.members) ? g.members.length : (g.size || 0) })}
                 </Text>
-              </View>
+                {g.code ? (
+                  <Text selectable style={{ color: Colors.muted, fontSize: 12, marginTop: 2 }}>
+                    {t("groupCodeLabel")}: <Text style={{ color: Colors.text, fontWeight: "800", letterSpacing: 2 }}>{g.code}</Text>
+                  </Text>
+                ) : null}
+              </TouchableOpacity>
             ))
           )}
-          <TouchableOpacity onPress={createGroup} style={{ padding: 10, backgroundColor: Colors.purple, borderRadius: 10 }}>
-            <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>{t("createGroup")}</Text>
+          <TouchableOpacity onPress={() => nav.push("/groups")} style={{ padding: 10, backgroundColor: Colors.purple, borderRadius: 10 }}>
+            <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>{t("groupsTitle")}</Text>
           </TouchableOpacity>
         </View>
 

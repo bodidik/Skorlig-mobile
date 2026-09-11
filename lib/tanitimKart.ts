@@ -20,7 +20,17 @@ export type Kart = { anahtar: string; yol: string; emoji: string };
 export const KARTLAR: Kart[] = [
   { anahtar: "kupon",   yol: "/kupon",        emoji: "🎟️" },
   { anahtar: "duello",  yol: "/(tabs)/arena", emoji: "⚔️" },
-  { anahtar: "gruplar", yol: "/friends",      emoji: "👥" },
+  /* ⚠️ BURASI "/friends" İDİ VE ÖYLE BİR EKRAN YOK: app/friends/ altında
+   * yalnız board.tsx ve list.tsx var, index.tsx yok. Expo Router eşleşmeyen
+   * yolda "Unmatched Route" basıyor — yani kart her göründüğünde 404.
+   *
+   * ⚠️ NÖBETÇİ İKİ EKSENDE KÖRDÜ ve bu dosyanın yorumu tersini iddia
+   * ediyordu. tests/rotaHedefleri (a) yalnız app/ ve components/ tarıyordu,
+   * lib/ hiç taranmıyordu; (b) kalıbı `push("/x")` biçimini arıyor, buradaki
+   * yol ise VERİ olarak duruyor ve TanitimSeridi.tsx onu DEĞİŞKENLE push
+   * ediyor. Ölçüldü: taramayı lib/'e açmak tek başına hiçbir şey bulmadı.
+   * İkisi de kapatıldı. */
+  { anahtar: "gruplar", yol: "/groups",       emoji: "👥" },
   { anahtar: "premium", yol: "/premium",      emoji: "⭐" },
 ];
 

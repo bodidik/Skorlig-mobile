@@ -84,6 +84,10 @@ function hedefleriTopla(): Map<string, string[]> {
   };
   tara(APP);
   tara(path.join(KOK, "components"));
+  /* ⚠️ `lib/` TARANMIYORDU. Yönlendirme yalnız ekranlarda kurulmuyor:
+   * lib/tanitimKart.ts yolları VERİ olarak tutuyor ve o dosyadaki
+   * "gruplar" kartı olmayan bir ekrana ("/friends") gidiyordu. */
+  tara(path.join(KOK, "lib"));
   return hedefler;
 }
 
@@ -100,6 +104,38 @@ test("her yonlendirme hedefi gercek bir ekrana cozulur", () => {
   const kirik = [...hedefler].filter(([yol]) => !rotalar.has(yol));
   const rapor = kirik.map(([yol, yerler]) => yol + "  <- " + yerler.join(", "));
   assert.deepStrictEqual(rapor, [], "Unmatched Route uretecek hedef(ler)");
+});
+
+test("VERIDE tutulan yonlendirme hedefleri de cozuluyor", async () => {
+  /**
+   * ⚠️ KALIP TARAMASININ İKİNCİ KÖR NOKTASI — ÖLÇÜLDÜ.
+   *
+   * `KALIP` yalnız `push("/x")`, `replace("/x")`, `pathname:"/x"`, `href="/x"`
+   * biçimlerini görüyor. `lib/tanitimKart.ts` ise yolu VERİ olarak tutuyor
+   * (`{ anahtar: "gruplar", yol: "/friends" }`) ve components/TanitimSeridi.tsx
+   * onu DEĞİŞKENLE push ediyor (`router.push(kart.yol as any)`). İkisi de
+   * kalıba uymuyor.
+   *
+   * ÖLÇÜLDÜ (2026-09-11): taramayı `lib/`e açmak TEK BAŞINA hiçbir şey
+   * bulmadı — dizin ekseni kapanıyor ama biçim ekseni açık kalıyordu.
+   * Kusur gerçekti: `/friends` diye bir ekran yok (app/friends/ altında
+   * yalnız board.tsx ve list.tsx var), yani kart her göründüğünde Expo
+   * Router "Unmatched Route" basıyordu.
+   *
+   * ⚠️ TANITIMSERIDI.TSX YORUMU TERSİNİ İDDİA EDİYORDU: "Buradaki yolların
+   * hepsi o nöbetçinin taradığı kümede." Yorum, ölçüm değil.
+   */
+  const { KARTLAR } = await import("../lib/tanitimKart.ts");
+  const rotalar = rotalariTopla();
+
+  assert.ok(KARTLAR.length >= 3,
+    `KARTLAR ${KARTLAR.length} kayitli — olcut kor, TEMIZ SAYILMAZ`);
+
+  const kirik = KARTLAR
+    .filter((k: { anahtar: string; yol: string }) => !rotalar.has(k.yol))
+    .map((k: { anahtar: string; yol: string }) => `${k.anahtar} -> ${k.yol}`);
+  assert.deepStrictEqual(kirik, [],
+    "tanitim seridi Unmatched Route uretecek: " + kirik.join(", "));
 });
 
 test("olcut GERCEKTEN kirik hedefi yakalar", () => {
