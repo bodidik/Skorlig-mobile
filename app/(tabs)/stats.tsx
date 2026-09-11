@@ -213,15 +213,27 @@ export default function StatsScreen() {
   const [arsivKisitli, setArsivKisitli] = useState(false);
   const [bakilanSezon, setBakilanSezon] = useState<string | null>(null);
   /**
-   * "Sadece gerçek oyuncular" süzgeci.
+   * "Sadece gerçek oyuncular" süzgeci — VARSAYILAN AÇIK.
    *
    * ⚠️ NEDEN VAR: tabloda 1672 bot, 1 gerçek oyuncu var. Yeni gelen ~1600.
    * sırada başlıyor ve kiminle yarıştığını bilmiyor — bu kadar demoralize
    * edici bir açılış az. Botlar maç doldurmak için var, sıralamada rakip
    * olmak için değil. API `?humans=1` ve `botCount`/`humanCount` döndürüyordu
    * ama arayüz kullanmıyordu.
+   *
+   * ⚠️ SÜZGEÇ EKLENDİ AMA KAPALI BIRAKILMIŞTI — yani kusur duruyordu.
+   * ÖLÇÜLDÜ (2026-09-11, season_totals): 1761 satırın 1760'ı bot, ilk 10
+   * sıranın tamamı bot (334…300 puan), 0 puanla giren yeni kullanıcı
+   * ~1762. sırada açıyor. `humans=1` görünümünde ise 1 satır kalıyor.
+   * Lansman kararı: açılış gerçek oyuncularla olsun.
+   *
+   * ⚠️ DÜRÜSTLÜK KORUNUYOR — botlar GİZLENMİYOR. Düğme her hâlde
+   * "{h} oyuncu · {b} bot" yazıyor ve iki yönlü; `botCount` sunucuda
+   * SÜZGEÇTEN ÖNCEKİ diziden hesaplanıyor (routes/leaderboard.cjs), yani
+   * `humans=1` iken de doluyor ve düğme kaybolmuyor. Ölçüldü — kaybolsaydı
+   * kullanıcı bot görünümüne bir daha dönemezdi.
    */
-  const [humansOnly, setHumansOnly] = useState(false);
+  const [humansOnly, setHumansOnly] = useState(true);
   const [botCount, setBotCount] = useState(0);
   const [humanCount, setHumanCount] = useState(0);
 
