@@ -57,6 +57,8 @@ type MatchWeights = {
 };
 
 type NextMatchInfo = {
+  /** Sunucunun liste bayrağı — `api/lib/mac-denge.cjs duelloAcikMi`. */
+  duelloAcik?: boolean;
   fixtureId: string;
   home?: string;
   away?: string;
@@ -128,8 +130,8 @@ export default function PredictScreen() {
     return sharedApiFetch(p, init as any);
   }
 
-  const { fixtureId: qFx, userId: qUser, home: qHome, away: qAway, league: qLeague, kickoffISO: qKickoff } =
-    useLocalSearchParams<{ fixtureId?: string; userId?: string; home?: string; away?: string; league?: string; kickoffISO?: string }>();
+  const { fixtureId: qFx, userId: qUser, home: qHome, away: qAway, league: qLeague, kickoffISO: qKickoff, duelloAcik: qDuelloAcik } =
+    useLocalSearchParams<{ fixtureId?: string; userId?: string; home?: string; away?: string; league?: string; kickoffISO?: string; duelloAcik?: string }>();
   useEffect(() => {
     syncServerTime();
   }, []);
@@ -147,6 +149,11 @@ export default function PredictScreen() {
   const paramAway = String(qAway || "").trim();
   const paramLeague = String(qLeague || "").trim();
   const paramKickoff = String(qKickoff || "").trim();
+  /* ⚠️ DÜELLO KAPISI. Maç listesi (live.tsx) bu bayrağı taşıyor; ekran kendi
+   * fikstürünü çektiğinde `/api/team/fixtures` yanıtından geliyor. İkisi de
+   * yoksa AÇIK varsayılıyor — fail-open, sunucudaki kapıyla aynı yönde
+   * (asıl kapı POST /api/duels/create, bkz. lib/mac-denge.cjs). */
+  const paramDuelloAcik = String(qDuelloAcik || "").trim();
   const userId = useUserId(qUser);
 
   // 4 takımlı geliştirme modu için takım seçimi
@@ -640,6 +647,9 @@ export default function PredictScreen() {
         away: aday.away || "?",
         kickoffISO: aday.kickoffISO || null,
         status: aday.status || null,
+        /* Sunucu bu bayrağı artık team/fixtures yanıtında da gönderiyor;
+           kural tek kaynakta (api/lib/mac-denge.cjs duelloAcikMi). */
+        duelloAcik: aday.duelloAcik !== false,
       });
 
       // Yeni maça geçince önceki tahmin durumunu tazele
@@ -977,6 +987,9 @@ useEffect(() => {
 }
 
   const hasExtras = firstGoal !== null || firstHalf !== null || btts !== null || over25 !== null || redAny !== null || penaltyAny !== null;
+  /* Kapalı sayılması için AÇIK bir hayır gerekiyor: parametre "0" ya da
+   * sunucunun bayrağı false. Bilgi yoksa düğme açık kalır (fail-open). */
+  const duelloKapali = paramDuelloAcik === "0" || nextMatch?.duelloAcik === false;
   const homeName = paramHome || nextMatch?.home || t("home");
   const awayName = paramAway || nextMatch?.away || t("away");
   const hasScore = homeScore.trim() !== "" && awayScore.trim() !== "";
@@ -1041,6 +1054,21 @@ useEffect(() => {
             // Üç mod, üç amaç (bkz. docs/ekonomi-tasarim.md §4.2):
             //   Tahmin = puan/sıralama · Havuz = para · Düello = kişisel meydan okuma
             <View style={{ marginTop: 6, flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "center" }}>
+              {/* ⚠️ KAPALI KAPININ DÜĞMESİ KAPALI GÖRÜNMELİ.
+                  Burada düğme KOŞULSUZ çiziliyordu: kullanıcı düelloya kapalı
+                  bir maçta basıyor, ekran açılıyor ve orada `duelloyaUygun:false`
+                  ile reddediliyordu. Maç listesinde (live.tsx) aynı kapı zaten
+                  vardı ve yorumu tam bu akışı kapatmak için yazılmıştı.
+                  ÖLÇÜLDÜ (2026-09-11, gerçek fikstür verisi + gerçek mac-denge):
+                  gelecek 18 TR40 maçının 4'ü düelloya kapalı. */}
+              {duelloKapali ? (
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0f172a", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7, opacity: 0.45 }}
+                >
+                  <Text style={{ fontSize: 14 }}>⚔️🔒</Text>
+                  <Text style={{ color: "#94a3b8", fontWeight: "700", fontSize: 12 }}>{t("duelClosedShort")}</Text>
+                </View>
+              ) : (
               <TouchableOpacity
                 onPress={() => router.push({
                   pathname: "/duel/[fixtureId]",
@@ -1051,6 +1079,7 @@ useEffect(() => {
                 <Text style={{ fontSize: 14 }}>⚔️</Text>
                 <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>{t("duelMode")}</Text>
               </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 onPress={() => router.push({

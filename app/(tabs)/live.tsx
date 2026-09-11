@@ -1280,6 +1280,9 @@ export default function LiveScreen() {
           home: fx.home || "",
           away: fx.away || "",
           league: fx.league || "",
+          /* Düello kapısı tahmin ekranına da taşınıyor: orada düğme
+             koşulsuz çiziliyordu ve kapalı maçta ekran açılıp reddediyordu. */
+          duelloAcik: fx.duelloAcik === false ? "0" : "1",
           kickoffISO: fx.kickoffISO || "",
         },
       });
