@@ -23,19 +23,20 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import Colors from "../../constants/colors";
 import { t, useLang } from "../../lib/i18n";
 import { hataMesaji } from "../../lib/hataMesaji";
 import { apiFetch } from "../../lib/apiFetch";
 import { useUserId } from "../../lib/useUserId";
-import { grupPanosu, toplamaKatilim, kodNormalle, type Pano } from "../../lib/gruplar";
+import { grupPanosu, toplamaKatilim, uyeCikar, gruptanAyril, kodNormalle, type Pano, type PanoSatir } from "../../lib/gruplar";
 import { puanYaz } from "../../lib/lcBicim";
 
 export default function GroupBoardScreen() {
   useLang();
   const userId = useUserId();
+  const router = useRouter();
   const { code: ham } = useLocalSearchParams<{ code?: string }>();
   const code = kodNormalle(Array.isArray(ham) ? ham[0] : ham);
 
@@ -55,6 +56,58 @@ export default function GroupBoardScreen() {
   useEffect(() => { yukle(); }, [yukle]);
 
   const benimSatir = pano?.items.find((x) => x.userId === userId) || null;
+  /* Düğmeyi yalnız kurucu görüyor. Yetki yine SUNUCUDA (handleRemove
+   * NOT_OWNER); buradaki kontrol arayüz ipucu, kapı değil. */
+  const kurucuyum = !!pano?.ownerId && pano.ownerId === userId;
+
+  async function cikar(satir: PanoSatir) {
+    /**
+     * ⚠️ İKİ FARKLI SONUÇ, İKİ FARKLI CÜMLE. Bot anında çıkar; insan SEZON
+     * SONUNDA. Kullanıcıya bunu söylemezsek 'çıkardım ama hâlâ listede'
+     * diye hata sanır. Onay metni erteleme GEREKÇESİNİ de söylüyor:
+     * bu sezonun sıralaması değişmediği için kimse öne geçtiği diye
+     * çıkarılamaz (bkz. api/lib/social-store.cjs setGroupRemoval).
+     */
+    const soru = satir.bot
+      ? t("groupRemoveBotQ", { u: satir.name })
+      : t("groupRemoveManQ", { u: satir.name });
+    Alert.alert(t("groupRemove"), soru, [
+      { text: t("cancel"), style: "cancel" },
+      {
+        text: t("groupRemove"),
+        style: "destructive",
+        onPress: async () => {
+          const r = await uyeCikar(code, satir.userId, apiFetch as any);
+          if (r.durum !== "ok") { Alert.alert(t("error"), hataMesaji(r.hata)); return; }
+          await yukle();
+          Alert.alert("SkorLig", r.mode === "immediate" ? t("groupRemoveDone") : t("groupRemovePlan"));
+        },
+      },
+    ]);
+  }
+
+  async function cikarmayiIptal(satir: PanoSatir) {
+    const r = await uyeCikar(code, satir.userId, apiFetch as any, true);
+    if (r.durum !== "ok") { Alert.alert(t("error"), hataMesaji(r.hata)); return; }
+    await yukle();
+    Alert.alert("SkorLig", t("groupCancelDone"));
+  }
+
+  async function ayril() {
+    Alert.alert(t("groupLeave"), t("groupLeaveQ"), [
+      { text: t("cancel"), style: "cancel" },
+      {
+        text: t("groupLeave"),
+        style: "destructive",
+        onPress: async () => {
+          const r = await gruptanAyril(code, apiFetch as any);
+          if (r.durum !== "ok") { Alert.alert(t("error"), hataMesaji(r.hata)); return; }
+          Alert.alert("SkorLig", t("groupLeaveDone"));
+          router.back();
+        },
+      },
+    ]);
+  }
 
   async function katilimiDegistir() {
     if (!benimSatir) return;
@@ -115,6 +168,9 @@ export default function GroupBoardScreen() {
                 </Text>
                 {/* Toplama katılmayan üye tabloda kalır ama işaretlenir —
                     yoksa "puanım neden sayılmıyor" sorusu cevapsız kalır. */}
+                {s.ayrilacak ? (
+                  <Text style={{ color: "#f59e0b", fontSize: 10, marginRight: 8 }}>{t("groupLeaving")}</Text>
+                ) : null}
                 {!s.includeInTotal ? (
                   <Text style={{ color: Colors.muted, fontSize: 10, marginRight: 8 }}>{t("groupNotCounted")}</Text>
                 ) : null}
@@ -123,6 +179,16 @@ export default function GroupBoardScreen() {
                     kullanıcı ekranda tam olarak onu görüyor (nöbetçi:
                     tests/lc-gosterim-bicimi). */}
                 <Text style={{ color: Colors.accent, fontWeight: "800" }}>{puanYaz(s.points)}</Text>
+                {kurucuyum && s.userId !== pano?.ownerId ? (
+                  <TouchableOpacity
+                    onPress={() => (s.ayrilacak ? cikarmayiIptal(s) : cikar(s))}
+                    style={{ marginLeft: 10 }}
+                  >
+                    <Text style={{ color: s.ayrilacak ? Colors.accent : "#ef4444", fontSize: 11, fontWeight: "700" }}>
+                      {s.ayrilacak ? t("groupCancelPlan") : t("groupRemove")}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             ))}
           </View>
@@ -138,6 +204,12 @@ export default function GroupBoardScreen() {
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
                 {t("groupOptHelp")}
               </Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {benimSatir && !kurucuyum ? (
+            <TouchableOpacity onPress={ayril} style={{ marginTop: 10, padding: 14, alignSelf: "center" }}>
+              <Text style={{ color: "#ef4444", fontSize: 13, fontWeight: "700" }}>{t("groupLeave")}</Text>
             </TouchableOpacity>
           ) : null}
         </>

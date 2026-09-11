@@ -48,9 +48,19 @@ export type PanoSatir = {
   flag: string | null;
   includeInTotal: boolean;
   points: number;
+  /** Sezon sonunda gruptan çıkarılacak — panoda HERKESE görünür. */
+  ayrilacak: boolean;
+  /** Bot mu? Kural buna bağlı: bot anında çıkar, insan sezon sonunda. */
+  bot: boolean;
 };
 
-export type Pano = { code: string; name: string; size: number; items: PanoSatir[] };
+export type Pano = {
+  code: string;
+  name: string;
+  size: number;
+  ownerId: string | null;
+  items: PanoSatir[];
+};
 
 export type Sonuc<T> =
   | ({ durum: "ok" } & T)
@@ -217,6 +227,8 @@ export async function grupPanosu(
         flag: x?.flag ?? null,
         includeInTotal: x?.includeInTotal !== false,
         points: Number(x?.points ?? 0) || 0,
+        ayrilacak: x?.ayrilacak === true,
+        bot: x?.bot === true,
       });
     }
     return {
@@ -225,9 +237,63 @@ export async function grupPanosu(
         code: kodNormalle(j.code) || code,
         name: String(j?.name ?? "").trim() || code,
         size: Number(j?.size ?? items.length) || items.length,
+        ownerId: j?.ownerId ? String(j.ownerId) : null,
         items,
       },
     };
+  } catch (e: any) {
+    return { durum: "hata", hata: String(e?.message || e || "NETWORK") };
+  }
+}
+
+/**
+ * Üyeyi gruptan çıkarır — KURUCU.
+ *
+ * ⚠️ SONUÇ İKİ TÜRLÜ ve ekran bunu kullanıcıya söylemek zorunda:
+ *   "immediate"  — bot, anında çıktı
+ *   "season_end" — insan, SEZON SONUNDA çıkacak
+ *
+ * Erteleme kozmetik değil: grup panosu sezon toplamı okuduğu için, yürüyen
+ * sezonda birini çıkarmak sıralamayı değiştirirdi ve "geçemediğim kişiyi
+ * çıkarayım" hamlesi işe yarardı. Gerekçe ve ölçüm sunucu tarafında
+ * (api/lib/social-store.cjs setGroupRemoval).
+ */
+export async function uyeCikar(
+  ham: string,
+  userId: string,
+  gonder: Gonder,
+  iptal = false
+): Promise<Sonuc<{ mode: "immediate" | "season_end" | "cancelled" }>> {
+  const code = kodNormalle(ham);
+  const kisi = String(userId || "").trim();
+  if (!code || !kisi) return { durum: "hata", hata: "REQ" };
+  try {
+    const j = await coz(
+      gonder(`/api/groups/${encodeURIComponent(code)}/remove`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: kisi, ...(iptal ? { cancel: true } : {}) }),
+      })
+    );
+    return { durum: "ok", mode: j?.mode || "season_end" };
+  } catch (e: any) {
+    return { durum: "hata", hata: String(e?.message || e || "NETWORK") };
+  }
+}
+
+/** Gruptan kendi isteğiyle ayrılır — anında. */
+export async function gruptanAyril(ham: string, gonder: Gonder): Promise<Sonuc<{}>> {
+  const code = kodNormalle(ham);
+  if (!code) return { durum: "hata", hata: "BAD_CODE" };
+  try {
+    await coz(
+      gonder(`/api/groups/${encodeURIComponent(code)}/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      })
+    );
+    return { durum: "ok" };
   } catch (e: any) {
     return { durum: "hata", hata: String(e?.message || e || "NETWORK") };
   }
