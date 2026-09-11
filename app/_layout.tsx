@@ -11,7 +11,7 @@ import { flushPendingCountry } from "../lib/pendingCountry";
 import { flushPendingTeam } from "../lib/pendingTeam";
 import ErrorBoundary from "../components/ErrorBoundary";
 import CountryBackfillPrompt from "../components/CountryBackfillPrompt";
-import GeriEv from "../components/GeriEv";
+import GeriEv, { GERIEV_ALANI } from "../components/GeriEv";
 import {
   capturePendingRef, captureRefFromInitialUrl, applyPendingRef,
 } from "../lib/referral";
@@ -171,7 +171,31 @@ export default function RootLayout() {
     <ErrorBoundary>
       <AuthProvider>
         <AuthGuard />
-        <Stack screenOptions={{ headerShown: false }} />
+        {/* ⚠️ GERİ/ANA SAYFA ÇUBUĞUNA YER AYRILIYOR — BİR KEZ, BURADA.
+          * Çubuk mutlak konumlu ve her yığın ekranının üstüne biniyordu;
+          * ölçüldü, sekme dışı 32 ekranın hiçbiri telafi etmiyordu ve
+          * başlıklar yarı yarıya örtülüydü. Alanı her ekrana ayrı ayrı
+          * eklemek kopya olurdu — biri unutulur, sessizce örtülü kalır.
+          *
+          * `(tabs)` MUAF: orada çubuk zaten çizilmiyor (alt sekme çubuğu
+          * var), boşluk bırakmak ekranı aşağı iterdi. `index` ve `login` de
+          * muaf, çünkü GeriEv o yollarda kendini gizliyor (GIZLI_YOL).
+          *
+          * ⚠️ BU MUAFİYET LİSTESİ GeriEv'inkiyle EL İLE EŞLEŞİYOR — rota
+          * ADI (index/login) ile yol ("/", "/login") ayrı şeyler olduğu
+          * için türetmek okunaksız olurdu. İkisi ayrışırsa ya boşluk boşuna
+          * kalır ya da başlık yine örtülür; eşitliği nöbetçi ölçüyor:
+          * api/tests/geriev-alani-tek-kaynak.test.cjs */}
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { paddingTop: GERIEV_ALANI },
+          }}
+        >
+          <Stack.Screen name="(tabs)" options={{ contentStyle: { paddingTop: 0 } }} />
+          <Stack.Screen name="index" options={{ contentStyle: { paddingTop: 0 } }} />
+          <Stack.Screen name="login" options={{ contentStyle: { paddingTop: 0 } }} />
+        </Stack>
         {/* Sekme dışı ekranlarda her an görünen geri + ana sayfa */}
         <GeriEv />
         {/* Ülkesi eksik mevcut kullanıcılar için geri doldurma (engellemez) */}

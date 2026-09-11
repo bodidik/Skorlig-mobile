@@ -28,7 +28,35 @@ import { t, useLang } from "../lib/i18n";
  * Elle tutulan liste, içerik büyürken sessizce yalana dönüşür; sekme olup
  * olmadığı artık rotanın KENDİSİNDEN okunuyor.
  */
-const GIZLI_YOL = new Set(["/", "/login"]);
+export const GIZLI_YOL = new Set(["/", "/login"]);
+
+/** Düğme çapı. */
+const DUGME = 38;
+/** Güvenli alandan sonra bırakılan üst boşluk. */
+const UST = 8;
+
+/**
+ * ÇUBUĞUN KAPLADIĞI ALAN — ekranların içeriği bu kadar aşağıdan başlamalı.
+ *
+ * ⚠️ ÖLÇÜLEN KUSUR (2026-09-11, önizlemede görüldü): bu çubuk mutlak
+ * konumlu ve HER yığın ekranının üstüne biniyor. Ekranlar kendi
+ * içeriklerine `padding: 16` ile başladığı için başlık çubuğun ALTINDA
+ * kalıyordu — grup panosunda "Mahalle Ligi", kupon ekranında "Haftalık
+ * Tahmin" yarı yarıya örtülüydü.
+ *
+ * ÖLÇÜLDÜ: sekme dışı 32 ekranın HİÇBİRİ üst boşluk telafisi yapmıyordu.
+ * Yani kusur tek bir ekranın değil, ortak çerçevenin.
+ *
+ * ⚠️ ÇARE 32 EKRANA DEĞİL TEK YERE: her ekrana `paddingTop` eklemek, bu
+ * deponun sürekli düzelttiği kopya sorununun kendisi olurdu — biri
+ * unutulur ve sessizce örtülü kalır. Alan kök yığında `contentStyle` ile
+ * bir kez ayrılıyor (app/_layout.tsx).
+ *
+ * ⚠️ `insets.top` BURAYA EKLENMİYOR: çubuk pencereye göre konumlanırken
+ * onu kendisi ekliyor, ekran içeriği ise gezgin tarafından zaten güvenli
+ * alanın altından başlatılıyor. İkisini de eklemek boşluğu ikiye katlardı.
+ */
+export const GERIEV_ALANI = UST + DUGME + UST;
 
 export default function GeriEv() {
   useLang(); // dil değişince erişilebilirlik etiketleri tazelensin
@@ -42,7 +70,7 @@ export default function GeriEv() {
   if (GIZLI_YOL.has(pathname)) return null;
 
   return (
-    <View style={[s.kap, { top: insets.top + 8 }]} pointerEvents="box-none">
+    <View style={[s.kap, { top: insets.top + UST }]} pointerEvents="box-none">
       <TouchableOpacity
         accessibilityLabel={t("goBack")}
         onPress={() => {
@@ -77,9 +105,9 @@ const s = StyleSheet.create({
     zIndex: 50,
   },
   dugme: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: DUGME,
+    height: DUGME,
+    borderRadius: DUGME / 2,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#0f172aee",
