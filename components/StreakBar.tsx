@@ -13,9 +13,22 @@ type Props = {
   seriesCount: number;
   activeSeries: boolean;
   bestSeries: number;
+  /** Ardışık doğru rekoru — eşikler maç cinsindeyken rekor da öyle olmalı. */
+  bestSeriesCount?: number | null;
   currentTier: Tier;
   /** Sunucudan gelen eşikler; verilmezse yedek liste kullanılır. */
   tiers?: SunucuTier[] | null;
+  /**
+   * Eşiklerin ÖLÇÜLDÜĞÜ alan — sunucu söyler (`/api/live/streak` → tierMetric).
+   *
+   * ⚠️ AŞAĞIDAKİ BAŞLIĞIN İKİNCİ YARISI. Eşik DEĞERLERİ bir kez sunucuya
+   * taşındı ama METRİK ekranda varsayılı kaldı (seriesCumOdds). Eşikler
+   * 2026-09-11'de birikmiş odds'tan ardışık doğru sayısına dönünce bu
+   * varsayım çubuğu sessizce yanlış doldururdu: sunucu "3 maç" derken
+   * ekran 3 ODDS'ta dolu gösterirdi — yani ilk doğruda. Metrik de artık
+   * sunucudan geliyor; alan yoksa eski davranış (odds) korunur.
+   */
+  tierMetric?: string | null;
 };
 
 /* StringKey tipi: t() dinamik anahtarla çağrılınca TS 1222 seçenekli union
@@ -45,9 +58,9 @@ export const TIER_KEYS: Record<string, StringKey> = {
  * sunucudaki değerlerle AYNI tutulur.
  */
 const YEDEK_TIERS: { threshold: number; labelKey: StringKey; emoji: string }[] = [
-  { threshold: 10, labelKey: "streakWarmup", emoji: "🔥" },
-  { threshold: 20, labelKey: "streakOnFire", emoji: "🔥🔥" },
-  { threshold: 40, labelKey: "streakUnstoppable", emoji: "💥" },
+  { threshold: 3, labelKey: "streakWarmup", emoji: "🔥" },
+  { threshold: 5, labelKey: "streakOnFire", emoji: "🔥🔥" },
+  { threshold: 7, labelKey: "streakUnstoppable", emoji: "💥" },
 ];
 
 /** Sunucudan gelen eşikleri ekran biçimine çevirir. */
@@ -64,12 +77,15 @@ function tierListesi(sunucu?: SunucuTier[] | null) {
     }));
 }
 
-export default function StreakBar({ seriesCumOdds, seriesCount, activeSeries, bestSeries, currentTier, tiers }: Props) {
+export default function StreakBar({ seriesCumOdds, seriesCount, activeSeries, bestSeries, bestSeriesCount, currentTier, tiers, tierMetric }: Props) {
   useLang(); // dil değişince yeniden çizilsin
 
   const TIERS = tierListesi(tiers);
-  const nextTier = TIERS.find(ti => ti.threshold > seriesCumOdds) || TIERS[TIERS.length - 1];
-  const progress = nextTier ? Math.min(1, seriesCumOdds / nextTier.threshold) : 1;
+  /* Eşikler hangi alanda ölçülüyorsa ilerleme de o alandan okunur. */
+  const sayimla = tierMetric === "seriesCount";
+  const ilerleme = sayimla ? seriesCount : seriesCumOdds;
+  const nextTier = TIERS.find(ti => ti.threshold > ilerleme) || TIERS[TIERS.length - 1];
+  const progress = nextTier ? Math.min(1, ilerleme / nextTier.threshold) : 1;
 
   // Çubuk dolumu yaylanarak ilerler — sıçrayan sayı yerine akan hareket.
   const dolum = useRef(new Animated.Value(0)).current;
@@ -135,8 +151,19 @@ export default function StreakBar({ seriesCumOdds, seriesCount, activeSeries, be
       </View>
 
       <View style={s.row}>
-        <Text style={s.hint}>{t("streakNext", { label: t(nextTier?.labelKey ?? "streakWarmup"), threshold: String(nextTier?.threshold ?? 5) })}</Text>
-        {bestSeries > 0 && <Text style={s.best}>{t("streakBest", { x: bestSeries.toFixed(1) })}</Text>}
+        <Text style={s.hint}>
+          {t(sayimla ? "streakNextMatches" : "streakNext", {
+            label: t(nextTier?.labelKey ?? "streakWarmup"),
+            threshold: String(nextTier?.threshold ?? 3),
+          })}
+        </Text>
+        {/* Rekor da eşikle AYNI ölçüde: eşik "3 maç" derken rekoru "10.6x"
+            göstermek iki ayrı birim olurdu. */}
+        {sayimla
+          ? (Number(bestSeriesCount) > 0 &&
+              <Text style={s.best}>{t("streakBestMatches", { n: String(bestSeriesCount) })}</Text>)
+          : (bestSeries > 0 &&
+              <Text style={s.best}>{t("streakBest", { x: bestSeries.toFixed(1) })}</Text>)}
       </View>
     </View>
   );

@@ -1004,6 +1004,12 @@ const strings = {
     streakSeries:     "Seri",
     streakNext:       "Sonraki: {label} ({threshold}x)",
     streakBest:       "En iyi: {x}x",
+    /* ⚠️ ESKİ İKİLİ YERİNE DEĞİL, YANINA. Eşikler 2026-09-11'de birikmiş
+     * odds'tan ARDIŞIK DOĞRU SAYISINA döndü ve "x" soneki artık yanlış
+     * birim. Eskiler silinmedi: sunucu `tierMetric` göndermezse ekran eski
+     * davranışa düşüyor ve o dalın da metni olmalı. */
+    streakNextMatches: "Sonraki: {label} ({threshold} maç)",
+    streakBestMatches: "En iyi: {n} maç",
     rankingTab:       "Sıralama",
     tabPredict:       "Tahmin",
     tabProfile:       "Profil",
@@ -2421,6 +2427,8 @@ const strings = {
     streakSeries:     "Streak",
     streakNext:       "Next: {label} ({threshold}x)",
     streakBest:       "Best: {x}x",
+    streakNextMatches: "Next: {label} ({threshold} matches)",
+    streakBestMatches: "Best: {n} matches",
     rankingTab:       "Rankings",
     tabPredict:       "Predict",
     tabProfile:       "Profile",

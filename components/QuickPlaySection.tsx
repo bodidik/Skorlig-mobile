@@ -15,6 +15,9 @@ type StreakData = {
   seriesCount: number;
   activeSeries: boolean;
   bestSeries: number;
+  bestSeriesCount?: number | null;
+  /* Eşiklerin ölçüldüğü alan — sunucu söyler, ekran varsaymaz. */
+  tierMetric?: string | null;
   currentTier: { threshold: number; bonus: number; label: string } | null;
   /* ⚠️ Eşikler sunucudan taşınır; ekranın kendi kopyası sunucudan ayrışmıştı
    * (5/10/20 ↔ 10/20/40) ve çubuk ulaşılmamış bir ödülü vaat ediyordu. */
@@ -90,8 +93,10 @@ export default function QuickPlaySection({ country, userId }: Props) {
           seriesCount={streak.seriesCount}
           activeSeries={streak.activeSeries}
           bestSeries={streak.bestSeries}
+          bestSeriesCount={streak.bestSeriesCount}
           currentTier={streak.currentTier}
           tiers={streak.tiers}
+          tierMetric={streak.tierMetric}
         />
       )}
 
