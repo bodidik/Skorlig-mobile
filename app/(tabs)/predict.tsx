@@ -628,6 +628,11 @@ export default function PredictScreen() {
       const simdi = Date.now();
       const aday = (Array.isArray(j.fixtures) ? j.fixtures : []).find((fx: any) => {
         if (!fx?.fixtureId) return false;
+        /* ⚠️ SAATİ KESİNLEŞMEMİŞ MAÇ "SIRADAKİ MAÇ" OLAMAZ. Sunucu tahmini
+         * SAAT_KESIN_DEGIL ile reddediyor (routes/pred.cjs); burada seçersek
+         * kullanıcı ekranı açar, skorunu girer ve kapıda geri çevrilir —
+         * düello bayrağında yaşanan kusurun aynısı (bkz. routes/team.cjs). */
+        if (fx.saatKesinDegil === true) return false;
         const st = String(fx.status || "NS").toUpperCase();
         if (["FT", "AET", "PEN", "CANC", "PST", "ABD"].includes(st)) return false;
         const ko = fx.kickoffISO ? new Date(fx.kickoffISO).getTime() : NaN;

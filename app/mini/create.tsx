@@ -40,6 +40,8 @@ type Fx = {
   kickoffISO?: string | null;
   league?: string | null;
   status?: string | null;
+  /** Sunucu: başlama saati henüz kesin değil — seçilemez (bkz. load()). */
+  saatKesinDegil?: boolean | null;
 };
 
 export default function MiniCreateScreen() {
@@ -74,6 +76,12 @@ export default function MiniCreateScreen() {
       const list: Fx[] = r?.ok && Array.isArray(r.fixtures) ? r.fixtures : [];
       // sadece henüz başlamamış maçlar seçilebilsin
       const upcoming = list.filter((f) => {
+        /* ⚠️ SAATİ KESİNLEŞMEMİŞ MAÇ SEÇENEKLERDE GÖRÜNMEZ. Sunucu `/create`
+         * isteğini `SAAT_KESIN_DEGIL` ile REDDEDİYOR (routes/mini.cjs);
+         * listede bırakmak, kullanıcıya seçtirip kapıda çevirmek olurdu.
+         * Gerekçe: kaynağın yer tutucu saati, gerçek tarih yayımlanınca kayıt
+         * kimlik değiştiriyor ve turnuva bir daha kapanmıyor. */
+        if (f.saatKesinDegil === true) return false;
         const ko = new Date(f.kickoffISO || 0).getTime();
         return Number.isFinite(ko) && ko > Date.now();
       });

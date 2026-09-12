@@ -93,6 +93,12 @@ const SOZLUK: Record<string, string> = {
   AYNI_MAC_SETI_ACIK:
     "Bu maçlarla zaten açık bir turnuvan var. Bitmesini bekle ya da farklı maçlar seç.",
 
+  /* Kaynak (ESPN) gelecek turları "saati henüz belli değil" damgasıyla
+   * veriyor; sunucu o maçı listede tutuyor ama oynanamaz sayıyor. Kullanıcıya
+   * söylenmesi gereken tek şey: maç iptal değil, sadece saati bekliyor. */
+  SAAT_KESIN_DEGIL:
+    "Bu maçın başlama saati henüz kesinleşmedi. Saat belli olunca oynanabilir olacak.",
+
   // ── Kimlik / yetki ───────────────────────────────────────────────
   UNAUTHORIZED: "Bu işlem için giriş yapman gerekiyor.",
   AUTH_REQUIRED: "Bu işlem için giriş yapman gerekiyor.",

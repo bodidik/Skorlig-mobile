@@ -32,7 +32,7 @@ import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { t, useLang } from "../../lib/i18n";
-import { macSaatiEtiketi } from "../../lib/macSaati";
+import { fiksturSaatEtiketi } from "../../lib/macSaati";
 import { ulkeAdi, ligEtiketi, ligSiraAnahtari } from "../../lib/ulkeler";
 const t2 = t; // turnuva map(t) golgelemesi icin takma ad
 
@@ -69,6 +69,12 @@ type Fx = {
   /** Tek taraflı maç düelloya kapalı (sunucu kararı, lib/mac-denge.cjs).
    *  Alan yoksa (eski sunucu) AÇIK varsayılır — kapı sunucuda zaten var. */
   duelloAcik?: boolean | null;
+
+  /** Başlama saati kaynakta HENÜZ KESİN DEĞİL (ESPN `timeValid:false`).
+   *  Sunucu bu maçı listede tutuyor ama tahmine/düelloya kapatıyor
+   *  (SAAT_KESIN_DEGIL). Ekran da yer tutucu saati GÖSTERMEMELİ: gerçek
+   *  saat başka olabilir ve kullanıcı maçı kaçırır. */
+  saatKesinDegil?: boolean | null;
 
   league?: string | null;
   country?: string | null;
@@ -206,11 +212,19 @@ function formatTimeTR(iso?: string | null) {
 }
 
 function kickoffLabel(fx: Fx) {
-  const isoOrDate = (fx.kickoffISO as any) || (fx.kickoffDate as any) || null;
-  const etiket = macSaatiEtiketi(isoOrDate, { bugun: t("today"), yarin: t("tomorrow") });
+  /* ⚠️ SAAT KESİN DEĞİLSE SAATİ HİÇ BASMA. Sunucu bu maçı listede tutuyor
+   * (takvim boşalmasın) ama kickoff'u kaynağın YER TUTUCUSU: ESPN gelecek
+   * turları `timeValid:false` ile verip turun nominal gününü damgalıyor —
+   * ölçüldü, bir turun 9 maçı da aynı dakikadaydı. Yer tutucuyu saat diye
+   * göstermek kullanıcıya maçı kaçırtır.
+   * Karar `lib/macSaati.ts` içinde, ekranda DEĞİL: aynı kural beş ekranda
+   * ayrı ayrı kurulmasın (o dosyanın kendi gerekçesi) ve ölçülebilir kalsın
+   * (tests/saatKesinDegil.test.ts). */
+  const etiket = fiksturSaatEtiketi(fx, { bugun: t("today"), yarin: t("tomorrow") });
   if (!etiket) return "-";
   // Saatsiz kayıtta helper yalnızca GÜNÜ döner; saatin bilinmediğini söyle.
-  return formatTimeTR(fx.kickoffISO || null) ? etiket : `${etiket} • saat belirsiz`;
+  const saat = fx.saatKesinDegil === true ? null : formatTimeTR(fx.kickoffISO || null);
+  return saat ? etiket : `${etiket} • saat belirsiz`;
 }
 
 function statusLabel(fx: Fx) {
@@ -2782,7 +2796,8 @@ export default function LiveScreen() {
                           const opensIn = diffH !== null && diffH > PREDICT_OPEN_AHEAD_HOURS
                             ? t("opensInH", { h: Math.round(diffH - PREDICT_OPEN_AHEAD_HOURS) })
                             : t("opensSoon");
-                          const timeStr = macSaatiEtiketi(fx.kickoffISO ?? null, { bugun: t("today"), yarin: t("tomorrow") }) || null;
+                          // Yer tutucu saati burada da basma — kickoffLabel ile aynı kural.
+                          const timeStr = fiksturSaatEtiketi(fx, { bugun: t("today"), yarin: t("tomorrow") }) || null;
                           return (
                             <View
                               key={fx.fixtureId}

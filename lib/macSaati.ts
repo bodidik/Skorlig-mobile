@@ -83,6 +83,29 @@ export function macSaatiEtiketi(
 }
 
 /**
+ * Fikstür kaydından etiket — SAATİ KESİN OLMAYAN kayıtta SAATİ BASMAZ.
+ *
+ * ⚠️ NEDEN VAR (2026-09-12): kaynak (ESPN) gelecek turları `timeValid:false`
+ * ile veriyor ve hepsine turun nominal gününü damgalıyor — ölçüldü, bir turun
+ * dokuz maçı da aynı dakikadaydı. Sunucu bu kaydı listede TUTUYOR ama tahmine
+ * kapatıyor ve `saatKesinDegil: true` gönderiyor. Ekran o yer tutucuyu saat
+ * diye basarsa kullanıcı maçı kaçırır.
+ *
+ * Kural bu dosyanın kendi ilkesiyle aynı: "olmayan bir saati uydurma".
+ * Saatsiz kayıtta gün döndüğü gibi, burada da yalnızca gün döner.
+ * Alan yoksa (eski sunucu) davranış eskisiyle BİREBİR aynı kalır.
+ */
+export function fiksturSaatEtiketi(
+  fx: { kickoffISO?: string | null; kickoffDate?: string | null; saatKesinDegil?: boolean | null } | null | undefined,
+  s: MacSaatiSecenek = {},
+): string {
+  const ham = String(fx?.kickoffISO || fx?.kickoffDate || "").trim();
+  if (!ham) return "";
+  const belirsiz = fx?.saatKesinDegil === true;
+  return macSaatiEtiketi(belirsiz ? ham.slice(0, 10) : ham, s);
+}
+
+/**
  * TAKVİM günü farkı (bugün=0, yarın=1). Saat farkına BÖLMEZ.
  *
  * Kusur buradan çıktı: DailyMatchCard rozeti `ceil((kick-now)/86400000)`
