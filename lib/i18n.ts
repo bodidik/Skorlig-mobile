@@ -140,7 +140,13 @@ const strings = {
     premiumMonthly:   "🌟 Premium aylık paket: {n} LC · ",
     premiumGranted:   "bu ay alındı · sonraki yenileme {d}",
     premiumWaiting:   "bu ay bekliyor",
-    bonus1987Line:    "🎁 1987 bonusu: {n} LC · 1987 oyunlarında önce bundan düşer",
+    /* ⚠️ ESKİ METİN YANLIŞ BİLGİ VERİYORDU: "1987 oyunlarında önce bundan
+     * düşer" diyordu, oysa bonus YALNIZCA Galatasaray maçlarında harcanıyor
+     * (api/lib/gs1987.cjs; 2026-09-11 ölçümü: haftalık pencerede açık 56
+     * maçın 0'ı GS'ydi). Üye, cebinin her maçta geçtiğini sanıyordu. */
+    bonus1987Line:    "🎁 1987 bonusu: {n} LC · yalnızca Galatasaray maçlarında geçer",
+    bonus1987Applies: "🎁 Bu maçta bonus cebinden düşecek",
+    bonus1987NotHere: "Bonus bu maçta geçmez · normal bakiyeden düşer",
     golBang:          "GOL!",
     feelPref:         "Ses ve Titreşim",
     feelPrefHelp:     "Gol anları ve önemli olaylar için — bu cihazda saklanır.",
@@ -1601,7 +1607,9 @@ const strings = {
     premiumMonthly:   "🌟 Premium monthly chest: {n} LC · ",
     premiumGranted:   "claimed this month · next renewal {d}",
     premiumWaiting:   "pending this month",
-    bonus1987Line:    "🎁 1987 bonus: {n} LC · 1987 games draw from this first",
+    bonus1987Line:    "🎁 1987 bonus: {n} LC · spent on Galatasaray matches only",
+    bonus1987Applies: "🎁 This match draws from your bonus",
+    bonus1987NotHere: "Bonus doesn't apply here · paid from your balance",
     golBang:          "GOAL!",
     feelPref:         "Sound and Vibration",
     feelPrefHelp:     "For goal moments and key events — stored on this device.",

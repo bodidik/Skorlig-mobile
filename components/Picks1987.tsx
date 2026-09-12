@@ -38,6 +38,11 @@ interface Pick {
   htScore:      { home: number; away: number } | null;
   open:         boolean;
   minutesUntil: number;
+  /** Sunucu: bu maçta bedel hangi cepten düşecek?
+   *  null = kullanıcı 1987 üyesi değil (soru geçersiz) · true = bonus cebi ·
+   *  false = üye ama GS maçı değil, normal bakiye. Karar sunucuda veriliyor
+   *  (ödemeyle AYNI yüklem), ekran yalnızca basıyor. */
+  bonus1987Kanali?: boolean | null;
   pred:         MicroPred | null;
   result: {
     outcome:    Outcome;
@@ -324,6 +329,25 @@ export default function Picks1987() {
                   <Text style={[s.team, { textAlign: "right" }]} numberOfLines={1}>{pick.away}</Text>
                 </View>
 
+                {/* ⚠️ BONUS CEBİ HANGİ MAÇTA GEÇİYOR — ÖDEMEDEN ÖNCE.
+                 *
+                 * 1987 bonusu yalnızca GALATASARAY maçlarında harcanıyor
+                 * (api/lib/gs1987.cjs). Üye bunu tahmini gönderdikten SONRA,
+                 * yanıttaki `bonus1987Kanali` alanından öğreniyordu — yani
+                 * "bonusum mu gidecek, bakiyem mi" sorusunun cevabı para
+                 * çıktıktan sonra geliyordu.
+                 *
+                 * ⚠️ ÜÇ DEĞERLİ ALAN: `null` = üye değil (satır HİÇ
+                 * basılmaz), `true` = bonustan, `false` = normal bakiyeden.
+                 * `!== null` yerine `== null` ile eleniyor ki `false` ile
+                 * `null` karışmasın — üye olmayana "bonusun geçmiyor"
+                 * demek, hiç bonusu olmayana bonus vaadi olurdu. */}
+                {!isFT && pick.bonus1987Kanali != null && (
+                  <Text style={pick.bonus1987Kanali ? s.bonusOn : s.bonusOff}>
+                    {pick.bonus1987Kanali ? t("bonus1987Applies") : t("bonus1987NotHere")}
+                  </Text>
+                )}
+
                 {/* Tahmin özeti veya buton */}
                 {isFT ? (
                   hasPred ? (
@@ -455,6 +479,13 @@ const s = StyleSheet.create({
   predSummaryTxt: { fontSize: 12, color: "#333", fontWeight: "600" },
   noPred:       { fontSize: 12, color: "#bbb", textAlign: "center", paddingVertical: 6 },
   notOpen:      { fontSize: 12, color: "#bbb", textAlign: "center", paddingVertical: 8 },
+
+  /* Bonus cebi ipucu. İki ayrı renk: geçen maçta olumlu (yeşil), geçmeyen
+   * maçta NÖTR gri — "kötü haber" gibi kırmızı yazmak, üyeliğin değerini
+   * yanlış anlatırdı; bilgi veriyoruz, uyarı değil.
+   * Kontrast: #2e7d32 ve #777 beyaz kart üstünde okunur. */
+  bonusOn:      { fontSize: 11, color: "#2e7d32", fontWeight: "700", textAlign: "center", paddingBottom: 4 },
+  bonusOff:     { fontSize: 11, color: "#777", textAlign: "center", paddingBottom: 4 },
 
   expandBtn:    { borderRadius: 10, borderWidth: 1.5, borderColor: "#ddd", paddingVertical: 9, alignItems: "center" },
   expandBtnOn:  { borderColor: RED, backgroundColor: "#fff5f5" },
