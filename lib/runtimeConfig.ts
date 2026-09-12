@@ -114,9 +114,16 @@ export function useRuntimeConfig(): RuntimeConfigState {
 
   const defaultScoring: ScoringConfig = useMemo(
     () => ({
-      /* ⚠️ Sunucudaki tek kaynak lib/ekonomi.cjs (ACILIS_BAKIYESI = 30).
+      /* ⚠️ Sunucudaki tek kaynak lib/ekonomi.cjs (ACILIS_BAKIYESI_NORMAL = 30).
        * Burada 500 yaziyordu; sunucu yaniti gelmezse bu varsayilan
-       * kullaniciya 16 KAT yanlis rakam gosterirdi. */
+       * kullaniciya 16 KAT yanlis rakam gosterirdi.
+       *
+       * ⚠️ DEGER ARTIK DONEME BAGLI (2026-09-12): acilis bakiyesi mac
+       * bedeline oranlaniyor — lansmanda 10 LC, donem sonrasi 30 LC; ikisi de
+       * 10 MAC eder. Buradaki sayi NORMAL donemin degeri, yani yalnizca
+       * sunucu yaniti gelmediginde kullanilan yedek. Gercek deger her zaman
+       * /api/config yanitindan okunur; bu sabiti ekranda TEK KAYNAK gibi
+       * kullanma. Nobetci: api/tests/config-acilis-bakiyesi.test.cjs */
       startBalance: 30,
       useProbabilityEngine: false,
       K_outcome: 3,
