@@ -85,6 +85,8 @@ export default function PremiumScreen() {
   }, [load]);
 
   async function subscribe(plan: Plan) {
+    // İkinci koruma: düğme gizli olsa da mağaza kapalıyken akış başlamasın.
+    if (data?.mode !== "mock") return;
     Alert.alert(
       t("premiumSubTitle"),
       `${plan.label} — ₺${plan.priceTRY}${data?.mode === "mock" ? "\n\n" + t("buyMockNote") : ""}`,
@@ -250,8 +252,15 @@ export default function PremiumScreen() {
             ))}
           </View>
 
-          {/* Abonelik planları */}
-          {!active || data.via !== "1987" ? (
+          {/* Abonelik planları
+              ⚠️ MAĞAZA KAPALIYKEN FİYAT VE SATIN ALMA DÜĞMESİ YOK. Sunucu bugün
+              yalnızca "mock" modda satın alma tamamlayabiliyor (disabled 403,
+              başka mod 501). Play Faturalandırma yokken ₺ fiyatlı abonelik
+              düğmesi hem ödeme politikası riski hem basınca hata veren vaat.
+              Bilinmeyen mod da KAPALI sayılır. */}
+          {data.mode !== "mock" ? (
+            <Text style={{ fontWeight: "700", marginTop: 4, color: Colors.slate900 }}>{t("premiumSoon")}</Text>
+          ) : !active || data.via !== "1987" ? (
             <>
               <Text style={{ fontWeight: "700", marginTop: 4 }}>
                 {active ? t("extend") : t("subscribeBtn")}

@@ -751,6 +751,7 @@ const strings = {
     distNote:         "Dağılım tahminleri gösterir; havuzdaki para yalnızca gerçek oyunculardan gelir.",
     // premium
     premiumSubTitle:  "Premium Aboneliği",
+    premiumSoon:      "Premium üyelik henüz satışta değil.",
     subscribeBtn:     "Abone Ol",
     premiumActiveMsg: "Premium aktif! 🌟\nBitiş: {d}",
     subFailed:        "Abonelik başarısız.",

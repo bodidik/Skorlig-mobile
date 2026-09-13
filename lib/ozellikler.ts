@@ -16,13 +16,14 @@
  * kapalıdır.
  */
 
-export type Ozellikler = { duello: boolean; havuz: boolean };
+/** `premium`: mağaza gerçekten satın alma tamamlayabiliyor mu (sunucu STORE_MODE). */
+export type Ozellikler = { duello: boolean; havuz: boolean; premium: boolean };
 
-export const OZELLIK_VARSAYILAN: Readonly<Ozellikler> = Object.freeze({ duello: false, havuz: false });
+export const OZELLIK_VARSAYILAN: Readonly<Ozellikler> = Object.freeze({ duello: false, havuz: false, premium: false });
 
 export function ozellikleriCoz(yanit: unknown): Ozellikler {
   const o = (yanit as { ozellikler?: Record<string, unknown> } | null | undefined)?.ozellikler;
-  return { duello: o?.duello === true, havuz: o?.havuz === true };
+  return { duello: o?.duello === true, havuz: o?.havuz === true, premium: o?.premium === true };
 }
 
 /**

@@ -47,7 +47,12 @@ export function kartSec(tohum: string | null | undefined, uzunluk: number): numb
   return h % uzunluk;
 }
 
-/** Çıkış sürümünde gizli özelliğin kartı basılmaz (bkz. lib/ozellikler.ts). */
-export function gorunurKartlar(duelloAcik: boolean): Kart[] {
-  return KARTLAR.filter((k) => k.anahtar !== "duello" || duelloAcik);
+/**
+ * Kapalı özelliğin kartı basılmaz (bkz. lib/ozellikler.ts): düello çıkış
+ * sürümünde gizli; premium kartı mağaza satın alma alamıyorken satılamayan bir
+ * şeyi tanıtırdı.
+ */
+export function gorunurKartlar(o: { duello: boolean; premium: boolean }): Kart[] {
+  return KARTLAR.filter((k) =>
+    (k.anahtar !== "duello" || o.duello) && (k.anahtar !== "premium" || o.premium));
 }

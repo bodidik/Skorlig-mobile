@@ -49,10 +49,10 @@ export default function TanitimSeridi({ tohum, kartIndex }: Props) {
   const ozellik = useOzellikler();
 
   const kart = useMemo(() => {
-    const liste = gorunurKartlar(ozellik.duello);
+    const liste = gorunurKartlar(ozellik);
     const i = typeof kartIndex === "number" ? kartIndex : kartSec(tohum, liste.length);
     return liste[i % liste.length];
-  }, [tohum, kartIndex, ozellik.duello]);
+  }, [tohum, kartIndex, ozellik]);
 
   if (kapali) return null;
 

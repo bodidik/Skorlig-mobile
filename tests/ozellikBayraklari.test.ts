@@ -27,32 +27,33 @@ import { KARTLAR, gorunurKartlar } from "../lib/tanitimKart.ts";
  */
 
 describe("saf kurallar", () => {
-  test("varsayılan İKİSİ DE KAPALI ve donmuş", () => {
-    assert.deepEqual({ ...OZELLIK_VARSAYILAN }, { duello: false, havuz: false });
+  test("varsayılan HEPSİ KAPALI ve donmuş", () => {
+    assert.deepEqual({ ...OZELLIK_VARSAYILAN }, { duello: false, havuz: false, premium: false });
     assert.ok(Object.isFrozen(OZELLIK_VARSAYILAN), "varsayilan degistirilebilir — bir ekran onu acabilir");
   });
 
   test("okunamayan/bozuk yanıt GİZLİ sayılıyor", () => {
     for (const yanit of [null, undefined, {}, { ok: true }, { ozellikler: null }, "html hata sayfasi", 42]) {
-      assert.deepEqual(ozellikleriCoz(yanit), { duello: false, havuz: false }, `acildi: ${JSON.stringify(yanit)}`);
+      assert.deepEqual(ozellikleriCoz(yanit), { duello: false, havuz: false, premium: false }, `acildi: ${JSON.stringify(yanit)}`);
     }
   });
 
   test("yalnızca açık `true` açıyor — \"true\", 1, \"1\" açmıyor", () => {
-    assert.deepEqual(ozellikleriCoz({ ozellikler: { duello: true, havuz: false } }), { duello: true, havuz: false });
+    assert.deepEqual(ozellikleriCoz({ ozellikler: { duello: true, havuz: false, premium: true } }), { duello: true, havuz: false, premium: true });
     for (const deger of ["true", 1, "1", "evet"]) {
-      assert.equal(ozellikleriCoz({ ozellikler: { duello: deger, havuz: deger } }).duello, false, `${JSON.stringify(deger)} acti`);
+      const o = ozellikleriCoz({ ozellikler: { duello: deger, havuz: deger, premium: deger } });
+      assert.deepEqual(o, { duello: false, havuz: false, premium: false }, `${JSON.stringify(deger)} acti`);
     }
   });
 
   test("modAcikMi yalnızca bayraklı modları süzüyor", () => {
-    const kapali = { duello: false, havuz: false };
+    const kapali = { duello: false, havuz: false, premium: false };
     assert.equal(modAcikMi("duello", kapali), false);
     assert.equal(modAcikMi("havuz", kapali), false);
     for (const key of ["tek", "kupon", "mini", "gs1987", "yeni-mod"]) {
       assert.equal(modAcikMi(key, kapali), true, `${key} gizlendi`);
     }
-    assert.equal(modAcikMi("duello", { duello: true, havuz: false }), true);
+    assert.equal(modAcikMi("duello", { duello: true, havuz: false, premium: false }), true);
   });
 
   test("sekmeGizliMi expo-router'ın href:null işaretini tanıyor", () => {
@@ -63,15 +64,18 @@ describe("saf kurallar", () => {
   });
 
   test("düello bildirimi kapalıyken LC geçmişine gidiyor, açıkken arenaya", () => {
-    assert.equal(duelloBildirimHedefi({ duello: false, havuz: false }), "/lc-ledger");
-    assert.equal(duelloBildirimHedefi({ duello: true, havuz: false }), "/(tabs)/arena");
+    assert.equal(duelloBildirimHedefi({ duello: false, havuz: false, premium: false }), "/lc-ledger");
+    assert.equal(duelloBildirimHedefi({ duello: true, havuz: false, premium: false }), "/(tabs)/arena");
   });
 
-  test("tanıtım kartları: kapalıyken düello kartı YOK, ötekiler duruyor", () => {
-    const kapali = gorunurKartlar(false).map((k) => k.anahtar);
+  test("tanıtım kartları: kapalı özelliğin kartı YOK, ötekiler duruyor", () => {
+    const kapali = gorunurKartlar({ duello: false, premium: false }).map((k) => k.anahtar);
     assert.ok(!kapali.includes("duello"), "kapaliyken duello karti basiliyor");
-    assert.equal(kapali.length, KARTLAR.length - 1, "duello disinda kart da silindi");
-    assert.ok(gorunurKartlar(true).some((k) => k.anahtar === "duello"));
+    assert.ok(!kapali.includes("premium"), "magaza kapaliyken premium karti basiliyor — satilamayan seyi tanitir");
+    assert.equal(kapali.length, KARTLAR.length - 2, "kapali ozellikler disinda kart da silindi");
+    const acik = gorunurKartlar({ duello: true, premium: true }).map((k) => k.anahtar);
+    assert.ok(acik.includes("duello") && acik.includes("premium"));
+    assert.equal(acik.length, KARTLAR.length);
   });
 });
 
@@ -139,7 +143,7 @@ describe("kaynak nöbetçisi", () => {
       assert.ok(fs.existsSync(path.join(KOK, f)), `${f} yok — muafiyet bayat`);
       assert.ok(ROTA.test(oku(f)), `${f} artik rota icermiyor — muafiyet bayat`);
     }
-    assert.match(oku("components/TanitimSeridi.tsx"), /gorunurKartlar\(ozellik\.duello\)/,
+    assert.match(oku("components/TanitimSeridi.tsx"), /gorunurKartlar\(ozellik\)/,
       "tanitimKart muafiyetinin dayanagi kalmamis: serit kartlari suzmuyor");
   });
 
@@ -183,6 +187,19 @@ describe("kaynak nöbetçisi", () => {
       assert.match(s, new RegExp(`export default function \\w+\\(\\) \\{\\s*const ozellik = useOzellikler\\(\\);\\s*if \\(!ozellik\\.${bayrak}\\) return <OzellikKapali />;`),
         `${dosya} kapaliyken ekrani aciyor`);
     }
+  });
+
+  test("PREMIUM: mağaza kapalıyken fiyat ve satın alma düğmesi çizilmiyor", () => {
+    /* Sunucu yalnızca "mock" modda satın alma tamamlayabiliyor; üretimde mod
+     * "disabled" ve uç 403 STORE_DISABLED. Play Faturalandırma yokken ₺ fiyatlı
+     * abonelik düğmesi hem ödeme politikası riski hem basınca hata veren vaat. */
+    const s = oku("app/premium.tsx");
+    const kapi = s.indexOf('{data.mode !== "mock" ? (');
+    const planlar = s.indexOf("(data.plans || []).map(");
+    assert.ok(kapi > 0, "premium ekraninda magaza kapisi yok");
+    assert.ok(planlar > kapi, "plan listesi magaza kapisinin ONUNDE — kapali modda fiyatlar cizilir");
+    assert.match(s, /async function subscribe\(plan: Plan\) \{\s*if \(data\?\.mode !== "mock"\) return;/,
+      "satin alma akisi magaza kapaliyken de basliyor");
   });
 
   test("hata sözlüğü FEATURE_DISABLED'i tanıyor (sunucu bu kodu dönüyor)", () => {
