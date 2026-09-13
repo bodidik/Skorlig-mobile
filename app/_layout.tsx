@@ -1,5 +1,7 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { t, useLang } from "../lib/i18n";
+import { duelloBildirimHedefi } from "../lib/ozellikler";
+import { ozellikAnlik } from "../hooks/useOzellikler";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import * as Notifications from "expo-notifications";
@@ -29,7 +31,8 @@ function routeForNotification(data: any): string | null {
     case "predict":
       return fid ? `/(tabs)/predict?fixtureId=${encodeURIComponent(fid)}` : "/(tabs)/predict";
     case "duel":
-      return "/(tabs)/arena";
+      // Düello kapalıyken de sonuç/iade bildirimi gelir — o zaman LC geçmişine.
+      return duelloBildirimHedefi(ozellikAnlik());
     default:
       return null;
   }

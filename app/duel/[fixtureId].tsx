@@ -8,6 +8,8 @@ import Colors from "../../constants/colors";
 import { getApiBase, resetApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
+import { useOzellikler } from "../../hooks/useOzellikler";
+import OzellikKapali from "../../components/OzellikKapali";
 import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
 import Konfeti from "../../components/Konfeti";
@@ -465,7 +467,7 @@ function RaisePanel({ duel, userId, maxStake, onRaise, onRaiseResponse }:
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
-export default function DuelScreen() {
+function DuelIcerik() {
   useLang(); // dil değişince ekran yeniden çizilsin
   const { fixtureId, home: qHome, away: qAway, league: qLeague, kickoffISO: qKickoff } =
     useLocalSearchParams<{ fixtureId?:string; home?:string; away?:string; league?:string; kickoffISO?:string }>();
@@ -939,4 +941,12 @@ export default function DuelScreen() {
       </ScrollView>
     </View>
   );
+}
+
+/* Çıkış sürümünde KAPALI (IARC kararı, bkz. lib/ozellikler.ts). Sekme ve
+ * düğmeler gizli ama bildirim ya da eski bağlantı bu ekranı yine açabilir. */
+export default function DuelScreen() {
+  const ozellik = useOzellikler();
+  if (!ozellik.duello) return <OzellikKapali />;
+  return <DuelIcerik />;
 }

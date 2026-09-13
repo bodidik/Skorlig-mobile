@@ -5,6 +5,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "../constants/colors";
 import { titret } from "../lib/hisler";
+import { sekmeGizliMi } from "../lib/ozellikler";
 
 /**
  * ÖZEL ALT SEKME ÇUBUĞU.
@@ -92,6 +93,8 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
     <View style={[s.cubuk, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       {state.routes.map((route, i) => {
         const { options } = descriptors[route.key];
+        // href: null verilmiş sekme — özel çubuk bunu kendisi atlamalı.
+        if (sekmeGizliMi(options)) return null;
         const etiket = String(options.title ?? route.name);
         const odakta = state.index === i;
 

@@ -3,7 +3,8 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { t, useLang } from "../lib/i18n";
 import Colors from "../constants/colors";
-import { KARTLAR, kartSec } from "../lib/tanitimKart";
+import { gorunurKartlar, kartSec } from "../lib/tanitimKart";
+import { useOzellikler } from "../hooks/useOzellikler";
 
 /**
  * TANITIM ŞERİDİ — yarış alanının altında, kendi özelliklerimizi tanıtan şerit.
@@ -45,11 +46,13 @@ export default function TanitimSeridi({ tohum, kartIndex }: Props) {
   useLang();
   const router = useRouter();
   const [kapali, setKapali] = useState(false);
+  const ozellik = useOzellikler();
 
   const kart = useMemo(() => {
-    const i = typeof kartIndex === "number" ? kartIndex : kartSec(tohum, KARTLAR.length);
-    return KARTLAR[i % KARTLAR.length];
-  }, [tohum, kartIndex]);
+    const liste = gorunurKartlar(ozellik.duello);
+    const i = typeof kartIndex === "number" ? kartIndex : kartSec(tohum, liste.length);
+    return liste[i % liste.length];
+  }, [tohum, kartIndex, ozellik.duello]);
 
   if (kapali) return null;
 

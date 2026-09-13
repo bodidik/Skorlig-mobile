@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { hataMesaji } from "../../lib/hataMesaji";
 import { lcYaz } from "../../lib/lcBicim";
 import { t, useLang } from "../../lib/i18n";
+import { useOzellikler } from "../../hooks/useOzellikler";
 import { ulkeAdi } from "../../lib/ulkeler";
 import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
@@ -170,6 +171,7 @@ export default function Me() {
   const nav = useRouter();
   const { user, logout } = useAuth();
   useLang(); // dil değişince ekran yeniden çizilsin
+  const ozellik = useOzellikler(); // düello çıkış sürümünde gizli
   const hisler = useHisler(); // ses/titreşim tercihleri (yerel)
 
   const onLogout = useCallback(() => {
@@ -2140,8 +2142,9 @@ export default function Me() {
                   desc: t("pushMatchStartD") },
                 { key: "result" as const, icon: "🏁", label: t("pushResult"),
                   desc: t("pushResultD") },
-                { key: "duel" as const, icon: "⚔️", label: t("pushDuel"),
-                  desc: t("pushDuelD") },
+                // Düello kapalıyken tercihi de gösterme — olmayan özelliğin anahtarı.
+                ...(ozellik.duello ? [{ key: "duel" as const, icon: "⚔️", label: t("pushDuel"),
+                  desc: t("pushDuelD") }] : []),
                 { key: "daily" as const, icon: "🪙", label: t("pushDaily"),
                   desc: t("pushDailyD") },
               ]).map((row) => {

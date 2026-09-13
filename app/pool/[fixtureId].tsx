@@ -9,6 +9,8 @@ import { getApiBase, resetApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { useUserId } from "../../lib/useUserId";
 import { t, useLang } from "../../lib/i18n";
+import { useOzellikler } from "../../hooks/useOzellikler";
+import OzellikKapali from "../../components/OzellikKapali";
 
 /**
  * MAÇ HAVUZU EKRANI (bkz. api/lib/pool-store.cjs, docs/ekonomi-tasarim.md §4).
@@ -61,7 +63,7 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   return sharedApiFetch(p, init as any);
 }
 
-export default function PoolScreen() {
+function PoolIcerik() {
   useLang(); // dil değişince ekran yeniden çizilsin
   const { fixtureId } = useLocalSearchParams<{ fixtureId: string }>();
   const userId = useUserId();
@@ -308,4 +310,12 @@ export default function PoolScreen() {
       </View>
     </ScrollView>
   );
+}
+
+/* Çıkış sürümünde KAPALI (IARC kararı, bkz. lib/ozellikler.ts). Sekme ve
+ * düğmeler gizli ama bildirim ya da eski bağlantı bu ekranı yine açabilir. */
+export default function PoolScreen() {
+  const ozellik = useOzellikler();
+  if (!ozellik.havuz) return <OzellikKapali />;
+  return <PoolIcerik />;
 }

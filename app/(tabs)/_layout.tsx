@@ -5,9 +5,12 @@ import { Tabs } from "expo-router";
 import TabBar from "../../components/TabBar";
 import KazancBildirimi from "../../components/KazancBildirimi";
 import { t, useLang } from "../../lib/i18n";
+import { useOzellikler } from "../../hooks/useOzellikler";
 
 export default function TabsLayout() {
   useLang(); // dil değişince sekme başlıkları yenilensin
+  // Düello çıkış sürümünde kapalı (IARC kararı, bkz. lib/ozellikler.ts).
+  const ozellik = useOzellikler();
 
   return (
     <View style={{ flex: 1 }}>
@@ -19,7 +22,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="live" options={{ title: t("matches") }} />
       <Tabs.Screen name="predict" options={{ title: t("tabPredict") }} />
-      <Tabs.Screen name="arena" options={{ title: t("modeDuel") }} />
+      <Tabs.Screen name="arena" options={{ title: t("modeDuel"), href: ozellik.duello ? undefined : null }} />
       <Tabs.Screen name="stats" options={{ title: t("rankingTab") }} />
       <Tabs.Screen name="me" options={{ title: t("tabProfile") }} />
     </Tabs>

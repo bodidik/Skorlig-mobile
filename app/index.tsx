@@ -13,6 +13,7 @@ import { savePendingTeam, flushPendingTeam } from "../lib/pendingTeam";
 import { filterAndRankCountries } from "../lib/countrySort";
 import { FALLBACK_COUNTRIES, type CountryOpt } from "../lib/countriesFallback";
 import { t, useLang } from "../lib/i18n";
+import { useOzellikler } from "../hooks/useOzellikler";
 import { ulkeAdi } from "../lib/ulkeler";
 
 /** `/api/stats/teams` yanıt şeması. */
@@ -22,13 +23,14 @@ const GOLD = "#f59e0b";
 const BG   = "#020617";
 const CARD = "#0f172a";
 
-const getSlides = () => [
+/* Düello slaytı yalnızca özellik açıkken (çıkış sürümünde kapalı, IARC). */
+const getSlides = (duelloAcik: boolean) => [
   { icon: "⚽", accent: GOLD, title: t("onb1Title"), subtitle: t("onb1Sub"),
     bullets: [t("onb1B1"), t("onb1B2"), t("onb1B3")] },
   { icon: "🪙", accent: GOLD, title: t("onb2Title"), subtitle: t("onb2Sub"),
     bullets: [t("onb2B1"), t("onb2B2"), t("onb2B3")] },
-  { icon: "⚔️", accent: "#ef4444", title: t("onb3Title"), subtitle: t("onb3Sub"),
-    bullets: [t("onb3B1"), t("onb3B2"), t("onb3B3")] },
+  ...(duelloAcik ? [{ icon: "⚔️", accent: "#ef4444", title: t("onb3Title"), subtitle: t("onb3Sub"),
+    bullets: [t("onb3B1"), t("onb3B2"), t("onb3B3")] }] : []),
   { icon: "🏁", accent: "#22c55e", title: t("onb4Title"), subtitle: t("onb4Sub"),
     bullets: [t("onb4B1"), t("onb4B2"), t("onb4B3")] },
 ];
@@ -38,7 +40,8 @@ export default function WelcomeScreen() {
   const { user } = useAuth();
   const { width } = useWindowDimensions();
   useLang(); // dil değişince ekran yeniden çizilsin
-  const SLIDES = getSlides();
+  const ozellik = useOzellikler();
+  const SLIDES = getSlides(ozellik.duello);
 
   const [slide, setSlide]           = useState(0);
   const [country, setCountry]       = useState<string | null>(null);

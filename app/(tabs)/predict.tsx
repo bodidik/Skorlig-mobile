@@ -9,6 +9,7 @@ import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
 import { sharePrediction } from "../../lib/share";
 import { t, useLang } from "../../lib/i18n";
+import { useOzellikler } from "../../hooks/useOzellikler";
 import { TIER_KEYS } from "../../components/StreakBar";
 import { hataMesaji } from "../../lib/hataMesaji";
 
@@ -114,6 +115,7 @@ const QUICK_SCORES: { h: number; a: number }[] = [
 
 export default function PredictScreen() {
   useLang(); // dil değişince ekran yeniden çizilsin
+  const ozellik = useOzellikler(); // düello/havuz çıkış sürümünde gizli
 
   // Tek kalıp: base’i içeriden alıp çağır (IP değişince 1 kez reset + retry)
   /**
@@ -1055,7 +1057,7 @@ useEffect(() => {
               🕐 {new Date(paramKickoff || nextMatch?.kickoffISO || "").toLocaleString("tr-TR", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
             </Text>
           ) : null}
-          {fixtureId ? (
+          {fixtureId && (ozellik.duello || ozellik.havuz) ? (
             // Üç mod, üç amaç (bkz. docs/ekonomi-tasarim.md §4.2):
             //   Tahmin = puan/sıralama · Havuz = para · Düello = kişisel meydan okuma
             <View style={{ marginTop: 6, flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "center" }}>
@@ -1066,7 +1068,7 @@ useEffect(() => {
                   vardı ve yorumu tam bu akışı kapatmak için yazılmıştı.
                   ÖLÇÜLDÜ (2026-09-11, gerçek fikstür verisi + gerçek mac-denge):
                   gelecek 18 TR40 maçının 4'ü düelloya kapalı. */}
-              {duelloKapali ? (
+              {!ozellik.duello ? null : duelloKapali ? (
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0f172a", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7, opacity: 0.45 }}
                 >
@@ -1086,6 +1088,7 @@ useEffect(() => {
               </TouchableOpacity>
               )}
 
+              {ozellik.havuz ? (
               <TouchableOpacity
                 onPress={() => router.push({
                   pathname: "/pool/[fixtureId]",
@@ -1096,6 +1099,7 @@ useEffect(() => {
                 <Text style={{ fontSize: 14 }}>💰</Text>
                 <Text style={{ color: "#f59e0b", fontWeight: "700", fontSize: 12 }}>{t("poolLbl")}</Text>
               </TouchableOpacity>
+              ) : null}
             </View>
           ) : null}
         </View>

@@ -46,3 +46,8 @@ export function kartSec(tohum: string | null | undefined, uzunluk: number): numb
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return h % uzunluk;
 }
+
+/** Çıkış sürümünde gizli özelliğin kartı basılmaz (bkz. lib/ozellikler.ts). */
+export function gorunurKartlar(duelloAcik: boolean): Kart[] {
+  return KARTLAR.filter((k) => k.anahtar !== "duello" || duelloAcik);
+}

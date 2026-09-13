@@ -35,6 +35,7 @@ import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { t, useLang } from "../../lib/i18n";
+import { useOzellikler } from "../../hooks/useOzellikler";
 import { fiksturSaatEtiketi } from "../../lib/macSaati";
 import { ulkeAdi, ligEtiketi, ligSiraAnahtari } from "../../lib/ulkeler";
 const t2 = t; // turnuva map(t) golgelemesi icin takma ad
@@ -400,7 +401,8 @@ type ItemProps = {
   mode: Mode;
   onPredict: (fx: Fx) => void;
   onRace: (fx: Fx) => void;
-  onDuel: (fx: Fx) => void;
+  /** Düello kapalıyken (çıkış sürümü) VERİLMEZ — düğme hiç çizilmez. */
+  onDuel?: (fx: Fx) => void;
   hasPred: boolean | null | undefined;
   adminMode: boolean;
   selected: boolean;
@@ -608,7 +610,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
               {/* Tek taraflı maçta düello düğmesi BAŞTAN kapalı: eskiden
                   tıklanıyor, ekran açılıyor, kurma anında MATCH_TOO_LOPSIDED
                   yeniyordu. Kapalı kapının düğmesi kapalı görünmeli. */}
-              {item.duelloAcik === false ? (
+              {!onDuel ? null : item.duelloAcik === false ? (
                 <View
                   style={{
                     paddingHorizontal: 12,
@@ -626,7 +628,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
                 </View>
               ) : (
                 <TouchableOpacity
-                  onPress={() => onDuel(item)}
+                  onPress={() => onDuel?.(item)}
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 8,
@@ -693,6 +695,7 @@ export default function LiveScreen() {
    * ekran ona bağlanmazsa dil değişimi yeniden çizim tetiklemez ve kullanıcı
    * "kaydedildi" uyarısını alıp aynı dili görmeye devam eder. */
   useLang();
+  const ozellik = useOzellikler(); // düello çıkış sürümünde gizli
   const router = useRouter();
   const { userId: qUserId, admin: qAdmin, tab: qTab, ts: qTs } = useLocalSearchParams<{ userId?: string; admin?: string; tab?: string; ts?: string }>();
   const { isAnonymous, linkWithGoogle } = useAuth();
@@ -1661,7 +1664,7 @@ export default function LiveScreen() {
               mode={mode}
               onPredict={goPredict}
               onRace={goRace}
-              onDuel={goDuel}
+              onDuel={ozellik.duello ? goDuel : undefined}
               hasPred={hasPred}
               adminMode={adminMode}
               selected={adminMode && !!selectedFid && fid === selectedFid}

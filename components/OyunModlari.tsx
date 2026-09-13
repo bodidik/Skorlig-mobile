@@ -34,6 +34,8 @@ import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import { t, useLang } from "../lib/i18n";
+import { modAcikMi } from "../lib/ozellikler";
+import { useOzellikler } from "../hooks/useOzellikler";
 import Basinc from "./Basinc";
 import GradyanZemin from "./GradyanZemin";
 
@@ -85,6 +87,7 @@ export default function OyunModlari({
 }: OyunModlariProps) {
   useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
+  const ozellik = useOzellikler();
 
   const bedelMetni = (n?: number | null) =>
     typeof n === "number" && n > 0 ? `${n} LC` : null;
@@ -108,6 +111,9 @@ export default function OyunModlari({
    *
    * ⚠️ KALDIRILMADILAR, YALNIZCA GERİYE ALINDILAR. Erişilebilir kalıyorlar;
    * amaç ilk izlenimi değiştirmek, özelliği kısmak değil.
+   *
+   * ⚠️ 13 EYLÜL 2026: ÇIKIŞ SÜRÜMÜNDE İKİSİ DE GİZLİ (IARC "simüle edilmiş şans
+   * oyunu" kararı). Kartlar sunucu bayrağına bağlı: `modAcikMi`.
    */
   const modlar: Mod[] = [
     {
@@ -169,6 +175,7 @@ export default function OyunModlari({
       bas: () => onMod?.("open"),
     },
   ];
+  const gorunenModlar = modlar.filter((m) => modAcikMi(m.key, ozellik));
 
   return (
     <View style={{ marginBottom: 14 }}>
@@ -180,7 +187,8 @@ export default function OyunModlari({
         {t("whatToPlay")}
       </Text>
       <Text style={{ color: ACIKLAMA_RENGI, fontSize: 11.5, marginTop: 2, marginBottom: 10 }}>
-        {t("sixModes")}
+        {/* Sayı SAYILIYOR: gizli modlar varken "Altı mod" yazan sabit metin yalan olurdu. */}
+        {t("modesCount", { n: gorunenModlar.length })}
       </Text>
 
       <ScrollView
@@ -188,7 +196,7 @@ export default function OyunModlari({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ gap: 10, paddingRight: 8 }}
       >
-        {modlar.map((m) => (
+        {gorunenModlar.map((m) => (
           <Basinc
             key={m.key}
             onPress={m.bas}

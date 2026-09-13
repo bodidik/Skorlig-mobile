@@ -116,6 +116,9 @@ const SOZLUK: Record<string, string> = {
   INVALID_TOKEN: "Oturumun geçersiz olmuş. Çıkıp tekrar giriş yapman gerekiyor.",
   USER_BANNED: "Bu hesap askıya alınmış.",
   USER_REQUIRED: "Bu işlem için giriş yapman gerekiyor.",
+  /* Çıkış sürümünde düello ve havuz kapalı (api/lib/ozellikler.cjs). Eski bir
+   * sürümden ya da açık kalmış bir ekrandan istek gelirse görünen metin. */
+  FEATURE_DISABLED: "Bu bölüm şu an kapalı.",
   USER_ID_REQUIRED: "Bu işlem için giriş yapman gerekiyor.",
   BAD_USERID: "Kullanıcı bilgisi okunamadı. Çıkıp tekrar giriş yapmayı dene.",
   WRONG_CODE: "Kod yanlış.",

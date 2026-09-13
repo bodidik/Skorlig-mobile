@@ -9,6 +9,8 @@ import { getApiBase, resetApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { ligEtiketi } from "../../lib/ulkeler";
 import { t, useLang } from "../../lib/i18n";
+import { useOzellikler } from "../../hooks/useOzellikler";
+import OzellikKapali from "../../components/OzellikKapali";
 import { macSaatiEtiketi } from "../../lib/macSaati";
 import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
@@ -346,7 +348,7 @@ function MatchCard({ match, userId, myName, lcBalance, onAccepted, onError, onOp
 
 const POLL_MS = 15_000;
 
-export default function ArenaScreen() {
+function ArenaIcerik() {
   useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
   const userId = useUserId();
@@ -532,4 +534,12 @@ export default function ArenaScreen() {
       </ScrollView>
     </View>
   );
+}
+
+/* Çıkış sürümünde KAPALI (IARC kararı, bkz. lib/ozellikler.ts). Sekme ve
+ * düğmeler gizli ama bildirim ya da eski bağlantı bu ekranı yine açabilir. */
+export default function ArenaScreen() {
+  const ozellik = useOzellikler();
+  if (!ozellik.duello) return <OzellikKapali />;
+  return <ArenaIcerik />;
 }
