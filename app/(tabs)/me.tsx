@@ -2054,6 +2054,28 @@ export default function Me() {
           </>)}
         </View>
 
+        {/* ── Nasıl oynanır ──
+         * ⚠️ KALICI KAPI. Giriş slaytları `isFirstRun()` ile ömürde BİR kez
+         * çıkıyor, canlı sekmesindeki şerit de 20 açılışta susuyor. Kuralları
+         * sonradan arayan kişinin gideceği tek yer burası — şerit sustuktan
+         * sonra kapı kalmasaydı sayfa yazılmış ama ulaşılmaz olurdu. */}
+        <TouchableOpacity
+          onPress={() => nav.push("/nasil-oynanir" as any)}
+          accessibilityRole="button"
+          accessibilityLabel={t("howOpen")}
+          style={{
+            backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1,
+            borderColor: Colors.border, padding: 14,
+            flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Text style={{ fontSize: 20 }}>📘</Text>
+            <Text style={{ fontWeight: "800", fontSize: 14, color: Colors.slate900 }}>{t("howTitle")}</Text>
+          </View>
+          <Text style={{ color: Colors.muted, fontSize: 18 }}>›</Text>
+        </TouchableOpacity>
+
         {/* ── Duyurular ── */}
         <TouchableOpacity
           onPress={() => { setUnreadAnnouncements(0); nav.push("/announcements" as any); }}

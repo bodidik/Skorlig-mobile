@@ -23,6 +23,7 @@ import TournamentCreate from "../../components/TournamentCreate";
 import TournamentJoin from "../../components/TournamentJoin";
 import Picks1987 from "../../components/Picks1987";
 import GuestBanner from "../../components/GuestBanner";
+import NasilOynanirSeridi from "../../components/NasilOynanirSeridi";
 import DailyMatchCard from "../../components/DailyMatchCard";
 import KuponKarti from "../../components/KuponKarti";
 import SkorMerkezi from "../../components/SkorMerkezi";
@@ -1637,6 +1638,12 @@ export default function LiveScreen() {
             )}
             {/* ===== MİSAFİR ŞERTI ===== */}
             <GuestBanner />
+
+            {/* Kuralları bulma kapısı — ilk 20 açılışta görünür, sonra susar
+                (kullanıcı kararı 2026-09-13). Giriş slaytları ömürde bir kez
+                çıkıyor; hızlı geçen kişi kuralları bir daha bulamıyordu.
+                Kalıcı adres `/nasil-oynanir`; bu yalnızca ona giden kapı. */}
+            <NasilOynanirSeridi />
 
             {/* ===== OYUN MODLARI — İLK İÇERİK BLOĞU =====
                 ⚠️ SIRA DEĞİŞTİ (2026-08-31, kullanıcı bildirimi): "Ne oynamak
