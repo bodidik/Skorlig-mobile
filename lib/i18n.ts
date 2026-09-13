@@ -2242,6 +2242,7 @@ const strings = {
     predDist:         "PREDICTION DISTRIBUTION",
     distNote:         "The distribution shows predictions; pool money comes only from real players.",
     premiumSubTitle:  "Premium Subscription",
+    premiumSoon:      "Premium membership is not on sale yet.",
     subscribeBtn:     "Subscribe",
     premiumActiveMsg: "Premium active! 🌟\nEnds: {d}",
     subFailed:        "Subscription failed.",
