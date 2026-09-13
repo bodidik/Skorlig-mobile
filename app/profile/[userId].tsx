@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
+  Modal,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors, { on } from "../../constants/colors";
@@ -101,6 +103,38 @@ export default function ProfileUserScreen() {
   const [lcBalance, setLcBalance] = useState<number | null>(null);
   const [totalsMatches, setTotalsMatches] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Kullanıcı bildirme (Play kullanıcı içeriği politikası; bkz. api/routes/sikayet.cjs).
+  const [bildirAcik, setBildirAcik] = useState(false);
+  const [bildiriliyor, setBildiriliyor] = useState(false);
+
+  /* Sebep anahtarları sunucunun KAPALI listesiyle birebir aynı olmalı
+   * (api/routes/sikayet.cjs SEBEPLER) — tests/kullaniciBildirme sınıyor. */
+  const BILDIRIM_SEBEPLERI = [
+    { sebep: "uygunsuz_ad", etiket: t("reportReasonName") },
+    { sebep: "taciz", etiket: t("reportReasonAbuse") },
+    { sebep: "spam_hile", etiket: t("reportReasonCheat") },
+    { sebep: "diger", etiket: t("reportReasonOther") },
+  ];
+
+  async function bildir(sebep: string) {
+    if (bildiriliyor) return;
+    setBildiriliyor(true);
+    try {
+      const r = await apiFetch("/api/sikayet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: userId, sebep, baglam: "profil" }),
+      });
+      const j = await r.json().catch(() => null);
+      setBildirAcik(false);
+      if (j?.ok) Alert.alert("SkorLig", t("reportSent"));
+      else Alert.alert(t("error"), hataMesaji(j?.error));
+    } catch (e: any) {
+      Alert.alert(t("error"), hataMesaji(e));
+    } finally {
+      setBildiriliyor(false);
+    }
+  }
 
   async function load() {
     const uid = userId.trim();
@@ -193,7 +227,39 @@ export default function ProfileUserScreen() {
           <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("back")}</Text>
         </TouchableOpacity>
         <Text style={{ flex: 1, fontSize: 17, fontWeight: "800", color: Colors.slate900 }}>Profil</Text>
+        {/* Yalnız BAŞKASININ profilinde ve oturum açıkken. */}
+        {!isOwn && ownUserId && userId ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => setBildirAcik(true)}
+            style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: "#7f1d1d" }}
+          >
+            <Text style={{ color: "#b91c1c", fontSize: 13, fontWeight: "700" }}>{t("reportUser")}</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
+
+      <Modal visible={bildirAcik} transparent animationType="fade" onRequestClose={() => setBildirAcik(false)}>
+        <View style={{ flex: 1, backgroundColor: "#000000aa", justifyContent: "center", padding: 24 }}>
+          <View style={{ backgroundColor: "#0f172a", borderRadius: 16, padding: 18, gap: 10, borderWidth: 1, borderColor: "#1e293b" }}>
+            <Text accessibilityRole="header" style={{ color: "#f1f5f9", fontSize: 16, fontWeight: "800", marginBottom: 4 }}>{t("reportTitle")}</Text>
+            {BILDIRIM_SEBEPLERI.map((s) => (
+              <TouchableOpacity
+                key={s.sebep}
+                accessibilityRole="button"
+                disabled={bildiriliyor}
+                onPress={() => bildir(s.sebep)}
+                style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: "#334155", opacity: bildiriliyor ? 0.5 : 1 }}
+              >
+                <Text style={{ color: "#e2e8f0", fontSize: 14, fontWeight: "700" }}>{s.etiket}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity accessibilityRole="button" onPress={() => setBildirAcik(false)} style={{ minHeight: 44, justifyContent: "center", alignItems: "center" }}>
+              <Text style={{ color: "#cbd5e1", fontSize: 14, fontWeight: "700" }}>{t("dismiss")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {loading && !profile ? (
         <View style={{ paddingVertical: 40, alignItems: "center" }}>
