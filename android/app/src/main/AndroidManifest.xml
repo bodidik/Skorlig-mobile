@@ -1,17 +1,49 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-  <uses-permission android:name="android.permission.CAMERA"/>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-  <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
-  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
-  <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
-  <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"/>
-  <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
-  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+  <!--
+    KULLANILMAYAN IZINLER SOKULUYOR (13 Eylul 2026, Play Store cikisi).
+
+    versionCode 33 paketinde kamera, mikrofon ve fotograf/video/ses okuma
+    izinleri vardi; uygulama kodunda HICBIRI kullanilmiyor. Kaynaklari:
+    bu dosyanin kendisi (ilk prebuild'den kalma) ve kurulu ama hic ice
+    aktarilmayan kutuphanelerin manifestleri (expo-camera, expo-media-library,
+    expo-file-system). expo-audio yalnizca gol sesini CALIYOR; kayit ve kilit
+    ekrani servisi kullanilmiyor (setActiveForLockScreen cagrisi yok).
+
+    Play bu izinleri ayri politika formlariyla sorguluyor (fotograf/video
+    izinleri beyani, on plan servisi turu beyani) ve veri guvenligi formu
+    kamera/mikrofon/medya erisimini acikliyor olmali. Kullanilmayan izin
+    icin bu formlara yazilacak dogru bir cevap yok.
+
+    Silmek YETMEZ: kutuphane manifestleri birlesmede izni geri ekler.
+    tools:node="remove" birlesmis manifestten cikarir.
+
+    ONEMLI: bu klasor depoya islenmis oldugu icin EAS app.json'daki
+    android.permissions / blockedPermissions alanlarini UYGULAMAZ.
+    Izin degisikligi burada yapilir. Dogrulama: derlenen .aab uzerinde
+    scripts/aab-izinleri.cjs
+  -->
+  <uses-permission android:name="android.permission.CAMERA" tools:node="remove"/>
+  <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove"/>
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove"/>
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove"/>
+  <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" tools:node="remove"/>
+  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove"/>
+  <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove"/>
+  <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" tools:node="remove"/>
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" tools:node="remove"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" tools:node="remove"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" tools:node="remove"/>
+  <!-- Bugun hicbir kutuphane istemiyor; veri guvenligi formundaki "konum ve
+       kisiler toplanmiyor" cevabi bir bagimlilik eklenince sessizce yalana
+       donmesin diye burada da sokuluyor. -->
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="remove"/>
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" tools:node="remove"/>
+  <uses-permission android:name="android.permission.READ_CONTACTS" tools:node="remove"/>
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -37,5 +69,11 @@
         <data android:scheme="skorlig"/>
       </intent-filter>
     </activity>
+    <!-- expo-audio on plan servisleri: kilit ekrani kontrolu ve arka planda
+         kayit. Ikisi de kullanilmiyor ve izinleri yukarida sokuldu; servis
+         tanimi kalirsa disaridan (medya oturumu istemcisi) baslatilip izinsiz
+         on plan servisi olarak cokebilir. -->
+    <service android:name="expo.modules.audio.service.AudioControlsService" tools:node="remove"/>
+    <service android:name="expo.modules.audio.service.AudioRecordingService" tools:node="remove"/>
   </application>
 </manifest>
