@@ -33,27 +33,7 @@
     },
     "extra": {
       "apiBase": "https://158.180.49.98.sslip.io",
-      "defaultCompetitionId": "COMP_GLOBAL_2025",
       "adminUserIds": "demo1,xXhSFvM1SFYN3kUYAdMGRaUkPp53",
-      "features": {
-        "enableCoupons": false,
-        "showProfile": true,
-        "mode": "GS_ONLY",
-        "showLeaderboard": false
-      },
-      "scoring": {
-        "K_outcome": 10,
-        "useProbabilityEngine": false,
-        "startBalance": 500,
-        "epsilon": 0.05
-      },
-      "apiFootball": {
-        "base": "https://v3.football.api-sports.io",
-        "key": ""
-      },
-      "appTeam": {
-        "name": "Galatasaray"
-      },
       "router": {},
       "eas": {
         "projectId": "1c06a877-40a7-4bb8-a3da-454d54ce5617"
