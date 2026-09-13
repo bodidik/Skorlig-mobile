@@ -626,6 +626,13 @@ const strings = {
     penLower:         "⚪ penaltı",
     inRaceLbl:        "🏃 Yarışta",
     eliminationHelp:  "Gerçek skor tahmini aştığında elenirsin. Yakın tahminler üstte sıralanır.",
+    /* YARIŞ PODYUMU — maç ekranının kahramanı (kullanıcı isteği 2026-09-13).
+     * ⚠️ `raceOrderHint` ŞART: sıra puana değil skor mesafesine göre
+     * (sunucu: inRace → distance → points). Anahtarı yazmayan bir tablo
+     * keyfî görünür — aynı kusur `rating`/`ratingRaw` ile ölçülmüştü. */
+    raceBoardTitle:   "Yarış",
+    raceStillIn:      "hâlâ yarışta",
+    raceOrderHint:    "Sıra, skoru en yakın tahmin edene göre. Aynı yakınlıkta puan ayırır.",
     currentRank:      "Anlık sıran: {r}. / {n}",
     myPredScore:      "Tahminin: {h}-{a}",
     distanceSuffix:   " · Uzaklık: {d}",
@@ -2114,6 +2121,9 @@ const strings = {
     penLower:         "⚪ penalty",
     inRaceLbl:        "🏃 In the race",
     eliminationHelp:  "You're eliminated when the real score passes your prediction. Closer predictions rank higher.",
+    raceBoardTitle:   "The race",
+    raceStillIn:      "still in the race",
+    raceOrderHint:    "Ranked by who is closest to the score. Points break ties.",
     currentRank:      "Your rank now: {r} / {n}",
     myPredScore:      "Your prediction: {h}-{a}",
     distanceSuffix:   " · Distance: {d}",

@@ -23,6 +23,8 @@ import ReactionBar from "../../components/ReactionBar";
 import TanitimSeridi from "../../components/TanitimSeridi";
 import GolAni from "../../components/GolAni";
 import SiralamaCipi from "../../components/SiralamaCipi";
+import YarisPodyumu from "../../components/YarisPodyumu";
+import { siraHaritasi, siraFarklari, type SiraHaritasi } from "../../lib/yarisHareketi";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -163,20 +165,21 @@ export default function MatchRaceScreen() {
    * Her poll'da top listesinin sıraları bir öncekiyle kıyaslanır; değişenler
    * satırda ▲/▼ çipiyle oynar (bkz. components/SiralamaCipi). İlk yüklemede
    * önceki yok → çip yok (ekran açılışında yapay hareket olmasın). */
-  const oncekiSiralar = useRef<Map<string, number> | null>(null);
+  /* ⚠️ HESAP BURADAN `lib/yarisHareketi.ts`E TAŞINDI (2026-09-13). Kural
+   * bu `useEffect`in gövdesindeydi ve ÖLÇÜLEMİYORDU: ekranı Node altında
+   * yükleyemiyoruz. Oysa bu ekranın en kırılgan yeri burası — yanlış
+   * hesaplanan bir "▲3" kullanıcıya OLMAYAN bir yükseliş gösterir.
+   * Taşındıktan sonra iki davranış daha nöbete girdi: yanıta yeni giren
+   * satır "yükseldi" sayılmıyor, listeden düşen için de iddia üretilmiyor
+   * (uç yalnızca ilk N'i gönderiyor, 51'e kayanı ölçmedik). */
+  const oncekiSiralar = useRef<SiraHaritasi | null>(null);
   const [sicramalar, setSicramalar] = useState<Record<string, number>>({});
   React.useEffect(() => {
     const top = (data?.ok && data.top) || [];
     if (!top.length) return;
-    const yeni = new Map(top.map((r) => [r.userId.toLowerCase(), r.rank]));
-    const eski = oncekiSiralar.current;
+    const yeni = siraHaritasi(top);
+    const d = siraFarklari(oncekiSiralar.current, yeni);
     oncekiSiralar.current = yeni;
-    if (!eski) return;
-    const d: Record<string, number> = {};
-    for (const [uid, sira] of yeni) {
-      const o = eski.get(uid);
-      if (o != null && o !== sira) d[uid] = o - sira; // pozitif = yükseldi
-    }
     if (Object.keys(d).length) setSicramalar(d);
   }, [data]);
 
@@ -467,30 +470,28 @@ export default function MatchRaceScreen() {
               </View>
             </View>
 
-            <View
-              style={{
-                padding: 12, borderRadius: 12, backgroundColor: "#0f172a",
-                borderWidth: 1, borderColor: Colors.border, gap: 6,
-              }}
-            >
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ fontWeight: "700", fontSize: 13, color: "#e2e8f0" }}>{t("inRaceLbl")}</Text>
-                <Text style={{ fontWeight: "900", fontSize: 13, color: "#059669" }}>
-                  {data.inRaceCount} / {data.totalPlayers}
-                </Text>
-              </View>
-              <View style={{ height: 8, borderRadius: 999, backgroundColor: "#1e293b", overflow: "hidden" }}>
-                <View
-                  style={{
-                    height: 8, borderRadius: 999, backgroundColor: "#22c55e",
-                    width: `${data.totalPlayers ? Math.round(((data.inRaceCount || 0) / data.totalPlayers) * 100) : 0}%`,
-                  }}
-                />
-              </View>
-              <Text style={{ color: Colors.muted, fontSize: 10 }}>
-                {t("eliminationHelp")}
-              </Text>
-            </View>
+            {/* ===== YARIŞ PODYUMU =====
+                ⚠️ ESKİ "yarışta N/M" ÇUBUĞUNUN YERİNDE, onu İÇİNE ALARAK.
+                İkisini yan yana bırakmak aynı sayıyı ekranda iki kez
+                yazdırırdı — bu depoda "iki gerçeklik" sınıfı.
+
+                ⚠️ NEDEN BURADA: kullanıcı yarışın "daha göze çarpan" olmasını
+                istedi. Tam liste 5. blokta ve tanıtım şeridinin altında;
+                oradaki sıra gerekçesiyle yazılmış (tepki çubuğu maçın en
+                hareketli anında ekran dışında kalmasın). O kararı bozmak
+                yerine yarışın ÖZETİNİ skorun hemen altına aldık: ilk üç +
+                kalan sayacı. Tam liste yerinde duruyor. */}
+            <YarisPodyumu
+              satirlar={data.top || []}
+              yaristaKalan={data.inRaceCount || 0}
+              toplam={data.totalPlayers || 0}
+              benimKimligim={userId}
+              canli={isLive}
+            />
+
+            <Text style={{ color: Colors.muted, fontSize: 10, marginTop: -4 }}>
+              {t("eliminationHelp")}
+            </Text>
 
             {data.me ? (
               <View
