@@ -24,6 +24,8 @@ import TournamentJoin from "../../components/TournamentJoin";
 import Picks1987 from "../../components/Picks1987";
 import GuestBanner from "../../components/GuestBanner";
 import NasilOynanirSeridi from "../../components/NasilOynanirSeridi";
+import { suz, oneriler } from "../../lib/aramaSuzgeci";
+import AramaKutusu from "../../components/AramaKutusu";
 import DailyMatchCard from "../../components/DailyMatchCard";
 import KuponKarti from "../../components/KuponKarti";
 import SkorMerkezi from "../../components/SkorMerkezi";
@@ -758,6 +760,32 @@ export default function LiveScreen() {
     return kopya;
   }, [items, siralama]);
 
+  /* ARAMA — takım adına göre yerel süzme.
+   *
+   * ⚠️ YEREL SÜZME BURADA YETERLİ, ÇÜNKÜ LİSTE TAM. Bu ekran pencerenin
+   * TAMAMINI yüklüyor (ölçüldü 2026-09-13: /api/live2/schedule 26 maç,
+   * /api/live2/open 8) — sayfalama yok, yani "yüklü listede yok ama
+   * sunucuda var" durumu oluşamıyor. Sıralama ekranında durum farklı ve
+   * orada sunucuya da gidiliyor.
+   *
+   * ⚠️ SÜZGEÇ SIRALAMANIN ÜSTÜNE BİNİYOR, YERİNE GEÇMİYOR: `gorunenListe`
+   * zaten kullanıcının seçtiği düzende; `suz` eşit skorda girdi sırasını
+   * koruyor, yani saat/lig düzeni arama sırasında bozulmuyor. */
+  const [arama, setArama] = useState("");
+  const aramaSonucu = useMemo(
+    () => suz(gorunenListe, arama, (fx) => [fx.home, fx.away, fx.league, fx.country]),
+    [gorunenListe, arama]
+  );
+  const aramaOnerileri = useMemo(
+    () => oneriler(gorunenListe, arama, (fx) => [fx.home, fx.away]),
+    [gorunenListe, arama]
+  );
+  /* "kisa" durumunda listeyi BOŞALTMIYORUZ: kullanıcı iki harf yazmışken
+   * maçların kaybolması, aradığı şeyin olmadığı izlenimi verir. */
+  const suzulmusListe = aramaSonucu.durum === "sonuc" || aramaSonucu.durum === "bulunamadi"
+    ? aramaSonucu.items
+    : gorunenListe;
+
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -781,6 +809,35 @@ export default function LiveScreen() {
   const [settledMap, setSettledMap] = useState<Record<string, { points: number; detail: any }>>({});
   const [myPredsLoading, setMyPredsLoading] = useState(false);
   const [showOldPreds, setShowOldPreds] = useState(false);
+
+  /* TAHMİN LİSTESİ ARAMASI — AYRI TERİM, bilerek.
+   *
+   * ⚠️ TEK TERİM PAYLAŞILSAYDI kullanıcı maç listesinde "gala" arayıp
+   * "tahminlerim"e geçince orada da süzülmüş bir liste bulurdu ve kendi
+   * yazmadığı bir süzgeci aramak zorunda kalırdı. İki liste ayrı sorular
+   * soruyor: "hangi maça girsem" ile "ne tahmin etmiştim".
+   *
+   * ⚠️ GÜNCEL VE ESKİ AYNI TERİMLE süzülüyor — ikisi tek listenin iki yarısı;
+   * arama yalnızca birinde işleseydi kullanıcı eski tahminini bulamazdı. */
+  const [predArama, setPredArama] = useState("");
+  const predAlanlari = (mp: MyPredItem) => [mp.home, mp.away, mp.league];
+  const predSonucu = useMemo(
+    () => suz([...myPreds.current, ...myPreds.old], predArama, predAlanlari),
+    [myPreds, predArama]
+  );
+  const predOnerileri = useMemo(
+    () => oneriler([...myPreds.current, ...myPreds.old], predArama, (mp) => [mp.home, mp.away]),
+    [myPreds, predArama]
+  );
+  const predSuzuluyor = predSonucu.durum === "sonuc" || predSonucu.durum === "bulunamadi";
+  const suzulmusGuncel = useMemo(
+    () => (predSuzuluyor ? suz(myPreds.current, predArama, predAlanlari).items : myPreds.current),
+    [myPreds.current, predArama, predSuzuluyor]
+  );
+  const suzulmusEski = useMemo(
+    () => (predSuzuluyor ? suz(myPreds.old, predArama, predAlanlari).items : myPreds.old),
+    [myPreds.old, predArama, predSuzuluyor]
+  );
 
   const [myTournaments, setMyTournaments] = useState<MiniTournament[]>([]);
   const [myTournamentsLoading, setMyTournamentsLoading] = useState(false);
@@ -1555,7 +1612,7 @@ export default function LiveScreen() {
         ref={flatListRef}
         data={
           mode === "mine" || mode === "tournaments" || mode === "gs1987" ? []  // içerik ListHeaderComponent'te
-          : gorunenListe
+          : suzulmusListe
         }
         // ⚠️ `it.code` yedeği KALDIRILDI: ölü koddu. Turnuva/1987 modlarında
         // `data` zaten [] (içerik ListHeaderComponent'te), yani buraya hiçbir
@@ -1577,7 +1634,7 @@ export default function LiveScreen() {
           // YANILTICI olurdu: liste artık o sıraya göre dizili değil, aynı
           // başlık defalarca tekrar ederdi. Tarihe göre sıralamada başlık yok;
           // lige göre sıralamada başlık LİGİN KENDİSİ olur.
-          const oncekiItem = index > 0 ? gorunenListe[index - 1] : null;
+          const oncekiItem = index > 0 ? suzulmusListe[index - 1] : null;
           const grup = siralama === "onerilen" ? (item.priorityGroup || null) : null;
           const oncekiGrup = siralama === "onerilen" ? (oncekiItem?.priorityGroup || null) : null;
           const basligiGoster = !!grup && grup !== oncekiGrup;
@@ -1745,6 +1802,28 @@ export default function LiveScreen() {
             {/* ===== HIZLI OYNA ===== */}
             {mode === "open" && (
               <QuickPlaySection country={userCountry} userId={userId} />
+            )}
+
+            {/* ===== ARAMA =====
+                ⚠️ NEDEN SIRALAMA SEÇİCİNİN ÜSTÜNDE: ikisi aynı işin iki
+                yarısı — sıralama "nereye bakayım", arama "şunu bul" diyor.
+                Ayrı yerlere konulsaydı kullanıcı listeyi süzdükten sonra
+                sıralamayı değiştirmek için yukarı kaydırmak zorunda kalırdı.
+
+                ⚠️ KAPI LİSTE UZUNLUĞUNA BAĞLI, MODA DEĞİL: turnuva/1987
+                modlarında `data` zaten boş, kutu orada hiçbir şey süzmez ve
+                yalnızca yer kaplardı. */}
+            {gorunenListe.length > 1 && (
+              <AramaKutusu
+                deger={arama}
+                onDegisti={setArama}
+                durum={aramaSonucu.durum}
+                sayi={aramaSonucu.sayi}
+                oneriler={aramaOnerileri}
+                onOneri={setArama}
+                placeholder={t("searchTeams")}
+                etiket={t("searchTeams")}
+              />
             )}
 
             {/* ===== SIRALAMA SEÇİCİ =====
@@ -1949,6 +2028,24 @@ export default function LiveScreen() {
                     Burada ikinci bir "henüz tahmin yok" metni göstermek,
                     aşağıdaki kartla birlikte iki kez tekrar demekti. */}
 
+                {/* ARAMA — tahmin listesinde takıma göre.
+                    ⚠️ DÖKÜM ÖZETİNİN ÜSTÜNDE: özet HER ZAMAN tüm tahminleri
+                    sayıyor (süzgeçten bağımsız), yani arama yaparken bile
+                    "toplamda kaç tuttu" sorusu cevapsız kalmıyor. Özeti
+                    süzseydik iki sayı aynı ekranda çelişirdi. */}
+                {(myPreds.current.length + myPreds.old.length) > 1 && (
+                  <AramaKutusu
+                    deger={predArama}
+                    onDegisti={setPredArama}
+                    durum={predSonucu.durum}
+                    sayi={predSonucu.sayi}
+                    oneriler={predOnerileri}
+                    onOneri={setPredArama}
+                    placeholder={t("searchTeams")}
+                    etiket={t("searchTeams")}
+                  />
+                )}
+
                 {/* Döküm özeti: "tuttu mu tutmadı mı" sorusuna tek bakışta cevap.
                     Güncel + eski TÜM tahminleri sayar; sonuç skordan türetilir. */}
                 {(() => {
@@ -1979,7 +2076,7 @@ export default function LiveScreen() {
                   );
                 })()}
 
-                {myPreds.current.map((mp) => {
+                {suzulmusGuncel.map((mp) => {
                   const isFT = String(mp.status || "").toUpperCase() === "FT";
                   const isLive = ["1H","HT","2H","LIVE"].includes(String(mp.status || "").toUpperCase());
                   const chips = buildPredChips(mp.pred);
@@ -2060,7 +2157,7 @@ export default function LiveScreen() {
                       </Text>
                       <Text style={{ color: Colors.muted, fontSize: 11 }}>{showOldPreds ? "▲" : "▼"}</Text>
                     </TouchableOpacity>
-                    {showOldPreds && myPreds.old.map((mp) => {
+                    {showOldPreds && suzulmusEski.map((mp) => {
                       const settledOld = settledMap[String(mp.fixtureId)];
                       return (
                       <TouchableOpacity

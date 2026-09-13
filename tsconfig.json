@@ -4,7 +4,16 @@
      * içe aktarımlarında AÇIK `.ts` uzantısı istiyor; tsc bunu varsayılan
      * olarak reddediyor. Uygulama Metro ile derlendiği ve tsc yalnızca
      * `--noEmit` ile tip denetimi yaptığı için bayrak güvenli.
-     * Yalnızca tests/ altındaki dosyalar bu biçimi kullanıyor. */
+     *
+     * ⚠️ ARTIK YALNIZCA tests/ DEĞİL (2026-09-13): bir yaprak modül başka bir
+     * yaprağı içe aktarınca (lib/countrySort.ts → lib/metinNormal.ts) uzantısız
+     * biçim Node altında ÇÖZÜLMÜYOR ve o modülü sınayan test "Cannot find
+     * module" ile düşüyor. Yani uzantı, kodu sınanabilir tutmanın bedeli.
+     *
+     * METRO'NUN BU BİÇİMİ ÇÖZDÜĞÜ ÖLÇÜLDÜ, varsayılmadı: `expo export
+     * --platform android` temiz derledi; negatif kontrolde import kasten
+     * bozulunca "Unable to resolve module ./metinNormalYOK.ts" ile DÜŞTÜ —
+     * yani bundler bu yolu gerçekten çözüyor, sessizce atlamıyor. */
     "allowImportingTsExtensions": true
   },
   "extends": "expo/tsconfig.base"

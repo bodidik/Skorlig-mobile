@@ -14,6 +14,8 @@ import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { gorunenAd } from "../../lib/gorunenAd";
+import { suz, oneriler } from "../../lib/aramaSuzgeci";
+import AramaKutusu from "../../components/AramaKutusu";
 
 // ====================
 // Backend modelleri
@@ -144,13 +146,21 @@ export default function KingsScreen() {
   // ================================
   // Backend çağrıları
   // ================================
-  const loadTotals = useCallback(async () => {
+  /**
+   * @param sinir Kaç satır istenecek. Varsayılan 300 (aşağıdaki not).
+   *
+   * ⚠️ ARAMA İÇİN TAMAMI İSTENEBİLİR. Ölçüldü (2026-09-13): sunucuda 1701
+   * satır var, bu ekran 300'ünü yüklüyor — yani YEREL arama listenin
+   * %82'sini göremez. "Bulunamadı" demek orada YALAN olurdu; kullanıcıya
+   * tamamında aramayı teklif ediyoruz ve kabul ederse sınır kalkıyor.
+   */
+  const loadTotals = useCallback(async (sinir = 300) => {
     try {
       // ⚠️ Ekran zaten ilk 100'ü gösteriyor ("Daha fazla göster" ile açılıyor)
       // ama sunucu 1707 satırın hepsini yolluyordu (182 KB). `limit` sunucuda
       // SIRALADIKTAN sonra kesiyor, yani aşağıdaki sıra numaraları doğru kalır.
       // 300 seçildi: gösterilen 100'ün üstünde pay bırakır. Ölçüldü: 182 KB → 32 KB.
-      const res = await apiFetch(`/api/rt/totals?limit=300`);
+      const res = await apiFetch(`/api/rt/totals?limit=${sinir}`);
       const j: TotalsResponse = await res.json();
       if (!j?.ok || !Array.isArray(j.items)) {
         setRows([]);
@@ -356,6 +366,45 @@ export default function KingsScreen() {
 
     return rows;
   }, [rows, segment, profiles, profilesLoaded, myMainTeam]);
+
+  /* ARAMA — kullanıcı adına göre.
+   *
+   * ⚠️ YEREL SÜZME BURADA YETMİYOR ve bunu SÖYLÜYORUZ. Ölçüldü: sunucuda
+   * 1701 satır, ekran 300 yüklüyor. Aranan kişi 301. sıradaysa yerel süzgeç
+   * "bulunamadı" der ve bu YALAN olur — deponun kayıtlı "sessiz boşluk"
+   * sınıfı. Bulunamadığında tamamını çekmeyi TEKLİF ediyoruz; kendiliğinden
+   * çekmiyoruz çünkü tam liste 182 KB (ölçülmüş) ve her tuş vuruşunda
+   * indirmek kabul edilemez.
+   *
+   * ⚠️ ARANAN ALANLAR: görünen ad VE kimlik. Kullanıcı kimliği ekranda
+   * görünmüyor ama eski ekran görüntüsünden ya da destek kaydından
+   * kopyalayan biri onu yapıştırabilmeli — `friendSearch.ts` aynı kararı
+   * verdi, aynı gerekçeyle. */
+  const [arama, setArama] = useState("");
+  const [tamListeYuklendi, setTamListeYuklendi] = useState(false);
+  const [tamAramaBusy, setTamAramaBusy] = useState(false);
+
+  const aramaSonucu = useMemo(
+    /* Ekranın bastığı adı sür — kendi kopyanı yazma. */
+    () => suz(filteredRows, arama, (r) => [gorunenAd(r), r.userId]),
+    [filteredRows, arama]
+  );
+  const aramaOnerileri = useMemo(
+    () => oneriler(filteredRows, arama, (r) => [gorunenAd(r)]),
+    [filteredRows, arama]
+  );
+  const aramaSuzuyor = aramaSonucu.durum === "sonuc" || aramaSonucu.durum === "bulunamadi";
+  const gosterilenSatirlar = aramaSuzuyor ? aramaSonucu.items : filteredRows;
+
+  const tamListedeAra = useCallback(async () => {
+    setTamAramaBusy(true);
+    try {
+      await loadTotals(5000);
+      setTamListeYuklendi(true);
+    } finally {
+      setTamAramaBusy(false);
+    }
+  }, [loadTotals]);
 
   const myRowInSegment = useMemo(
     () =>
@@ -671,6 +720,44 @@ export default function KingsScreen() {
               </View>
             )}
 
+            {/* ARAMA — segment seçicinin altında, tablonun hemen üstünde. */}
+            {filteredRows.length > 1 && (
+              <AramaKutusu
+                deger={arama}
+                onDegisti={setArama}
+                durum={aramaSonucu.durum}
+                sayi={aramaSonucu.sayi}
+                oneriler={aramaOnerileri}
+                onOneri={setArama}
+                placeholder={t("searchPeople")}
+                etiket={t("searchPeople")}
+              />
+            )}
+
+            {/* ⚠️ "YÜKLÜ LİSTEDE YOK" — "YOK" DEĞİL. Bu satır olmasaydı arama
+                sunucudaki 1701 satırın 300'üne bakıp "bulunamadı" derdi.
+                Yalnızca küresel segmentte teklif ediliyor: takım ve 1987
+                segmentleri zaten profil listesiyle kesişiyor, orada eksik
+                olan satır değil üyelik verisi. */}
+            {aramaSonucu.durum === "bulunamadi" && segment === "global" && !tamListeYuklendi && (
+              <TouchableOpacity
+                onPress={tamListedeAra}
+                disabled={tamAramaBusy}
+                accessibilityRole="button"
+                style={{
+                  flexDirection: "row", alignItems: "center", gap: 8,
+                  backgroundColor: "#1e293b", borderRadius: 10, borderWidth: 1,
+                  borderColor: Colors.border, paddingHorizontal: 12, paddingVertical: 10,
+                  marginBottom: 10, opacity: tamAramaBusy ? 0.6 : 1,
+                }}
+              >
+                {tamAramaBusy && <ActivityIndicator size="small" color={Colors.accent} />}
+                <Text style={{ color: "#cbd5e1", fontSize: 12, flex: 1 }}>
+                  {t("searchBeyondPage")}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             {/* Tablo içi satırlar */}
             {filteredRows.length === 0 ? (
               <Text style={{ color: Colors.muted, fontSize: 12, marginTop: 4 }}>
@@ -678,7 +765,7 @@ export default function KingsScreen() {
               </Text>
             ) : (
               <View style={{ marginTop: 4 }}>
-                {filteredRows.slice(0, gosterilecek).map((row) => {
+                {gosterilenSatirlar.slice(0, gosterilecek).map((row) => {
                   const isMe =
                     row.userId.trim().toLowerCase() === userId.toLowerCase();
 
@@ -766,7 +853,7 @@ export default function KingsScreen() {
 
                 {/* Kalan satırlar isteğe bağlı: hepsini birden çizmek arayüzü
                     donduruyordu (bkz. `gosterilecek`). */}
-                {filteredRows.length > gosterilecek && (
+                {gosterilenSatirlar.length > gosterilecek && (
                   <TouchableOpacity
                     onPress={() => setGosterilecek((n) => n + 100)}
                     style={{
@@ -775,7 +862,7 @@ export default function KingsScreen() {
                     }}
                   >
                     <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12.5 }}>
-                      {t("showMore", { n: filteredRows.length - gosterilecek })}
+                      {t("showMore", { n: gosterilenSatirlar.length - gosterilecek })}
                     </Text>
                   </TouchableOpacity>
                 )}

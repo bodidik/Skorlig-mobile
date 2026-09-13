@@ -184,6 +184,20 @@ const strings = {
     howNumbersFail:   "Güncel rakamlar sunucudan okunamadı — aşağıdaki kurallar geçerli, yalnızca sayılar gösterilemiyor.",
     howOpen:          "Nasıl oynanır",
     howStripText:     "İlk kez mi? Kuralları bir dakikada oku →",
+
+    /* ARAMA — üç yüzey ortak (canlı · tahmin · sıralama).
+     * ⚠️ "kisa" ile "bulunamadi" AYRI cümleler: ikisini birleştirmek iki
+     * harf yazmış kullanıcıya "yok" demek olurdu. Eşik sayısı metne GÖMÜLÜ
+     * DEĞİL, `EN_AZ_HARF`ten geliyor. */
+    searchPlaceholder:"Takım veya kullanıcı ara",
+    searchTeams:      "Takım ara",
+    searchPeople:     "Takım veya kullanıcı ara",
+    searchMinChars:   "Aramak için en az {n} harf yaz",
+    searchNoResult:   "Eşleşen bir şey bulunamadı",
+    searchCount:      "{n} sonuç",
+    searchClear:      "Aramayı temizle",
+    searchBeyondPage: "Yüklü listede yok. Tamamında aramak için dokun.",
+    searchServerFail: "Aramada sunucuya ulaşılamadı — yalnızca yüklü liste süzüldü.",
     howStripHide:     "Gösterme",
     golBang:          "GOL!",
     feelPref:         "Ses ve Titreşim",
@@ -1678,6 +1692,16 @@ const strings = {
     howNumbersFail:   "Could not read current numbers from the server — the rules below still apply, only the figures are missing.",
     howOpen:          "How to play",
     howStripText:     "New here? Read the rules in a minute →",
+
+    searchPlaceholder:"Search team or user",
+    searchTeams:      "Search team",
+    searchPeople:     "Search team or user",
+    searchMinChars:   "Type at least {n} letters to search",
+    searchNoResult:   "Nothing matched",
+    searchCount:      "{n} results",
+    searchClear:      "Clear search",
+    searchBeyondPage: "Not in the loaded list. Tap to search all of it.",
+    searchServerFail: "Could not reach the server — only the loaded list was filtered.",
     howStripHide:     "Hide",
     golBang:          "GOAL!",
     feelPref:         "Sound and Vibration",

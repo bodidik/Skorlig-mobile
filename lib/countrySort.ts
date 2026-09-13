@@ -17,6 +17,8 @@
  * kendi tipiyle geçirir, biz sadece sırayı belirleriz.
  */
 
+import { trNormal, trKarsilastir } from "./metinNormal.ts";
+
 /**
  * Liste alan adı sabit değil: onboarding {country}, profil {localName} kullanıyor.
  * Getter parametresiyle ikisine de aynı fonksiyondan hizmet veriliyor —
@@ -30,30 +32,13 @@ const TR_ADLARI = new Set([
 ]);
 
 /**
- * Türkçe harfleri ASCII karşılığına indirger.
- *
- * NEDEN ŞART (gerçek veriyle yakalandı): Ülke adı "Türkiye" ve kullanıcı
- * klavyeden en doğal haliyle "tur" yazıyor. `ü !== u` olduğu için baştan
- * eşleşme tutmuyordu ve Türk kullanıcı KENDİ ülkesini arayınca "sonuç yok"
- * görüyordu — hem de listenin en tepesinde dururken.
- *
- * Sıralama tarafında gerek yok (`localeCompare` sensitivity:"base" zaten
- * aksanı yok sayar); sorun yalnızca startsWith/includes karşılaştırmasında.
+ * ⚠️ NORMALLEŞTİRİCİ BURADAN TAŞINDI (2026-09-13): takım ve kullanıcı araması
+ * aynı katlamayı istiyor, ikinci kopya "iki gerçeklik" olurdu. Gerekçesi
+ * (Türk kullanıcı "tur" yazınca kendi ülkesini bulamıyordu) lib/metinNormal.ts
+ * başlığında duruyor.
  */
-const ASCIILESTIR: Record<string, string> = {
-  ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u",
-  â: "a", î: "i", û: "u",
-};
-
-const norm = (s: string) =>
-  (s || "")
-    .trim()
-    .toLocaleLowerCase("tr")
-    .replace(/[çğıöşüâîû]/g, (h) => ASCIILESTIR[h] || h);
-
-function trCmp(a: string, b: string): number {
-  return (a || "").localeCompare(b || "", "tr", { sensitivity: "base" });
-}
+const norm = trNormal;
+const trCmp = trKarsilastir;
 
 /** Türkiye başta + tr-alfabetik. */
 export function sortCountries<T>(list: T[], getName: Getter<T>): T[] {

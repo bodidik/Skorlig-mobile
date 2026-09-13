@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,8 @@ import Colors from "../../constants/colors";
 import { useRuntimeConfig } from "../../lib/runtimeConfig";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { suz, oneriler } from "../../lib/aramaSuzgeci";
+import AramaKutusu from "../../components/AramaKutusu";
 import { hasAdminToken, withAdminHeaders } from "../../lib/adminToken";
 import { t, useLang } from "../../lib/i18n";
 import { ulkeAdi } from "../../lib/ulkeler";
@@ -26,6 +28,15 @@ const DEFAULT_COMPETITION_ID = process.env.EXPO_PUBLIC_DEFAULT_COMPETITION_ID ||
 
 type TotRow = {
   userId: string;
+  /**
+   * ⚠️ EKRANDA GÖSTERİLEN AD. Sunucu (`lib/ad-cozucu.cjs`) bunu HER sıralama
+   * satırına ekliyor ama bu dosyanın eşlemesi kopyalamıyordu — yani
+   * `gorunenAd()` sessizce `userId` yedeğine düşüyor ve tablo insan
+   * kullanıcıların 28 karakterlik Firebase kimliğini basıyordu. Tam olarak
+   * `lib/gorunenAd.ts` başlığındaki kullanıcı bildirimi. Bot kimlikleri zaten
+   * ad gibi göründüğü için ("Eden49") kusur canlıda fark edilmiyordu.
+   */
+  displayName?: string | null;
   totalPoints: number;
   totalPenalty: number;
   matches: number;
@@ -396,6 +407,8 @@ export default function StatsScreen() {
           const penalties = Number(t.penalties ?? t.totalPenalty ?? 0);
           return {
             userId: String(t.userId || t.userIdLower || "-"),
+            /* ⚠️ Yukarıdaki üç uyarının dördüncüsü: bu alan da düşüyordu. */
+            displayName: t.displayName ?? t.nickname ?? null,
             totalPoints,
             totalPenalty: penalties,
             matches,
@@ -552,6 +565,47 @@ export default function StatsScreen() {
   const [istenenSinir, setIstenenSinir] = useState(300);
 
   const genelRows = useMemo(() => totalsRows, [totalsRows]);
+
+  /* ARAMA — kullanıcı adına göre.
+   *
+   * ⚠️ `genelRows` DEĞİŞTİRİLMİYOR, yanına ikinci bir liste konuyor. Boş
+   * durum mesajı ("sezon sıfırlandı") `genelRows`a bakıyor; onu süzseydik
+   * arama sonuç vermediğinde ekran "yeni sezon başladı" derdi — doğru
+   * cümle değil, üstelik kullanıcıyı paniğe verecek bir cümle.
+   *
+   * ⚠️ YÜKLÜ SATIR SUNUCUDAKİNDEN AZ. `istenenSinir` 300'den başlıyor,
+   * sunucuda (ölçüldü 2026-09-13) 1701 satır var. Bulunamadığında sınırı
+   * yükseltmeyi teklif ediyoruz; sessizce "yok" demiyoruz. */
+  const [arama, setArama] = useState("");
+  const [tamAramaBusy, setTamAramaBusy] = useState(false);
+  const TAM_ARAMA_SINIRI = 5000;
+
+  const aramaSonucu = useMemo(
+    /* ⚠️ ARANAN ŞEY EKRANDA GÖRÜNENLE AYNI OLMALI: kendi alan listemi
+     * yazmak yerine ekranın bastığı `gorunenAd`i sürüyorum. Ayrı yazsaydım
+     * ad çözümü değişince arama sessizce başka bir şeye bakardı. */
+    () => suz(genelRows, arama, (r) => [gorunenAd(r), r.userId]),
+    [genelRows, arama]
+  );
+  const aramaOnerileri = useMemo(
+    () => oneriler(genelRows, arama, (r) => [gorunenAd(r)]),
+    [genelRows, arama]
+  );
+  const aramaSuzuyor = aramaSonucu.durum === "sonuc" || aramaSonucu.durum === "bulunamadi";
+  const gosterilenRows = aramaSuzuyor ? aramaSonucu.items : genelRows;
+
+  const tamListedeAra = useCallback(async () => {
+    setTamAramaBusy(true);
+    try {
+      setIstenenSinir(TAM_ARAMA_SINIRI);
+      await loadTotals(scope, humansOnly, TAM_ARAMA_SINIRI);
+    } finally {
+      setTamAramaBusy(false);
+    }
+    /* `loadTotals` bileşen gövdesindeki bir fonksiyon (useCallback değil);
+     * bağımlılığa koymak her render'da yeni kimlik üretirdi. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope, humansOnly]);
   const favRows = useMemo(() => teamRanks, [teamRanks]);
 
   const meRow = useMemo(
@@ -1075,6 +1129,42 @@ export default function StatsScreen() {
           <View style={{ marginTop: 8 }}>
             {mode === "global" && (
               <>
+                {/* ARAMA — genel sıralamada kullanıcı adına göre. */}
+                {view === "genel" && genelRows.length > 1 && (
+                  <AramaKutusu
+                    deger={arama}
+                    onDegisti={setArama}
+                    durum={aramaSonucu.durum}
+                    sayi={aramaSonucu.sayi}
+                    oneriler={aramaOnerileri}
+                    onOneri={setArama}
+                    placeholder={t("searchPeople")}
+                    etiket={t("searchPeople")}
+                  />
+                )}
+
+                {/* ⚠️ "YÜKLÜ LİSTEDE YOK" ile "YOK" AYRI. Sunucuda yüklü
+                    satırdan fazlası var; bulunamadığında sınırı yükseltmeyi
+                    teklif ediyoruz. */}
+                {view === "genel" && aramaSonucu.durum === "bulunamadi"
+                  && istenenSinir < TAM_ARAMA_SINIRI && (
+                  <TouchableOpacity
+                    onPress={tamListedeAra}
+                    disabled={tamAramaBusy}
+                    accessibilityRole="button"
+                    style={{
+                      marginBottom: 10, paddingHorizontal: 12, paddingVertical: 10,
+                      borderRadius: 10, backgroundColor: Colors.dark,
+                      borderWidth: 1, borderColor: "#1f2937",
+                      opacity: tamAramaBusy ? 0.6 : 1,
+                    }}
+                  >
+                    <Text style={{ color: "#e2e8f0", fontSize: 12 }}>
+                      {t("searchBeyondPage")}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 {view === "genel" && genelRows.length === 0 && (
                   <View style={{ padding: 14, borderRadius: 12, backgroundColor: Colors.dark }}>
                     <Text style={{ color: Colors.text, fontSize: 13, fontWeight: "700" }}>
@@ -1085,8 +1175,8 @@ export default function StatsScreen() {
                     </Text>
                   </View>
                 )}
-                {view === "genel" && genelRows.length > 0 &&
-                  genelRows.slice(0, gosterilecek).map(
+                {view === "genel" && gosterilenRows.length > 0 &&
+                  gosterilenRows.slice(0, gosterilecek).map(
                     (r, ix) => {
                       const isMe = String(r.userId || "").toLowerCase() === userId.toLowerCase();
                       return (
@@ -1170,7 +1260,7 @@ export default function StatsScreen() {
 
                 {/* Kalan satırlar isteğe bağlı — hepsini birden çizmek
                     arayüzü donduruyordu (bkz. `gosterilecek`). */}
-                {view === "genel" && genelRows.length > gosterilecek && (
+                {view === "genel" && gosterilenRows.length > gosterilecek && (
                   <TouchableOpacity
                     onPress={() => {
                       const yeni = gosterilecek + 100;
@@ -1190,7 +1280,7 @@ export default function StatsScreen() {
                     }}
                   >
                     <Text style={{ color: "#e2e8f0", fontWeight: "700", fontSize: 12.5 }}>
-                      {t("showMore", { n: genelRows.length - gosterilecek })}
+                      {t("showMore", { n: gosterilenRows.length - gosterilecek })}
                     </Text>
                   </TouchableOpacity>
                 )}
