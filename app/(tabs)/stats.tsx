@@ -315,13 +315,22 @@ export default function StatsScreen() {
     setAdminNotes(runtimeMode.notes || "");
   }, [runtimeMode]);
 
-  // Arkadaşlık isteği gönder (satıra tıklayınca)
+  // Satıra tıklayınca: arkadaşlık isteği ya da profil.
+  /* ⚠️ PROFİL SEÇENEĞİ NEDEN VAR (13 Eyl 2026): kullanıcı bildirme düğmesi
+   * profil ekranında (Play kullanıcı içeriği politikası) ama o ekrana yalnız
+   * arkadaş listesinden ve kendi profilden gidiliyordu. Takma adların en çok
+   * göründüğü yer bu sıralama; buradan profile yol olmadan uygunsuz bir ad
+   * bildirilemezdi. Android Alert en fazla üç düğme alıyor: vazgeç, profil, gönder. */
   async function sendFriendRequest(targetUserId: string) {
     if (!targetUserId) return;
     if (targetUserId.toLowerCase() === userId.toLowerCase()) return;
 
     Alert.alert(t("friendReqTitle"), t("friendReqAsk", { id: targetUserId }), [
       { text: t("dismiss"), style: "cancel" },
+      {
+        text: t("viewProfile"),
+        onPress: () => router.push({ pathname: "/profile/[userId]", params: { userId: targetUserId } } as any),
+      },
       {
         text: t("send"),
         onPress: async () => {

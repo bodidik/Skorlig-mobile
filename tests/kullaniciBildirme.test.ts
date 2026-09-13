@@ -53,6 +53,18 @@ describe("profil ekranı", () => {
   });
 });
 
+describe("erişim: takma adın göründüğü yerden profile", () => {
+  test("sıralama satırı profile götürüyor (bildirme orada)", () => {
+    /* Profil ekranına yalnız arkadaş listesinden gidiliyordu; sıralamada
+     * görülen uygunsuz bir takma ad bildirilemiyordu. */
+    const siralama = yorumsuz(fs.readFileSync(path.join(KOK, "app", "(tabs)", "stats.tsx"), "utf8"));
+    assert.match(siralama, /text: t\("viewProfile"\),\s*onPress: \(\) => router\.push\(\{ pathname: "\/profile\/\[userId\]", params: \{ userId: targetUserId \} \}/,
+      "siralama satirindan profile yol yok — takma ad bildirilemez");
+    const cagri = [...siralama.matchAll(/sendFriendRequest\(r\.userId\)/g)].length;
+    assert.ok(cagri >= 2, `satir tiklamasi ${cagri} yerde — iki siralama listesi de baglanmali`);
+  });
+});
+
 describe("sunucuyla sözleşme", () => {
   test("sebep anahtarları sunucunun kapalı listesiyle BİREBİR aynı", (tt) => {
     if (!fs.existsSync(API_ROTA)) return tt.skip("api deposu yan klasorde yok");
@@ -74,7 +86,7 @@ describe("sunucuyla sözleşme", () => {
 });
 
 describe("metinler", () => {
-  const ANAHTARLAR = ["reportUser", "reportTitle", "reportReasonName", "reportReasonAbuse", "reportReasonCheat", "reportReasonOther", "reportSent"];
+  const ANAHTARLAR = ["viewProfile", "reportUser", "reportTitle", "reportReasonName", "reportReasonAbuse", "reportReasonCheat", "reportReasonOther", "reportSent"];
   for (const dil of ["tr", "en"] as const) {
     test(`${dil}: bildirim metinleri var (ham anahtar basılmıyor)`, () => {
       setLang(dil);
