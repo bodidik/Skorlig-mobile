@@ -163,9 +163,18 @@ export default function GroupBoardScreen() {
                 }}
               >
                 <Text style={{ color: Colors.muted, width: 28, fontWeight: "700" }}>{i + 1}</Text>
-                <Text style={{ color: Colors.text, flex: 1, fontWeight: s.userId === userId ? "800" : "600" }}>
-                  {s.flag ? `${s.flag} ` : ""}{s.name}
-                </Text>
+                {/* Üye adı — dokununca profil (Play: takma ad görülen yerden bildirme
+                    yolu olmalı; bildir düğmesi profil ekranında). Kendi satırı hariç. */}
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  disabled={s.userId === userId}
+                  accessibilityRole="button"
+                  onPress={() => router.push({ pathname: "/profile/[userId]", params: { userId: s.userId } } as any)}
+                >
+                  <Text style={{ color: Colors.text, fontWeight: s.userId === userId ? "800" : "600" }}>
+                    {s.flag ? `${s.flag} ` : ""}{s.name}
+                  </Text>
+                </TouchableOpacity>
                 {/* Toplama katılmayan üye tabloda kalır ama işaretlenir —
                     yoksa "puanım neden sayılmıyor" sorusu cevapsız kalır. */}
                 {s.ayrilacak ? (

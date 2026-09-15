@@ -811,8 +811,14 @@ export default function KingsScreen() {
                         )}
                       </View>
 
-                      {/* Kullanıcı adı */}
-                      <View style={{ flex: 1 }}>
+                      {/* Kullanıcı adı — dokununca profil (Play: takma ad görülen yerden
+                          bildirme yolu olmalı; bildir düğmesi profil ekranında). */}
+                      <TouchableOpacity
+                        style={{ flex: 1 }}
+                        disabled={isMe}
+                        accessibilityRole="button"
+                        onPress={() => router.push({ pathname: "/profile/[userId]", params: { userId: row.userId } } as any)}
+                      >
                         <Text
                           style={{
                             color: "#fff",
@@ -833,7 +839,7 @@ export default function KingsScreen() {
                         >
                           {t("matchPenalty2", { m: row.matches, c: row.totalPenalty ?? 0 })}
                         </Text>
-                      </View>
+                      </TouchableOpacity>
 
                       {/* Puan */}
                       <View style={{ minWidth: 70, alignItems: "flex-end" }}>

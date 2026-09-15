@@ -63,6 +63,23 @@ describe("erişim: takma adın göründüğü yerden profile", () => {
     const cagri = [...siralama.matchAll(/sendFriendRequest\(r\.userId\)/g)].length;
     assert.ok(cagri >= 2, `satir tiklamasi ${cagri} yerde — iki siralama listesi de baglanmali`);
   });
+
+  /* ⚠️ 16 Eylül'e kadar Gol Kralları ve grup tablosu satırları profile gitmiyordu
+   * (tanitim/play-console-formlari.md "Açık risk 1"): orada görülen takma ad
+   * bildirilemiyordu. İddia kendi satırı HARİÇ dokunulabilir satıra bağlı. */
+  test("Gol Kralları satırı profile götürüyor (kendi satırı hariç)", () => {
+    const krallar = yorumsuz(fs.readFileSync(path.join(KOK, "app", "(tabs)", "kings.tsx"), "utf8"));
+    assert.match(krallar,
+      /<TouchableOpacity\s+style=\{\{ flex: 1 \}\}\s+disabled=\{isMe\}[\s\S]{0,120}router\.push\(\{ pathname: "\/profile\/\[userId\]", params: \{ userId: row\.userId \} \}/,
+      "gol krallari satirindan profile yol yok — takma ad bildirilemez");
+  });
+
+  test("grup tablosu satırı profile götürüyor (kendi satırı hariç)", () => {
+    const grup = yorumsuz(fs.readFileSync(path.join(KOK, "app", "groups", "[code].tsx"), "utf8"));
+    assert.match(grup,
+      /<TouchableOpacity\s+style=\{\{ flex: 1 \}\}\s+disabled=\{s\.userId === userId\}[\s\S]{0,120}router\.push\(\{ pathname: "\/profile\/\[userId\]", params: \{ userId: s\.userId \} \}/,
+      "grup tablosu satirindan profile yol yok — takma ad bildirilemez");
+  });
 });
 
 describe("sunucuyla sözleşme", () => {
