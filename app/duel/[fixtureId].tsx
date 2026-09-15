@@ -584,7 +584,7 @@ function DuelIcerik() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fixtureId: fx, stake: selectedStake, creatorName: myDisplayName,
+          fixtureId: fx, stake: selectedStake, // ad sunucuda takma addan çözülüyor (gerçek ad gönderilmez)
           home: matchHome||null, away: matchAway||null,
           league: matchLeague||null, kickoffISO: matchKickoff||null,
         }),
@@ -613,7 +613,7 @@ function DuelIcerik() {
     const r = await apiFetch("/api/duels/accept", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ duelId: duel.id, acceptorName: myDisplayName }),
+      body: JSON.stringify({ duelId: duel.id }),
     });
     const j = await r.json();
     if (!j?.ok) {

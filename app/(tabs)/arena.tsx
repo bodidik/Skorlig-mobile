@@ -131,7 +131,7 @@ function MiniDuelRow({ duel, userId, myName, lcBalance, onAccepted, onError }: {
       const r = await apiFetch("/api/duels/accept", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ duelId: duel.id, acceptorName: myName }),
+        body: JSON.stringify({ duelId: duel.id }), // ad sunucuda takma addan çözülüyor (gerçek ad gönderilmez)
       });
       const j = await r.json();
       if (!j?.ok) {
