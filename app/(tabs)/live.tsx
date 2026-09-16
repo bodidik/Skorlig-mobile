@@ -18,7 +18,7 @@ import { apiFetch as sharedApiFetch, apiJson as sharedApiJson } from "../../lib/
 import { withAdminHeaders } from "../../lib/adminToken";
 import DailyMenuStrip from "../../components/DailyMenuStrip";
 import QuickPlaySection from "../../components/QuickPlaySection";
-import OyunModlari from "../../components/OyunModlari";
+import OyunMerkezi from "../../components/OyunMerkezi";
 import TournamentCreate from "../../components/TournamentCreate";
 import TournamentJoin from "../../components/TournamentJoin";
 import Picks1987 from "../../components/Picks1987";
@@ -26,8 +26,6 @@ import GuestBanner from "../../components/GuestBanner";
 import NasilOynanirSeridi from "../../components/NasilOynanirSeridi";
 import { suz, oneriler } from "../../lib/aramaSuzgeci";
 import AramaKutusu from "../../components/AramaKutusu";
-import DailyMatchCard from "../../components/DailyMatchCard";
-import KuponKarti from "../../components/KuponKarti";
 import SkorMerkezi from "../../components/SkorMerkezi";
 import GradyanZemin from "../../components/GradyanZemin";
 import { Gradyan } from "../../constants/colors";
@@ -1705,26 +1703,37 @@ export default function LiveScreen() {
                 Kalıcı adres `/nasil-oynanir`; bu yalnızca ona giden kapı. */}
             <NasilOynanirSeridi />
 
-            {/* ===== OYUN MODLARI — İLK İÇERİK BLOĞU =====
+            {/* ===== OYUN MERKEZİ — İLK İÇERİK BLOĞU =====
                 ⚠️ SIRA DEĞİŞTİ (2026-08-31, kullanıcı bildirimi): "Ne oynamak
                 istersin en üstte olmalı, altında yakın tarihli popüler maçlar
                 olmalı." Şerit ALTINCI bloktu — marka bandı, misafir şeridi,
                 skor merkezi, kupon ve günün maçı ondan önce geliyordu.
 
-                Altı mod farklı ekranlara dağılmış; yeni kullanıcı maç
-                listesinden ötesini keşfetmiyordu. Keşfedilmeyen özellik,
-                olmayan özelliktir. bkz. components/OyunModlari.tsx
+                ⚠️ 2026-09-16 (kullanıcı bildirimi): "Kullanıcı o menüsel sayfada
+                hemen işin içine katılabilmeli. Görseller yetersiz." Yatay mod
+                şeridi (OyunModlari) aynı anda iki mod gösteriyordu ve oyunun
+                kendisi — haftalık kupon ve günün maçı — şeridin ALTINDA ayrı
+                kartlardı. Şimdi ikisi merkezin İÇİNDE: kupon geniş ana kart,
+                günün maçı "Tek Maç" kartında 1-X-2 ile. Ayrıca çizilmiyorlar;
+                aynı oyun iki kez görünürdü. bkz. components/OyunMerkezi.tsx
 
-                ⚠️ SKOR MERKEZİ BİR SIRA AŞAĞI İNDİ, KALDIRILMADI — onun kendi
+                `tam`: kupon ve günün maçı yalnız normal maç listesinde gömülü;
+                turnuva/1987/benimkiler modlarında ekran kendi içeriğine odaklı,
+                orada merkez yalnız mod ızgarası.
+
+                ⚠️ SKOR MERKEZİ BİR SIRA AŞAĞIDA, KALDIRILMADI — onun kendi
                 başlığı da "en tepede" diyor (ayrı bir kullanıcı bildirimi).
                 İkisi çakışınca sonraki bildirim kazandı; skor merkezi hâlâ
                 maç listesinin ÜSTÜNDE ve canlı maçları taşıdığı için
                 "altında yakın tarihli popüler maçlar" isteğini de karşılıyor. */}
-            <OyunModlari
+            <OyunMerkezi
               macBedeli={macBedeli}
               kuponBedeli={kuponBedeli}
               is1987={is1987Member}
               onMod={setMode}
+              tam={mode === "schedule" || mode === "open"}
+              country={userCountry}
+              userId={userId}
             />
 
             {/* ===== SKOR MERKEZİ =====
@@ -1734,37 +1743,6 @@ export default function LiveScreen() {
                 götürür. Veri yoksa kendini gizler. */}
             {(mode === "schedule" || mode === "open") && (
               <SkorMerkezi country={userCountry} />
-            )}
-
-            {/* ===== HAFTALIK KUPON — BİRİNCİL EYLEM =====
-                ⚠️ SIRA DEĞİŞTİ (2026-08-06). Kupon `OyunModlari` içinde altı
-                moddan biriydi ve yatay şeritte duruyordu; ana ekranın ilk
-                eylemi tek maçlık "günün maçı" kartıydı. Yani haftanın 8 maçlık
-                asıl oyunu, keşfedilmesi gereken bir yan özellik gibi
-                sunuluyordu.
-
-                Genişlik ligdeki maç sayısıyla verilir: kupon 8 maç, günün maçı
-                1. Kupon üstte, günün maçı hemen altında (o da 1987 grubunun
-                tepki katmanını taşıyor).
-
-                ⚠️ Kupon yoksa kart KENDİNİ GİZLER — ana ekranın tepesinde boş
-                bir kutu durmaz (bkz. components/KuponKarti.tsx). */}
-            {(mode === "schedule" || mode === "open") && <KuponKarti />}
-
-            {/* ===== GÜNÜN MAÇI — İKİNCİL =====
-                ⚠️ BU KART VARDI AMA HİÇBİR EKRANA BAĞLI DEĞİLDİ — ölü kod.
-                Besleyen uç (`/api/live/daily-featured`) de askıdaki
-                API-Football'a gidip her çağrıda `null` dönüyordu; ikisi
-                birlikte, tasarlanmış bir akış hiç çalışmıyordu.
-
-                Neden duruyor: kupona katılmayan ya da kuponu olmayan kullanıcı
-                için tek maçlık kısa bir döngü — tek soru (1-X-2), tahmin, o
-                maçın sıralaması. Tepki katmanı da bu maça bağlı.
-
-                Yalnızca normal maç listesinde; turnuva/1987 modlarında ekran
-                zaten kendi içeriğine odaklı. */}
-            {(mode === "schedule" || mode === "open") && (
-              <DailyMatchCard country={userCountry || undefined} userId={userId} />
             )}
 
 

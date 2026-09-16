@@ -22,7 +22,11 @@ export default function GradyanZemin({ renkler, yon = "capraz" }: Props) {
   const id = React.useRef(`gz${++sayac}`).current;
   const [x2, y2] = yon === "dikey" ? ["0", "1"] : yon === "yatay" ? ["1", "0"] : ["1", "1"];
   return (
-    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+    /* ⚠️ width/height AÇIKÇA %100: web'de (react-native-svg → <svg>) boyut
+     * verilmeyen svg varsayılan 300×150 çiziliyor, absoluteFill stili onu
+     * büyütmüyordu — geniş kartlarda gradyan sağda ve altta keskin bir
+     * kenarla bitiyordu (2026-09-16 önizlemede ölçüldü, marka bandında da). */
+    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
       <Defs>
         <LinearGradient id={id} x1="0" y1="0" x2={x2} y2={y2}>
           <Stop offset="0" stopColor={renkler[0]} />

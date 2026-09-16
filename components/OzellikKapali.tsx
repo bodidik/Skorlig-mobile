@@ -14,7 +14,7 @@ import { t, useLang } from "../lib/i18n";
  * yolunu söylüyor; içeride parası olan kullanıcıya da o paranın akıbetini.
  *
  * Gövde rengi `Colors.muted` DEĞİL: o ton koyu zeminde eşiğin altında
- * ölçüldü (bkz. components/OyunModlari.tsx ACIKLAMA_RENGI notu).
+ * ölçüldü (bkz. lib/oyunMerkezi.ts ACIKLAMA_RENGI notu).
  */
 export default function OzellikKapali() {
   useLang();

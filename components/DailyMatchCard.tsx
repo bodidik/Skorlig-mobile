@@ -29,6 +29,14 @@ type Fixture = {
 type Props = {
   country?: string | null;
   userId?: string;
+  /**
+   * Oyun Merkezi'nin "Tek Maç" kartına gömülü mü. Gömülüyken kart kendi
+   * zeminini, kenarlığını ve dış boşluğunu çizmez — dış kartın mod rengi
+   * görünsün, iç içe iki kutu olmasın (2026-09-16).
+   */
+  gomulu?: boolean;
+  /** Günün maçı yokken çizilecek düğüm. Verilmezse eski davranış: hiçbir şey. */
+  bosken?: React.ReactNode;
 };
 
 /* Renkler predict/kupon ile BİREBİR: ev=mavi, beraberlik=kehribar,
@@ -40,7 +48,7 @@ const OUTCOMES = [
   { key: "away", api: "A", color: "#ef4444" },
 ] as const;
 
-export default function DailyMatchCard({ country, userId }: Props) {
+export default function DailyMatchCard({ country, userId, gomulu = false, bosken }: Props) {
   useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
   const [fixture, setFixture] = useState<Fixture | null>(null);
@@ -150,13 +158,15 @@ export default function DailyMatchCard({ country, userId }: Props) {
     setBusy(false);
   }
 
+  const kap = gomulu ? s.gomuluKap : s.card;
+
   if (loading) return (
-    <View style={s.card}>
+    <View style={kap}>
       <MacKartiIskeleti />
     </View>
   );
 
-  if (!fixture) return null;
+  if (!fixture) return bosken ? <>{bosken}</> : null;
 
   const kickDt = fixture.kickoffISO ? new Date(fixture.kickoffISO) : null;
   const bugun = new Date();
@@ -180,8 +190,8 @@ export default function DailyMatchCard({ country, userId }: Props) {
   const lcY = lcAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -24] });
 
   return (
-    <View style={s.card}>
-      <GradyanZemin renkler={Gradyan.card} yon="dikey" />
+    <View style={kap}>
+      {!gomulu && <GradyanZemin renkler={Gradyan.card} yon="dikey" />}
       {/* Üst bilgi */}
       <View style={s.meta}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
@@ -323,6 +333,7 @@ export default function DailyMatchCard({ country, userId }: Props) {
 }
 
 const s = StyleSheet.create({
+  gomuluKap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16 },
   card: {
     backgroundColor: "#0f172a",
     borderRadius: 16,

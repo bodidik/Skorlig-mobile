@@ -1,5 +1,5 @@
 /**
- * HAFTALIK KUPON KARTI — ana ekranın BİRİNCİL eylemi.
+ * HAFTALIK KUPON KARTI — ana ekranın BİRİNCİL eylemi, Oyun Merkezi'nin ilk kartı.
  *
  * ⚠️ NEDEN EN ÜSTTE: kupon `OyunModlari` içinde altı moddan biriydi ve yatay
  * kaydırma şeridinde duruyordu. Ana ekranın ilk eylemi tek maçlık "günün maçı"
@@ -10,9 +10,18 @@
  * günün maçı tek maç. Sıra buna göre: kupon birincil, günün maçı hemen altında
  * ikincil (o da 1987 grubunun tepki katmanını taşıyor).
  *
- * ⚠️ KART KENDİNİ GİZLER. Kupon yoksa `null` döner — boş bir "kupon yok"
- * kutusu ana ekranın en üstünde durmaz. Sezon arası ya da yeni ülke
- * eklendiğinde bu gerçekten oluyor.
+ * ⚠️ 2026-09-16: KART ARTIK OYUN MERKEZİ'NİN İÇİNDE (kullanıcı bildirimi:
+ * "görseller yetersiz, basit görünüm uygulamayı temsil edemiyor"). Mod
+ * menüsünde ayrı bir "Haftalık" düğmesi ve altında ayrı bir kupon kartı
+ * vardı; ikisi aynı oyunu iki kez anlatıyordu. Şimdi menüdeki haftalık kart
+ * kuponun kendisi: çizim, maç maç ilerleme çubuğu, geri sayım, tek eylem.
+ *
+ * ⚠️ KUPON YOKSA `bosken` ÇİZİLİR, NEDENİ AYRILARAK. Eskiden `null` dönüyordu
+ * (ana ekranın tepesinde boş kutu durmasın). Menünün içinde null, modun
+ * kendisini yok ediyordu. İki ayrı durum var ve karıştırılmamalı:
+ *   "yok"        → sunucu cevap verdi, açık kupon YOK (sezon arası)
+ *   "bilinmiyor" → sunucuya soramadık (misafir: AUTH_REQUIRED, ağ hatası)
+ * Misafire "kupon hazırlanıyor" demek, kupon açıkken yalan olurdu.
  *
  * ⚠️ KALAN SÜRE SUNUCUDAN (`kalanSaniye`). Cihaz saatine güvenilmiyor —
  * kullanıcının saati yanlışsa geri sayım yalan söyler ve "daha var" derken
@@ -20,17 +29,21 @@
  */
 
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  View, Text, TouchableOpacity, ActivityIndicator, StyleSheet,
-} from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { apiJson } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 import { ulkeAdi } from "../lib/ulkeler";
 import { kuponBasligi, birincilKupon } from "../lib/kuponBaslik";
+import {
+  ACIKLAMA_RENGI, ILERLEME_BOS, KENARLIK_ALFA, MOD_RENGI, ROZET_ALFA, ROZET_YAZI_ACMA, ZEMIN_ALT_ALFA,
+  ZEMIN_UST_ALFA, acikTon, alfa, kuponIlerlemesi,
+} from "../lib/oyunMerkezi";
+import Colors from "../constants/colors";
+import Basinc from "./Basinc";
 import GradyanZemin from "./GradyanZemin";
 import IskeletBlok from "./Iskelet";
-import { Gradyan } from "../constants/colors";
+import { KuponSanati } from "./OyunSanati";
 
 type Mac = {
   fixtureId: string;
@@ -52,6 +65,15 @@ type KuponT = {
   kalanSaniye: number;
 };
 
+export type KuponYokNedeni = "yok" | "bilinmiyor";
+
+type Props = {
+  /** Kupon gösterilemezken çizilecek kart. Verilmezse eski davranış: hiçbir şey. */
+  bosken?: (neden: KuponYokNedeni) => React.ReactNode;
+};
+
+const RENK = MOD_RENGI.kupon;
+
 /** Geri sayım metni — `app/kupon.tsx` ile AYNI kural. */
 function sureMetni(saniye: number): string {
   if (saniye <= 0) return t("closedLower");
@@ -63,10 +85,11 @@ function sureMetni(saniye: number): string {
   return t("nMin", { n: d });
 }
 
-export default function KuponKarti() {
+export default function KuponKarti({ bosken }: Props) {
   useLang();
   const router = useRouter();
   const [kupon, setKupon] = useState<KuponT | null>(null);
+  const [neden, setNeden] = useState<KuponYokNedeni>("bilinmiyor");
   const [loading, setLoading] = useState(true);
 
   const yukle = useCallback(async () => {
@@ -79,8 +102,11 @@ export default function KuponKarti() {
        * için sonuç tesadüfen doğruydu. İki tür birlikte dönseydi ülke
        * kuponu ORTAK'ı gizlerdi. */
       setKupon(birincilKupon(liste));
+      /* Yalnız sunucu GERÇEKTEN cevap verdiyse "yok" — bkz. başlık. */
+      setNeden(j?.ok ? "yok" : "bilinmiyor");
     } catch {
       setKupon(null);
+      setNeden("bilinmiyor");
     }
     setLoading(false);
   }, []);
@@ -89,22 +115,20 @@ export default function KuponKarti() {
 
   if (loading) {
     return (
-      <View style={s.card}>
-        <View style={{ gap: 8 }}>
-          <IskeletBlok style={{ width: 130, height: 14 }} />
-          <IskeletBlok style={{ width: "80%", height: 12 }} />
-          <IskeletBlok style={{ width: "65%", height: 12 }} />
+      <View style={[s.kart, { borderColor: RENK + alfa(KENARLIK_ALFA) }]}>
+        <View style={{ gap: 10 }}>
+          <IskeletBlok style={{ width: 150, height: 20 }} />
+          <IskeletBlok style={{ width: "70%", height: 12 }} />
+          <IskeletBlok style={{ width: "100%", height: 8 }} />
+          <IskeletBlok style={{ width: "55%", height: 12 }} />
         </View>
       </View>
     );
   }
 
-  // Kupon yoksa kart HİÇ görünmez — bkz. başlıktaki not.
-  if (!kupon) return null;
+  if (!kupon) return bosken ? <>{bosken(neden)}</> : null;
 
-  const macSayisi = Array.isArray(kupon.maclar) ? kupon.maclar.length : 0;
-  const girilen = kupon.tahminlerim ? Object.keys(kupon.tahminlerim).length : 0;
-  const eksik = Math.max(0, macSayisi - girilen);
+  const ilerleme = kuponIlerlemesi(kupon);
 
   /* Başlık `app/kupon.tsx` ile AYNI anahtardan — iki yüzey aynı kuponu farklı
    * adlandırırsa kullanıcı iki ayrı oyun sanır.
@@ -118,110 +142,120 @@ export default function KuponKarti() {
    * Fenerbahçe" somut. Kartın tıklanma sebebi bu satır. */
   const onizleme = (kupon.maclar || []).slice(0, 2);
 
+  /**
+   * ⚠️ ÜÇ AYRI DURUM, ÜÇ AYRI ÇAĞRI. Tek bir "Kupona git" düğmesi
+   * kullanıcıya sıradaki adımı söylemezdi:
+   *   - katılmadı            → bedeli gör, satın al
+   *   - katıldı ama eksik    → kaç maç boş kaldığını gör  (BOŞ MAÇ YANLIŞ SAYILIR)
+   *   - katıldı ve tamamladı → onay
+   *
+   * ⚠️ BOŞ MAÇ SAYISI DÜĞMEDE DEĞİL, İLERLEME SATIRINDA. "Tamamla · 3 maç boş"
+   * 360 px ekranda kesiliyordu ve geri sayımı iki satıra itiyordu (önizlemede
+   * ölçüldü). Sayı kaybolmuyor: çubuğun yanında, uyarı renginde.
+   */
+  const eylem =
+    ilerleme.asama === "katil" ? { yazi: t("kuponJoinFor", { n: kupon.girisBedeli }), zemin: RENK }
+    : ilerleme.asama === "eksik" ? { yazi: t("kuponFill"), zemin: Colors.accent }
+    : { yazi: t("kuponView"), zemin: null };
+  const eksikMi = ilerleme.asama === "eksik";
+
   return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={() => router.push("/kupon")}
-      style={s.card}
-    >
-      <GradyanZemin renkler={Gradyan.pitch} yon="capraz" />
-      <View style={s.ustSatir}>
-        <View style={s.rozet}>
-          <Text style={s.rozetYazi}>🎟️ {baslik}</Text>
+    <Basinc onPress={() => router.push("/kupon")} scaleTo={0.97}>
+      <View
+        accessibilityRole="button"
+        accessibilityLabel={`${t("weeklyKupon")}: ${baslik}`}
+        style={[s.kart, { borderColor: RENK + alfa(KENARLIK_ALFA) }]}
+      >
+        <GradyanZemin renkler={[RENK + alfa(ZEMIN_UST_ALFA), RENK + alfa(ZEMIN_ALT_ALFA)]} yon="capraz" />
+        <View style={s.sanat} pointerEvents="none">
+          <KuponSanati boyut={124} />
         </View>
-        <Text style={s.sure}>⏳ {sureMetni(kupon.kalanSaniye)}</Text>
-      </View>
 
-      <View style={s.onizleme}>
-        {onizleme.map((m) => (
-          <Text key={m.fixtureId} style={s.macSatiri} numberOfLines={1}>
-            {m.home} <Text style={s.vs}>-</Text> {m.away}
-          </Text>
-        ))}
-        {macSayisi > onizleme.length && (
-          <Text style={s.kalanMac}>
-            {t("kuponMoreMatches", { n: macSayisi - onizleme.length })}
-          </Text>
-        )}
-      </View>
+        <View style={{ paddingRight: 108 }}>
+          <View style={[s.rozet, { backgroundColor: RENK + alfa(ROZET_ALFA) }]}>
+            <Text style={[s.rozetYazi, { color: acikTon(RENK, ROZET_YAZI_ACMA) }]} numberOfLines={1}>{baslik}</Text>
+          </View>
+          <Text style={s.ad}>{t("weeklyKupon")}</Text>
+          <Text style={s.aciklama}>{t("kuponHeroSub")}</Text>
+        </View>
 
-      {/**
-       * ⚠️ ÜÇ AYRI DURUM, ÜÇ AYRI ÇAĞRI. Tek bir "Kupona git" düğmesi
-       * kullanıcıya sıradaki adımı söylemezdi:
-       *   - katılmadı            → bedeli gör, satın al
-       *   - katıldı ama eksik    → kaç maç boş kaldığını gör  (BOŞ MAÇ YANLIŞ SAYILIR)
-       *   - katıldı ve tamamladı → onay
-       */}
-      {!kupon.katildiMi ? (
-        <View style={s.altSatir}>
-          <Text style={s.macAdet}>{t("kuponMatchCount", { n: macSayisi })}</Text>
-          <View style={s.cta}>
-            <Text style={s.ctaYazi}>{t("kuponJoinFor", { n: kupon.girisBedeli })}</Text>
+        {/* Maç maç ilerleme: sekiz parça, dolu olan kupon renginde. "3/8"
+            sayısından hızlı okunuyor ve kuponun MAÇ MAÇ doldurulduğunu
+            yazısız anlatıyor. */}
+        <View style={s.ilerlemeSatiri}>
+          <View style={s.cubuk}>
+            {ilerleme.dolular.map((dolu, i) => (
+              <View key={i} style={[s.parca, { backgroundColor: dolu ? RENK : ILERLEME_BOS }]} />
+            ))}
           </View>
+          <Text style={[s.ilerlemeYazi, eksikMi && { color: Colors.accent }]}>
+            {eksikMi
+              ? t("kuponMissingShort", { n: ilerleme.eksik })
+              : t("kuponFilledOf", { a: ilerleme.girilen, n: ilerleme.macSayisi })}
+          </Text>
         </View>
-      ) : eksik > 0 ? (
+
+        <View style={s.onizleme}>
+          {onizleme.map((m) => (
+            <Text key={m.fixtureId} style={s.macSatiri} numberOfLines={1}>
+              {m.home} <Text style={s.vs}>–</Text> {m.away}
+            </Text>
+          ))}
+          {ilerleme.macSayisi > onizleme.length && (
+            <Text style={s.kalanMac}>
+              {t("kuponMoreMatches", { n: ilerleme.macSayisi - onizleme.length })}
+            </Text>
+          )}
+        </View>
+
         <View style={s.altSatir}>
-          <Text style={s.uyari}>{t("kuponMissingShort", { n: eksik })}</Text>
-          <View style={[s.cta, s.ctaUyari]}>
-            <Text style={s.ctaYazi}>{t("kuponFill")}</Text>
-          </View>
+          <Text style={s.sure}>⏳ {t("kuponClosesIn", { s: sureMetni(kupon.kalanSaniye) })}</Text>
+          {eylem.zemin ? (
+            <View style={[s.eylem, { backgroundColor: eylem.zemin }]}>
+              <Text style={s.eylemYazi} numberOfLines={1}>{eylem.yazi} →</Text>
+            </View>
+          ) : (
+            <View style={[s.eylem, s.eylemCizgi, { borderColor: RENK + alfa(KENARLIK_ALFA) }]}>
+              <Text style={[s.eylemYazi, { color: RENK }]}>✓ {eylem.yazi} →</Text>
+            </View>
+          )}
         </View>
-      ) : (
-        <View style={s.altSatir}>
-          <Text style={s.tamam}>{t("kuponAllFilled")}</Text>
-          <Text style={s.gorLink}>{t("kuponView")}</Text>
-        </View>
-      )}
-    </TouchableOpacity>
+      </View>
+    </Basinc>
   );
 }
 
 const s = StyleSheet.create({
-  card: {
-    backgroundColor: "#0f172a",
-    borderRadius: 16,
+  kart: {
+    backgroundColor: Colors.card,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#a3e63544",
     overflow: "hidden",
     padding: 16,
-    marginHorizontal: 12,
-    marginTop: 12,
-    marginBottom: 4,
+    marginBottom: 12,
   },
-  ustSatir: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  rozet: {
-    backgroundColor: "#a3e63518",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  rozetYazi: { color: "#a3e635", fontSize: 12, fontWeight: "800" },
-  sure: { color: "#64748b", fontSize: 11, fontWeight: "600" },
-  onizleme: { marginBottom: 12, gap: 3 },
-  macSatiri: { color: "#f1f5f9", fontSize: 13, fontWeight: "700" },
-  vs: { color: "#475569", fontWeight: "400" },
-  kalanMac: { color: "#64748b", fontSize: 11, marginTop: 2 },
+  sanat: { position: "absolute", right: -8, top: -8 },
+  rozet: { alignSelf: "flex-start", borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 },
+  rozetYazi: { fontSize: 11, fontWeight: "900" },
+  ad: { color: Colors.text, fontSize: 22, fontWeight: "900", marginTop: 8 },
+  aciklama: { color: ACIKLAMA_RENGI, fontSize: 12.5, lineHeight: 17, marginTop: 3 },
+
+  ilerlemeSatiri: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14 },
+  cubuk: { flex: 1, flexDirection: "row", gap: 4 },
+  parca: { flex: 1, height: 7, borderRadius: 4 },
+  ilerlemeYazi: { color: Colors.text, fontSize: 12, fontWeight: "800" },
+
+  onizleme: { marginTop: 12, gap: 3 },
+  macSatiri: { color: Colors.text, fontSize: 13.5, fontWeight: "700" },
+  vs: { color: ACIKLAMA_RENGI, fontWeight: "400" },
+  kalanMac: { color: ACIKLAMA_RENGI, fontSize: 12, marginTop: 1 },
+
   altSatir: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    gap: 10, marginTop: 14,
   },
-  macAdet: { color: "#94a3b8", fontSize: 12, fontWeight: "600" },
-  uyari: { color: "#f59e0b", fontSize: 12, fontWeight: "700", flex: 1 },
-  tamam: { color: "#a3e635", fontSize: 12, fontWeight: "700", flex: 1 },
-  cta: {
-    backgroundColor: "#a3e635",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  ctaUyari: { backgroundColor: "#f59e0b" },
-  ctaYazi: { color: "#0f172a", fontWeight: "900", fontSize: 12 },
-  gorLink: { color: "#475569", fontSize: 11 },
+  sure: { color: ACIKLAMA_RENGI, fontSize: 12, fontWeight: "700", flexShrink: 1 },
+  eylem: { borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10, flexShrink: 1 },
+  eylemCizgi: { borderWidth: 1, backgroundColor: "transparent" },
+  eylemYazi: { color: Colors.onAccent, fontWeight: "900", fontSize: 13 },
 });

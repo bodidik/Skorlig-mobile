@@ -155,10 +155,17 @@ describe("kaynak nöbetçisi", () => {
       "ozel sekme cubugu href:null isaretini okumuyor — sekme gizlenmez");
   });
 
-  test("oyun modları şeridi süzülmüş listeyi çiziyor ve sayıyı SAYIYOR", () => {
-    const s = oku("components/OyunModlari.tsx");
-    assert.match(s, /gorunenModlar\.map\(/, "serit suzulmemis listeyi ciziyor");
-    assert.ok(!/\bmodlar\.map\(/.test(s), "suzulmemis liste hala ciziliyor");
+  test("oyun merkezi süzülmüş listeyi çiziyor ve sayıyı SAYIYOR", () => {
+    /* Merkezde üç çizim yolu var (kompakt satır, geniş kartlar, ızgara);
+     * üçü de süzülmüş listeden türemeli. Süzgeç tek yerde: `gorunenModlar`. */
+    const s = oku("components/OyunMerkezi.tsx");
+    assert.match(s, /const gorunenModlar: Mod\[\] = MOD_SIRASI\s*\.filter\(\(key\) => modAcikMi\(key, ozellik\)\)/,
+      "mod listesi bayrakla suzulmuyor");
+    assert.match(s, /gorunenModlar\.map\(\(m\) => <KompaktDugme/, "kompakt satir suzulmemis listeyi ciziyor");
+    assert.match(s, /const izgara = izgaraModlari\(gorunenModlar, true\)/, "izgara suzulmemis listeden turuyor");
+    assert.match(s, /const kuponVar = gorunenModlar\.some\(/, "kupon karti suzulmus listeye bakmiyor");
+    assert.match(s, /const tekVar = gorunenModlar\.some\(/, "tek mac karti suzulmus listeye bakmiyor");
+    assert.ok(!/MOD_SIRASI\.map\(/.test(s), "suzulmemis sira dogrudan ciziliyor");
     assert.match(s, /t\("modesCount", \{ n: gorunenModlar\.length \}\)/, "mod sayisi sabit metin");
   });
 
