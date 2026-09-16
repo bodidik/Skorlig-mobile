@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
 import { puanYaz } from "../../lib/lcBicim";
+import { bestStreak, currentStreak, sonTahminler, winRate } from "../../lib/tahminGecmisi";
 import { ulkeAdi } from "../../lib/ulkeler";
 import {
   View,
@@ -55,30 +56,6 @@ type Profile = {
 
 function initials(uid: string) {
   return uid.slice(0, 2).toUpperCase();
-}
-
-function winRate(items: HistoryItem[]) {
-  if (!items.length) return null;
-  const correct = items.filter(i => (i.detail?.outcome ?? 0) > 0).length;
-  return Math.round((correct / items.length) * 100);
-}
-
-function currentStreak(items: HistoryItem[]): number {
-  let streak = 0;
-  for (const it of [...items].reverse()) {
-    if ((it.detail?.outcome ?? 0) > 0) streak++;
-    else break;
-  }
-  return streak;
-}
-
-function bestStreak(items: HistoryItem[]): number {
-  let best = 0, cur = 0;
-  for (const it of items) {
-    if ((it.detail?.outcome ?? 0) > 0) { cur++; best = Math.max(best, cur); }
-    else cur = 0;
-  }
-  return best;
 }
 
 function pointColor(pts: number) {
@@ -413,7 +390,7 @@ export default function ProfileUserScreen() {
               <Text style={{ padding: 14, paddingBottom: 8, fontWeight: "700", fontSize: 14 }}>
                 Son Tahminler ({Math.min(history.length, 15)})
               </Text>
-              {history.slice(0, 15).map((it, idx) => {
+              {sonTahminler(history, 15).map((it, idx) => {
                 const pts = it.points ?? 0;
                 const correct = (it.detail?.outcome ?? 0) > 0;
                 const wrong   = (it.detail?.outcome ?? 0) < 0;
