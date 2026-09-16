@@ -15,6 +15,7 @@ import {
 import { auth } from "../lib/firebase";
 import type { User } from "firebase/auth";
 import { Alert } from "react-native";
+import { googleGirisHatasi } from "../lib/googleGirisHatasi";
 
 let GoogleSignin: any = null;
 let statusCodes: any = {};
@@ -48,6 +49,23 @@ const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "";
 
 if (GoogleSignin) {
   GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
+}
+
+/**
+ * Google giriş hatasını KULLANICIYA gösterir.
+ *
+ * ⚠️ Bu fonksiyon var olana kadar üç çağrı yerinin üçü de hatayı yutuyordu;
+ * mağaza derlemesinde girişin neden düştüğünü öğrenmenin yolu yoktu
+ * (bkz. lib/googleGirisHatasi.ts — DEVELOPER_ERROR / kod 10).
+ *
+ * @returns iptal miydi — `true` ise çağıran sessizce dönmeli.
+ */
+function googleHatasiniBildir(e: unknown): boolean {
+  const h = googleGirisHatasi(e, (statusCodes as any)?.SIGN_IN_CANCELLED);
+  if (h.sessiz) return true;
+  console.error("[auth] google giriş hatası:", h.kod, h.mesaj);
+  Alert.alert("Google Girişi", h.mesaj);
+  return false;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -89,8 +107,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const getGoogleCredential = async () => {
     if (!GoogleSignin) {
-      Alert.alert("Google Giriş", "Bu özellik Expo Go'da kullanılamaz. Development build gereklidir.");
-      throw new Error("GoogleSignin not available");
+      /* Uyarıyı burada BASMIYORUZ: kodu taşıyan hata `googleHatasiniBildir`
+       * tarafından gösterilir, yoksa aynı ekrana iki uyarı düşerdi. */
+      throw Object.assign(new Error("GoogleSignin not available"), { code: "EXPO_GO" });
     }
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const result = await GoogleSignin.signIn();
@@ -108,7 +127,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(linked.user);
       }
     } catch (e: any) {
-      if (e.code === statusCodes.SIGN_IN_CANCELLED) return;
       // Hesap zaten farklı bir UID'ye bağlıysa doğrudan o hesaba geç
       if (
         e.code === "auth/credential-already-in-use" ||
@@ -116,9 +134,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ) {
         const credential = await getGoogleCredential();
         await signInWithCredential(auth, credential);
-      } else {
-        throw e;
+        return;
       }
+      if (googleHatasiniBildir(e)) return; // kullanıcı vazgeçti
+      throw e;
     }
   }, []);
 
@@ -127,8 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const credential = await getGoogleCredential();
       await signInWithCredential(auth, credential);
     } catch (e: any) {
-      if (e.code === statusCodes.SIGN_IN_CANCELLED) return;
-      console.error("[auth] google sign-in error:", e.message || e);
+      if (googleHatasiniBildir(e)) return; // kullanıcı vazgeçti
       throw e;
     }
   }, []);
