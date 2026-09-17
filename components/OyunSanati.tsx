@@ -231,3 +231,43 @@ export function KralSanati({ boyut = 84 }: Boyut) {
     </Svg>
   );
 }
+
+/**
+ * SKOR TAHMİNİ — dijital skor tabelası "2 : 1". Rakamlar yedi segmentli
+ * dikdörtgenlerle çiziliyor: çizimde yazı tipi yok (platforma göre değişmez).
+ */
+export function SkorSanati({ boyut = 84 }: Boyut) {
+  const k = useKimlik("sk");
+  const SEG = "#fbcfe8";
+  /* Rakam kutusu sol üst (x, y); segment kalınlığı 5, genişlik 20, yükseklik 34. */
+  const rakam = (x: number, y: number, seg: string[]) => {
+    const r: Record<string, [number, number, number, number]> = {
+      a: [x + 3, y, 14, 5], b: [x + 17, y + 3, 5, 13], c: [x + 17, y + 19, 5, 13],
+      d: [x + 3, y + 30, 14, 5], e: [x - 2, y + 19, 5, 13], f: [x - 2, y + 3, 5, 13], g: [x + 3, y + 15, 14, 5],
+    };
+    return seg.map((ad) => {
+      const [rx, ry, w, h] = r[ad];
+      return <Rect key={`${x}${ad}`} x={rx} y={ry} width={w} height={h} rx={2} fill={SEG} />;
+    });
+  };
+  return (
+    <Svg width={boyut} height={boyut} viewBox="0 0 120 120">
+      <Defs>
+        <LinearGradient id={k("pano")} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#db2777" />
+          <Stop offset="1" stopColor="#831843" />
+        </LinearGradient>
+      </Defs>
+      <Rect x="42" y="14" width="8" height="16" rx="2" fill="#9d174d" />
+      <Rect x="70" y="14" width="8" height="16" rx="2" fill="#9d174d" />
+      <Rect x="12" y="26" width="96" height="70" rx="12" fill={`url(#${k("pano")})`} />
+      <Rect x="20" y="36" width="34" height="50" rx="6" fill="#500724" />
+      <Rect x="66" y="36" width="34" height="50" rx="6" fill="#500724" />
+      {rakam(27, 44, ["a", "b", "g", "e", "d"])}
+      {rakam(73, 44, ["b", "c"])}
+      <Circle cx="60" cy="53" r="3" fill={SEG} />
+      <Circle cx="60" cy="69" r="3" fill={SEG} />
+      <Rect x="36" y="96" width="48" height="10" rx="3" fill="#831843" />
+    </Svg>
+  );
+}

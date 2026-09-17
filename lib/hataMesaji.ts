@@ -99,6 +99,11 @@ const SOZLUK: Record<string, string> = {
   SAAT_KESIN_DEGIL:
     "Bu maçın başlama saati henüz kesinleşmedi. Saat belli olunca oynanabilir olacak.",
 
+  // ── Skor Tahmini (api routes/skor-tahmini.cjs) ───────────────────
+  SKOR_GECERSIZ: "Skor her takım için 0 ile 15 gol arasında olmalı.",
+  SKOR_MACI_DEGIL: "Bu maç skor tahminine açık değil. Listeden bir maç seç.",
+  TAHMIN_KILITLI: "Bu maç için tahminler kapandı.",
+
   // ── Kimlik / yetki ───────────────────────────────────────────────
   UNAUTHORIZED: "Bu işlem için giriş yapman gerekiyor.",
   AUTH_REQUIRED: "Bu işlem için giriş yapman gerekiyor.",

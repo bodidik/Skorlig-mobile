@@ -17,13 +17,14 @@
  */
 
 /** `premium`: mağaza gerçekten satın alma tamamlayabiliyor mu (sunucu STORE_MODE). */
-export type Ozellikler = { duello: boolean; havuz: boolean; premium: boolean };
+/** `skor`: Skor Tahmini (2026-09-17) — yeni para akışı, sunucu bayrağı açılmadan görünmez. */
+export type Ozellikler = { duello: boolean; havuz: boolean; premium: boolean; skor: boolean };
 
-export const OZELLIK_VARSAYILAN: Readonly<Ozellikler> = Object.freeze({ duello: false, havuz: false, premium: false });
+export const OZELLIK_VARSAYILAN: Readonly<Ozellikler> = Object.freeze({ duello: false, havuz: false, premium: false, skor: false });
 
 export function ozellikleriCoz(yanit: unknown): Ozellikler {
   const o = (yanit as { ozellikler?: Record<string, unknown> } | null | undefined)?.ozellikler;
-  return { duello: o?.duello === true, havuz: o?.havuz === true, premium: o?.premium === true };
+  return { duello: o?.duello === true, havuz: o?.havuz === true, premium: o?.premium === true, skor: o?.skor === true };
 }
 
 /**
@@ -33,6 +34,7 @@ export function ozellikleriCoz(yanit: unknown): Ozellikler {
 export function modAcikMi(key: string, o: Ozellikler): boolean {
   if (key === "duello") return o.duello;
   if (key === "havuz") return o.havuz;
+  if (key === "skor") return o.skor;
   return true;
 }
 

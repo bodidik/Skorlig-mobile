@@ -28,19 +28,21 @@
  */
 
 /** Mod anahtarları — `lib/ozellikler.ts` `modAcikMi` bu adları tanıyor. */
-export type ModAnahtari = "tek" | "kupon" | "mini" | "gs1987" | "duello" | "havuz";
+export type ModAnahtari = "tek" | "kupon" | "skor" | "mini" | "gs1987" | "duello" | "havuz";
 
 /**
  * ⚠️ SIRA BİLİNÇLİ: beceri odaklı modlar önde, kesinti/havuz mekaniği taşıyan
  * modlar (düello, havuz) arkada — IARC "simüle edilmiş şans oyunu" ve
  * "dolandırılıyor muyum" algısı. Ayrıntı `components/OyunMerkezi.tsx` başlığında.
  */
-export const MOD_SIRASI: readonly ModAnahtari[] = ["kupon", "tek", "mini", "gs1987", "duello", "havuz"];
+export const MOD_SIRASI: readonly ModAnahtari[] = ["kupon", "tek", "skor", "mini", "gs1987", "duello", "havuz"];
 
 /** Mod vurgu renkleri — yalnız ikon kutusu, küçük etiket ve dolu düğmede. */
 export const MOD_RENGI: Record<ModAnahtari, string> = {
   kupon: "#a3e635",
   tek: "#38bdf8",
+  /* Skor Tahmini (2026-09-17): pembe — diğer altı moddan ayrışıyor; kartta 5.56, dolu düğmede koyu yazı 7.62. */
+  skor: "#f472b6",
   mini: "#fbbf24",
   gs1987: "#f87171",
   duello: "#fb923c",
@@ -92,11 +94,13 @@ export function ikonKutusu(key: ModAnahtari): string {
 }
 
 /**
- * Listede (tam modda) kupon ve tek maç dışında kalan modlar — o ikisi üstte
- * canlı içerikli kendi kartlarında; aynı mod iki kez görünmesin. Sıra korunur.
+ * Listede (tam modda) kupon, tek maç ve skor tahmini dışında kalan modlar — o
+ * üçü üstte canlı içerikli kendi kartlarında; aynı mod iki kez görünmesin.
+ * Sıra korunur.
  */
+export const GENIS_KARTLI: readonly ModAnahtari[] = ["kupon", "tek", "skor"];
 export function digerModlar<T extends { key: string }>(gorunen: readonly T[]): T[] {
-  return gorunen.filter((m) => m.key !== "kupon" && m.key !== "tek");
+  return gorunen.filter((m) => !(GENIS_KARTLI as readonly string[]).includes(m.key));
 }
 
 export type KuponAsamasi = "katil" | "eksik" | "tamam";

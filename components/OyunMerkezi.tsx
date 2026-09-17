@@ -58,9 +58,10 @@ import {
 import Basinc from "./Basinc";
 import KuponKarti from "./KuponKarti";
 import DailyMatchCard from "./DailyMatchCard";
+import SkorTahminiKarti from "./SkorTahminiKarti";
 import { IkonKutusu, KartBasi, parca, type SanatBileseni } from "./OyunKartParcalari";
 import {
-  DuelloSanati, GsSanati, HavuzSanati, KuponSanati, MiniSanati, TekMacSanati,
+  DuelloSanati, GsSanati, HavuzSanati, KuponSanati, MiniSanati, SkorSanati, TekMacSanati,
 } from "./OyunSanati";
 
 export type OyunMerkeziProps = {
@@ -110,6 +111,11 @@ export default function OyunMerkezi({
       ad: t("modeSingle"), aciklama: t("singleHeroSub"), bedel: bedelMetni(macBedeli),
       Sanat: TekMacSanati, bas: tahmineGit,
     },
+    skor: {
+      /* Skor Tahmini (2026-09-17) — ayrı oyun, sunucu bayrağına bağlı. */
+      ad: t("skorTitle"), aciklama: t("skorRulesLink"), bedel: bedelMetni(macBedeli),
+      Sanat: SkorSanati, bas: () => router.push("/skor-tahmini" as any),
+    },
     mini: {
       ad: t("modeMini"), aciklama: t("modeMiniDesc2"), bedel: t("freeLbl"),
       Sanat: MiniSanati, bas: () => router.push("/mini/create" as any),
@@ -155,6 +161,7 @@ export default function OyunMerkezi({
   const diger = digerModlar(gorunenModlar);
   const kuponVar = gorunenModlar.some((m) => m.key === "kupon");
   const tekVar = gorunenModlar.some((m) => m.key === "tek");
+  const skorVar = gorunenModlar.some((m) => m.key === "skor");
 
   return (
     <View style={s.kok}>
@@ -214,6 +221,10 @@ export default function OyunMerkezi({
           />
         </View>
       )}
+
+      {/* 2b ─ SKOR TAHMİNİ: tek maç biçiminde tam skor tahmini (kullanıcı isteği
+          2026-09-17). Bayrak kapalıysa mod listede yok, kart çizilmez. */}
+      {skorVar && <SkorTahminiKarti />}
 
       {/* 3 ─ DİĞER OYUNLAR: tek kart, satırlar. Dört ayrı çerçeveli karo
           "keşmekeş"in parçasıydı; liste taranabilir ve sırası belli. */}

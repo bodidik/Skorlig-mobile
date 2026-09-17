@@ -60,9 +60,9 @@ const ESIK = 4.5;
 const HEX6 = /^#[0-9a-f]{6}$/i;
 
 describe("kurulum", () => {
-  test("altı mod, her biri sırada bir kez, rengi düz altı haneli", () => {
-    assert.equal(MOD_SIRASI.length, 6);
-    assert.equal(new Set(MOD_SIRASI).size, 6, "sirada tekrar eden mod var");
+  test("yedi mod (Skor Tahmini 2026-09-17), her biri sırada bir kez, rengi düz altı haneli", () => {
+    assert.equal(MOD_SIRASI.length, 7);
+    assert.equal(new Set(MOD_SIRASI).size, 7, "sirada tekrar eden mod var");
     for (const k of MOD_SIRASI) assert.match(MOD_RENGI[k], HEX6, `${k} rengi duz degil`);
   });
 
@@ -245,10 +245,10 @@ describe("SIRA", () => {
 
   test("beceri modları önde, düello ve havuz EN SONDA", () => {
     assert.deepEqual(MOD_SIRASI.slice(-2), ["duello", "havuz"]);
-    assert.deepEqual(MOD_SIRASI.slice(0, 2), ["kupon", "tek"]);
+    assert.deepEqual(MOD_SIRASI.slice(0, 3), ["kupon", "tek", "skor"]);
   });
 
-  test("digerModlar kupon ve tek maçı çıkarıyor, sırayı koruyor", () => {
+  test("digerModlar geniş kartlıları (kupon, tek maç, skor) çıkarıyor, sırayı koruyor", () => {
     const hepsi = MOD_SIRASI.map((key) => ({ key }));
     assert.deepEqual(digerModlar(hepsi).map((m) => m.key), ["mini", "gs1987", "duello", "havuz"]);
     const gizli = hepsi.filter((m) => m.key !== "duello" && m.key !== "havuz");
@@ -296,7 +296,7 @@ describe("çizimler", () => {
   });
 
   test("her modun çizimi merkezde bağlı", () => {
-    for (const ad of ["KuponSanati", "TekMacSanati", "MiniSanati", "GsSanati", "DuelloSanati", "HavuzSanati"]) {
+    for (const ad of ["KuponSanati", "TekMacSanati", "SkorSanati", "MiniSanati", "GsSanati", "DuelloSanati", "HavuzSanati"]) {
       assert.match(SANAT, new RegExp(`export function ${ad}\\(`));
       assert.match(MERKEZ + KUPON, new RegExp(`\\b${ad}\\b`));
     }

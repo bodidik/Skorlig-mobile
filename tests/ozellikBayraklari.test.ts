@@ -28,32 +28,35 @@ import { KARTLAR, gorunurKartlar } from "../lib/tanitimKart.ts";
 
 describe("saf kurallar", () => {
   test("varsayılan HEPSİ KAPALI ve donmuş", () => {
-    assert.deepEqual({ ...OZELLIK_VARSAYILAN }, { duello: false, havuz: false, premium: false });
+    assert.deepEqual({ ...OZELLIK_VARSAYILAN }, { duello: false, havuz: false, premium: false, skor: false });
     assert.ok(Object.isFrozen(OZELLIK_VARSAYILAN), "varsayilan degistirilebilir — bir ekran onu acabilir");
   });
 
   test("okunamayan/bozuk yanıt GİZLİ sayılıyor", () => {
     for (const yanit of [null, undefined, {}, { ok: true }, { ozellikler: null }, "html hata sayfasi", 42]) {
-      assert.deepEqual(ozellikleriCoz(yanit), { duello: false, havuz: false, premium: false }, `acildi: ${JSON.stringify(yanit)}`);
+      assert.deepEqual(ozellikleriCoz(yanit), { duello: false, havuz: false, premium: false, skor: false }, `acildi: ${JSON.stringify(yanit)}`);
     }
   });
 
   test("yalnızca açık `true` açıyor — \"true\", 1, \"1\" açmıyor", () => {
-    assert.deepEqual(ozellikleriCoz({ ozellikler: { duello: true, havuz: false, premium: true } }), { duello: true, havuz: false, premium: true });
+    assert.deepEqual(ozellikleriCoz({ ozellikler: { duello: true, havuz: false, premium: true, skor: true } }), { duello: true, havuz: false, premium: true, skor: true });
     for (const deger of ["true", 1, "1", "evet"]) {
-      const o = ozellikleriCoz({ ozellikler: { duello: deger, havuz: deger, premium: deger } });
-      assert.deepEqual(o, { duello: false, havuz: false, premium: false }, `${JSON.stringify(deger)} acti`);
+      const o = ozellikleriCoz({ ozellikler: { duello: deger, havuz: deger, premium: deger, skor: deger } });
+      assert.deepEqual(o, { duello: false, havuz: false, premium: false, skor: false }, `${JSON.stringify(deger)} acti`);
     }
   });
 
   test("modAcikMi yalnızca bayraklı modları süzüyor", () => {
-    const kapali = { duello: false, havuz: false, premium: false };
+    const kapali = { duello: false, havuz: false, premium: false, skor: false };
     assert.equal(modAcikMi("duello", kapali), false);
     assert.equal(modAcikMi("havuz", kapali), false);
+    /* Skor Tahmini (2026-09-17): yeni para akışı, sunucu açmadıkça görünmez. */
+    assert.equal(modAcikMi("skor", kapali), false);
+    assert.equal(modAcikMi("skor", { ...kapali, skor: true }), true);
     for (const key of ["tek", "kupon", "mini", "gs1987", "yeni-mod"]) {
       assert.equal(modAcikMi(key, kapali), true, `${key} gizlendi`);
     }
-    assert.equal(modAcikMi("duello", { duello: true, havuz: false, premium: false }), true);
+    assert.equal(modAcikMi("duello", { duello: true, havuz: false, premium: false, skor: false }), true);
   });
 
   test("sekmeGizliMi expo-router'ın href:null işaretini tanıyor", () => {
@@ -64,8 +67,8 @@ describe("saf kurallar", () => {
   });
 
   test("düello bildirimi kapalıyken LC geçmişine gidiyor, açıkken arenaya", () => {
-    assert.equal(duelloBildirimHedefi({ duello: false, havuz: false, premium: false }), "/lc-ledger");
-    assert.equal(duelloBildirimHedefi({ duello: true, havuz: false, premium: false }), "/(tabs)/arena");
+    assert.equal(duelloBildirimHedefi({ duello: false, havuz: false, premium: false, skor: false }), "/lc-ledger");
+    assert.equal(duelloBildirimHedefi({ duello: true, havuz: false, premium: false, skor: false }), "/(tabs)/arena");
   });
 
   test("tanıtım kartları: kapalı özelliğin kartı YOK, ötekiler duruyor", () => {
