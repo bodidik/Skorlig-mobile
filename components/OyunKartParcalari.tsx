@@ -16,18 +16,24 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import {
-  KART_ZEMINI, METIN_ANA, METIN_IKINCIL, MOD_RENGI, ikonKutusu, type ModAnahtari,
+  IKON_KUTUSU_ORANI, KART_ZEMINI, METIN_ANA, METIN_IKINCIL, MOD_RENGI, ikonKutusu, karistir, type ModAnahtari,
 } from "../lib/oyunMerkezi";
 
 export type SanatBileseni = React.ComponentType<{ boyut?: number }>;
 
+/** Vurgu rengi: açık `renk` verilmişse o (mod olmayan kartlar, ör. Krallar), yoksa modun rengi. */
+function vurguRengi(modu?: ModAnahtari, renk?: string): string {
+  return renk || (modu ? MOD_RENGI[modu] : METIN_ANA);
+}
+
 /** Modun çizimi, düz renkli yuvarlak köşeli kutusunda. */
-export function IkonKutusu({ modu, Sanat, boyut = 56 }: { modu: ModAnahtari; Sanat: SanatBileseni; boyut?: number }) {
+export function IkonKutusu({ modu, renk, Sanat, boyut = 56 }: { modu?: ModAnahtari; renk?: string; Sanat: SanatBileseni; boyut?: number }) {
+  const zemin = renk ? karistir(renk, KART_ZEMINI, IKON_KUTUSU_ORANI) : modu ? ikonKutusu(modu) : KART_ZEMINI;
   return (
     <View
       style={{
         width: boyut, height: boyut, borderRadius: Math.round(boyut * 0.28),
-        backgroundColor: ikonKutusu(modu), alignItems: "center", justifyContent: "center",
+        backgroundColor: zemin, alignItems: "center", justifyContent: "center",
       }}
     >
       <Sanat boyut={Math.round(boyut * 0.86)} />
@@ -41,9 +47,10 @@ export function IkonKutusu({ modu, Sanat, boyut = 56 }: { modu: ModAnahtari; San
  * söyler, nasıl oynandığını açıklama satırı söyler.
  */
 export function KartBasi({
-  modu, Sanat, ad, alt, sag,
+  modu, renk, Sanat, ad, alt, sag,
 }: {
-  modu: ModAnahtari;
+  modu?: ModAnahtari;
+  renk?: string;
   Sanat: SanatBileseni;
   ad: string;
   alt?: string | null;
@@ -51,11 +58,11 @@ export function KartBasi({
 }) {
   return (
     <View style={parca.bas}>
-      <IkonKutusu modu={modu} Sanat={Sanat} />
+      <IkonKutusu modu={modu} renk={renk} Sanat={Sanat} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={parca.ad} numberOfLines={1}>{ad}</Text>
         {alt ? (
-          <Text style={[parca.alt, { color: MOD_RENGI[modu] }]} numberOfLines={1}>{alt}</Text>
+          <Text style={[parca.alt, { color: vurguRengi(modu, renk) }]} numberOfLines={1}>{alt}</Text>
         ) : null}
       </View>
       {sag}

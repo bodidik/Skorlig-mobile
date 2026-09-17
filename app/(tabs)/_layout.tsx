@@ -25,6 +25,11 @@ export default function TabsLayout() {
       <Tabs.Screen name="arena" options={{ title: t("modeDuel"), href: ozellik.duello ? undefined : null }} />
       <Tabs.Screen name="stats" options={{ title: t("rankingTab") }} />
       <Tabs.Screen name="me" options={{ title: t("tabProfile") }} />
+      {/* ⚠️ "kings" dosyası sekme grubunda ama burada TANIMLI DEĞİLDİ: başlık
+          rota adına düşüyor, alt çubukta çevrilmemiş "kings" yazıyordu
+          (2026-09-17 emülatörde görüldü). Ana ekrandaki Krallar özeti buraya
+          yönlendiriyor. */}
+      <Tabs.Screen name="kings" options={{ title: t("kingsTab") }} />
     </Tabs>
     {/* Kullanıcı yokken sonuçlanan kazançların kutlaması — tüm sekmelerin üstünde. */}
     <KazancBildirimi />

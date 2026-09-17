@@ -25,6 +25,7 @@ const IKONLAR: Record<string, { aktif: any; pasif: any }> = {
   arena:   { aktif: "flash",         pasif: "flash-outline" },
   stats:   { aktif: "podium",        pasif: "podium-outline" },
   me:      { aktif: "person-circle", pasif: "person-circle-outline" },
+  kings:   { aktif: "trophy",        pasif: "trophy-outline" },
 };
 
 function Sekme({

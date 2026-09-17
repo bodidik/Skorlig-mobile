@@ -111,16 +111,16 @@ export default function AramaKutusu({
 const s = StyleSheet.create({
   kok:        { gap: 6, marginBottom: 10 },
   satir:      { flexDirection: "row", alignItems: "center", gap: 8,
-                backgroundColor: "#0f172a", borderRadius: 12, borderWidth: 1,
-                borderColor: Colors.border, paddingHorizontal: 12, height: 42 },
+                backgroundColor: Colors.card, borderRadius: 12, borderWidth: 1,
+                borderColor: Colors.cardInner, paddingHorizontal: 12, height: 42 },
   ikon:       { fontSize: 14 },
   /* ⚠️ `minWidth: 0` ŞART: `flex:1` kardeşi `shrink-0` olan bir kapta
    * sıfıra iner ve girdi görünmez olur (bu depoda kayıtlı `flex-1` kusuru). */
   girdi:      { flex: 1, minWidth: 0, color: "#e5e7eb", fontSize: 14, paddingVertical: 0 },
-  temizle:    { fontSize: 18, color: Colors.muted, paddingHorizontal: 2 },
-  durum:      { fontSize: 11, color: Colors.muted, paddingHorizontal: 4 },
+  temizle:    { fontSize: 18, color: Colors.mutedOnCard, paddingHorizontal: 2 },
+  durum:      { fontSize: 11, color: Colors.mutedOnCard, paddingHorizontal: 4 },
   oneriSeridi:{ gap: 8, paddingHorizontal: 2, paddingVertical: 2 },
-  oneri:      { backgroundColor: "#1e293b", borderRadius: 999, paddingHorizontal: 12,
-                paddingVertical: 7, borderWidth: 1, borderColor: Colors.border },
+  oneri:      { backgroundColor: Colors.cardInner, borderRadius: 999, paddingHorizontal: 12,
+                paddingVertical: 7, borderWidth: 1, borderColor: Colors.cardInner },
   oneriTxt:   { fontSize: 12, color: "#cbd5e1", fontWeight: "600" },
 });

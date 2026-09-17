@@ -208,3 +208,26 @@ export function HavuzSanati({ boyut = 84 }: Boyut) {
     </Svg>
   );
 }
+
+/** KRALLAR — sezon liderlerinin tacı (sıralama alanı; oyun modu değil). */
+export function KralSanati({ boyut = 84 }: Boyut) {
+  const k = useKimlik("kr");
+  return (
+    <Svg width={boyut} height={boyut} viewBox="0 0 120 120">
+      <Defs>
+        <LinearGradient id={k("tac")} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#fde68a" />
+          <Stop offset="1" stopColor="#d97706" />
+        </LinearGradient>
+      </Defs>
+      <Path d="M18 44 L40 66 L60 30 L80 66 L102 44 L94 92 H26 Z" fill={`url(#${k("tac")})`} stroke="#fef3c7" strokeWidth={3} strokeLinejoin="round" />
+      <Rect x="26" y="92" width="68" height="12" rx="4" fill="#b45309" />
+      <Circle cx="18" cy="42" r="7" fill="#fbbf24" />
+      <Circle cx="60" cy="27" r="8" fill="#fbbf24" />
+      <Circle cx="102" cy="42" r="7" fill="#fbbf24" />
+      <Circle cx="60" cy="74" r="8" fill="#ef4444" />
+      <Circle cx="38" cy="80" r="5" fill="#38bdf8" />
+      <Circle cx="82" cy="80" r="5" fill="#22c55e" />
+    </Svg>
+  );
+}

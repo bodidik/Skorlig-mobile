@@ -47,10 +47,15 @@ export const MOD_RENGI: Record<ModAnahtari, string> = {
   havuz: "#a78bfa",
 };
 
-/** Kart yüzeyi — düz. Sayfa zemininden boşlukla ayrılıyor, kenarlık yok. */
-export const KART_ZEMINI = "#0f172a";
-/** Kart içindeki ikincil yüzey (maç düğmeleri, ilerleme boşluğu). */
-export const IC_YUZEY = "#1e293b";
+/**
+ * Kart yüzeyi — düz, kenarlık yok. `constants/colors.ts` `Colors.card` ile AYNI
+ * olmalı (ana ekranın diğer kartlarıyla tek ton); burada içe aktarılmıyor çünkü
+ * bu modül Node altında uzantısız içe aktarım olmadan sınanıyor — eşitliği
+ * tests/oyunMerkezi.test.ts ölçüyor.
+ */
+export const KART_ZEMINI = "#132b36";
+/** Kart içindeki ikincil yüzey (maç düğmeleri, önizleme kutusu) — `Colors.cardInner`. */
+export const IC_YUZEY = "#1d3b47";
 /** Metin tonları — hepsi KART_ZEMINI ve IC_YUZEY üstünde ölçülü. */
 export const METIN_ANA = "#f8fafc";
 export const METIN_IKINCIL = "#cbd5e1";
@@ -62,7 +67,7 @@ export const DUGME_YAZISI = "#020617";
 export const IKON_KUTUSU_ORANI = 0.2;
 
 /** Kupon ilerleme çubuğunun boş parçası. Bilgi "3/8" yazısında da var. */
-export const ILERLEME_BOS = "#334155";
+export const ILERLEME_BOS = "#335664";
 
 /**
  * `ust` rengini `alt` rengine `oran` kadar karıştırıp DÜZ `#rrggbb` döndürür

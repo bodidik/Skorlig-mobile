@@ -20,7 +20,18 @@ export const Colors = {
   black: "#000000",
   border: "#1e293b",
   slate900: "#e2e8f0",
-  card: "#0f172a",
+  /* ⚠️ KART YÜZEYİ (2026-09-17, kullanıcı: "zemin rengiyle kutuların rengi
+   * arasındaki benzerliği düşürelim; tam bir ayrımdan ziyade … koyu mavi, çok
+   * hafif dark yeşile doğru açılabilir"). Eski #0f172a sayfa zemininde
+   * (#030d18) 1.09 veriyordu — kartlar zeminden ayrılmıyordu. Taranan tonlardan
+   * #132b36: zeminle 1.33 (belirgin ama sert değil), üstünde #94a3b8 5.74,
+   * vurgu renklerinin en kötüsü (#f87171) 5.32.
+   * ⚠️ #64748b bu kartta 3.09 — kart üstünde soluk yazı için `mutedOnCard`. */
+  card: "#132b36",
+  /** Kart İÇİNDEKİ yüzey (düğme, önizleme kutusu): kartla 1.24, #94a3b8 üstünde 4.63. */
+  cardInner: "#1d3b47",
+  /** Kart üstünde okunur soluk yazı (`muted` #64748b kartta eşiğin altında). */
+  mutedOnCard: "#94a3b8",
   cardBorder: "#1e293b",
   textMuted: "#64748b",
   purple: "#7c3aed",

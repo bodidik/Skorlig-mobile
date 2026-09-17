@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Colors from "../constants/colors";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -101,8 +102,8 @@ export default function NasilOynanirSeridi() {
 
 const s = StyleSheet.create({
   kok:    { flexDirection: "row", alignItems: "center", gap: 10, height: 34,
-            paddingHorizontal: 12, backgroundColor: "#0f172a",
-            borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#1e293b" },
+            paddingHorizontal: 12, backgroundColor: Colors.card,
+            borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.cardInner },
   sol:    { flex: 1 },
   metin:  { fontSize: 12, color: "#cbd5e1" },
   kapat:  { fontSize: 11, color: "#94a3b8", fontWeight: "700" },

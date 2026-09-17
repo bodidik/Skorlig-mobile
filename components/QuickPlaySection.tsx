@@ -4,6 +4,7 @@ import QuickPickCard, { PickFixture } from "./QuickPickCard";
 import StreakBar, { type SunucuTier } from "./StreakBar";
 import { apiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
+import Colors from "../constants/colors";
 
 type Props = {
   country?: string | null;
@@ -133,12 +134,12 @@ export default function QuickPlaySection({ country, userId }: Props) {
 const s = StyleSheet.create({
   container: { paddingHorizontal: 12, paddingTop: 8 },
   loadingBox: { padding: 40, alignItems: "center" },
-  loadingText: { color: "#64748b", marginTop: 8, fontSize: 12 },
+  loadingText: { color: Colors.mutedOnCard, marginTop: 8, fontSize: 12 },
   emptyBox: { padding: 40, alignItems: "center" },
-  emptyText: { color: "#64748b", fontSize: 13 },
+  emptyText: { color: Colors.mutedOnCard, fontSize: 13 },
   section: { marginBottom: 16 },
   sectionTitle: { color: "#f1f5f9", fontSize: 16, fontWeight: "900", marginBottom: 2 },
-  sectionSub: { color: "#64748b", fontSize: 11, marginBottom: 10 },
+  sectionSub: { color: Colors.mutedOnCard, fontSize: 11, marginBottom: 10 },
   quadHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
   bonusBadge: {
     backgroundColor: "#fbbf2420", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,

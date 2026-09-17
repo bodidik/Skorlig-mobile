@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import Colors from "../constants/colors";
 import { t, useLang } from "../lib/i18n";
 import { macSaatiEtiketi } from "../lib/macSaati";
 import {
@@ -53,7 +54,7 @@ function ScoreCounter({
 
 const sc = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 6 },
-  btn: { width: 26, height: 26, borderRadius: 13, backgroundColor: "#1e293b", alignItems: "center", justifyContent: "center" },
+  btn: { width: 26, height: 26, borderRadius: 13, backgroundColor: Colors.cardInner, alignItems: "center", justifyContent: "center" },
   op: { color: "#94a3b8", fontSize: 16, fontWeight: "700", lineHeight: 20 },
   val: { color: "#f1f5f9", fontSize: 15, fontWeight: "800", minWidth: 22, textAlign: "center" },
 });
@@ -357,20 +358,20 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: "#0f172a",
+    backgroundColor: Colors.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#1e293b",
+    borderColor: Colors.card,
     padding: 14,
     marginBottom: 10,
   },
   cardCompact: { padding: 10 },
   meta: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
   league: { color: "#a3e635", fontSize: 10, fontWeight: "700", flex: 1 },
-  kickoff: { color: "#64748b", fontSize: 10 },
+  kickoff: { color: Colors.mutedOnCard, fontSize: 10 },
   teams: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 6 },
   teamName: { flex: 1, color: "#f1f5f9", fontSize: 13, fontWeight: "800", textAlign: "center" },
-  vs: { color: "#475569", fontSize: 11, fontWeight: "600" },
+  vs: { color: Colors.mutedOnCard, fontSize: 11, fontWeight: "600" },
   buttons: { flexDirection: "row", gap: 6 },
   btn: {
     flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 2,
@@ -394,7 +395,7 @@ const s = StyleSheet.create({
   detayPanel: { marginTop: 8, gap: 10 },
   detayRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   detayLbl: { color: "#94a3b8", fontSize: 11, fontWeight: "700" },
-  detaySep: { color: "#475569", fontSize: 16, fontWeight: "700" },
+  detaySep: { color: Colors.mutedOnCard, fontSize: 16, fontWeight: "700" },
   detayGonderBtn: { backgroundColor: "#2563eb", borderRadius: 8, paddingVertical: 9, alignItems: "center", marginTop: 4 },
   detayGonderText: { color: "#fff", fontSize: 12, fontWeight: "800" },
 });

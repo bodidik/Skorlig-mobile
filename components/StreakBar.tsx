@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { t, useLang, type StringKey } from "../lib/i18n";
 import { View, Text, StyleSheet, Animated, Easing } from "react-native";
 import GradyanZemin from "./GradyanZemin";
-import { Gradyan } from "../constants/colors";
+import Colors, { Gradyan } from "../constants/colors";
 
 type Tier = { threshold: number; bonus: number; label: string } | null;
 /** Sunucunun yayımladığı eşik listesi (/api/live/streak → tiers). */
@@ -171,7 +171,7 @@ export default function StreakBar({ seriesCumOdds, seriesCount, activeSeries, be
 
 const s = StyleSheet.create({
   container: {
-    backgroundColor: "#1e293b",
+    backgroundColor: Colors.card,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
@@ -185,10 +185,10 @@ const s = StyleSheet.create({
   label: { color: "#fbbf24", fontWeight: "800", fontSize: 13 },
   stats: { color: "#94a3b8", fontSize: 11, fontWeight: "600" },
   barBg: {
-    height: 6, backgroundColor: "#334155", borderRadius: 3,
+    height: 6, backgroundColor: Colors.cardInner, borderRadius: 3,
     marginVertical: 8, overflow: "hidden",
   },
   barFill: { height: 6, backgroundColor: "#a3e635", borderRadius: 3 },
-  hint: { color: "#64748b", fontSize: 10 },
-  best: { color: "#64748b", fontSize: 10 },
+  hint: { color: Colors.mutedOnCard, fontSize: 10 },
+  best: { color: Colors.mutedOnCard, fontSize: 10 },
 });

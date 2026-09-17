@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
+import Colors from "../constants/colors";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { apiFetch } from "../lib/apiFetch";
@@ -69,8 +70,8 @@ export default function SkorMerkezi({ country }: { country?: string | null }) {
       onPress={() => router.push("/livescores")}
       activeOpacity={0.85}
       style={{
-        backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1,
-        borderColor: canliSayisi ? "#22c55e44" : "#1e293b",
+        backgroundColor: Colors.card, borderRadius: 14, borderWidth: 1,
+        borderColor: canliSayisi ? "#22c55e44" : Colors.card,
         padding: 12, marginBottom: 12,
       }}
     >

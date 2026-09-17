@@ -19,6 +19,7 @@ import { withAdminHeaders } from "../../lib/adminToken";
 import DailyMenuStrip from "../../components/DailyMenuStrip";
 import QuickPlaySection from "../../components/QuickPlaySection";
 import OyunMerkezi from "../../components/OyunMerkezi";
+import KrallarOzeti from "../../components/KrallarOzeti";
 import TournamentCreate from "../../components/TournamentCreate";
 import TournamentJoin from "../../components/TournamentJoin";
 import Picks1987 from "../../components/Picks1987";
@@ -333,7 +334,7 @@ const SettleSummaryStrip: React.FC<{ points: number; detail: any }> = ({ points,
     <View style={{
       flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5,
       paddingHorizontal: 10, paddingVertical: 6,
-      borderTopWidth: 1, borderTopColor: "#33415555", backgroundColor: "#0f172a",
+      borderTopWidth: 1, borderTopColor: Colors.cardInner, backgroundColor: Colors.card,
     }}>
       <View style={{
         paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
@@ -443,8 +444,8 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
   const tahmineAcik = !isFinished && !isLive && !sonucBekliyor && !kickoffGecmis;
 
   const highlight = mode === "open" ? true : isLive;
-  const cardBg = selected ? "#1e1b4b" : isLive ? "#071a0f" : "#0f172a";
-  const borderCol = selected ? "#6366F1" : isLive ? Colors.live : highlight ? "#22c55e22" : Colors.border;
+  const cardBg = selected ? "#1e1b4b" : isLive ? "#071a0f" : Colors.card;
+  const borderCol = selected ? "#6366F1" : isLive ? Colors.live : highlight ? "#22c55e22" : Colors.card;
 
   const showPredLine = mode === "open";
   const predText =
@@ -614,15 +615,15 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
                     paddingHorizontal: 12,
                     paddingVertical: 8,
                     borderRadius: 999,
-                    backgroundColor: "#0f172a",
+                    backgroundColor: Colors.card,
                     borderWidth: 1,
-                    borderColor: "#334155",
+                    borderColor: Colors.cardInner,
                     flexDirection: "row",
                     alignItems: "center",
                     opacity: 0.45,
                   }}
                 >
-                  <Text style={{ color: "#64748b", fontWeight: "700", fontSize: 12 }}>⚔️🔒</Text>
+                  <Text style={{ color: Colors.mutedOnCard, fontWeight: "700", fontSize: 12 }}>⚔️🔒</Text>
                 </View>
               ) : (
                 <TouchableOpacity
@@ -631,7 +632,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
                     paddingHorizontal: 12,
                     paddingVertical: 8,
                     borderRadius: 999,
-                    backgroundColor: "#1e293b",
+                    backgroundColor: Colors.cardInner,
                     borderWidth: 1,
                     borderColor: "#f59e0b55",
                     flexDirection: "row",
@@ -1736,6 +1737,14 @@ export default function LiveScreen() {
               userId={userId}
             />
 
+            {/* ===== KRALLAR — SEZONUN İLK 5'İ =====
+                Kullanıcı isteği (2026-09-17): "ana ekranda kralların ilk 5
+                sırasını gösteren bir alan … isteyen listeyi devamına tıklayarak
+                krallar kısmından devam edebilsin." Sıra Krallar sekmesiyle
+                aynı uçtan (bkz. lib/krallarOzeti.ts). Yalnız maç listesi
+                modlarında; öteki modlar kendi içeriğine odaklı. */}
+            {(mode === "schedule" || mode === "open") && <KrallarOzeti userId={userId} />}
+
             {/* ===== SKOR MERKEZİ =====
                 "Bitmiş maçları görmek zor" bildirimi: gerçek sonuç ekranı
                 listenin dibindeki tek düğmenin arkasındaydı. Bu şerit canlı
@@ -1830,11 +1839,11 @@ export default function LiveScreen() {
                       style={{
                         paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
                         borderWidth: 1,
-                        borderColor: secili ? Colors.accent : "#1e293b",
-                        backgroundColor: secili ? "#1d4ed822" : "#0a1120",
+                        borderColor: secili ? Colors.accent : Colors.card,
+                        backgroundColor: secili ? "#1d4ed822" : Colors.card,
                       }}
                     >
-                      <Text style={{ color: secili ? "#60a5fa" : "#64748b", fontSize: 11, fontWeight: secili ? "800" : "600" }}>
+                      <Text style={{ color: secili ? "#60a5fa" : Colors.mutedOnCard, fontSize: 11, fontWeight: secili ? "800" : "600" }}>
                         {s.l}
                       </Text>
                     </TouchableOpacity>
@@ -1977,7 +1986,7 @@ export default function LiveScreen() {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 6,
-                backgroundColor: "#0f172a",
+                backgroundColor: Colors.card,
                 borderRadius: 10,
                 borderWidth: 1,
                 borderColor: "#22c55e44",
