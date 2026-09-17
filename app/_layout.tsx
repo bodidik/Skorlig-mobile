@@ -4,6 +4,8 @@ import { duelloBildirimHedefi } from "../lib/ozellikler";
 import { ozellikAnlik } from "../hooks/useOzellikler";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Colors from "../constants/colors";
 import * as Notifications from "expo-notifications";
 import * as Linking from "expo-linking";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
@@ -167,6 +169,7 @@ function AuthGuard() {
 
 export default function RootLayout() {
   useLang(); // dil değişince yeniden çizilsin
+  const insets = useSafeAreaInsets();
   return (
     // ⚠️ EN DIŞTA: uygulamada hiç hata sınırı yoktu. Render sırasındaki tek bir
     // hata tüm ağacı söküyor, yayında uygulama beyaz ekrana/kapanmaya gidiyordu.
@@ -189,13 +192,25 @@ export default function RootLayout() {
           * için türetmek okunaksız olurdu. İkisi ayrışırsa ya boşluk boşuna
           * kalır ya da başlık yine örtülür; eşitliği nöbetçi ölçüyor:
           * api/tests/geriev-alani-tek-kaynak.test.cjs */}
+        {/* ⚠️ DURUM ÇUBUĞU DA BURADA (2026-09-17, emülatörde ölçüldü).
+          * app.json `edgeToEdgeEnabled: true`: Android içeriği durum çubuğunun
+          * ALTINA çiziyor. Buradaki boşluk yalnız GeriEv alanıydı; "içerik
+          * gezginin güvenli alanından başlıyor" varsayımı web önizlemesinde
+          * (insets.top = 0) doğruydu, cihazda değil. v35'te: ana ekran
+          * kaydıkça saat 1-X-2 düğmelerinin, profilde "Profilim" başlığının,
+          * kupon ekranında geri düğmesi "Haftalık Tahmin"in üstüne biniyordu —
+          * kullanıcının "süperpozisyonlar" dediği şeyin bir parçası.
+          * Sekmeler de güvenli alanı alıyor (GeriEv'den muaflar, durum
+          * çubuğundan değil). Zemin rengi de burada: yoksa yığının açık tema
+          * zemini durum çubuğunun arkasında gri şerit olarak görünüyordu.
+          * `index` ve `login` kendi üst boşluklarını taşıyor (paddingTop 56). */}
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { paddingTop: GERIEV_ALANI },
+            contentStyle: { paddingTop: insets.top + GERIEV_ALANI, backgroundColor: Colors.bg },
           }}
         >
-          <Stack.Screen name="(tabs)" options={{ contentStyle: { paddingTop: 0 } }} />
+          <Stack.Screen name="(tabs)" options={{ contentStyle: { paddingTop: insets.top, backgroundColor: Colors.bg } }} />
           <Stack.Screen name="index" options={{ contentStyle: { paddingTop: 0 } }} />
           <Stack.Screen name="login" options={{ contentStyle: { paddingTop: 0 } }} />
         </Stack>

@@ -1,19 +1,30 @@
 /**
  * OYUN MERKEZİ — renkler, mod sırası ve kupon ilerlemesi için TEK KAYNAK.
  *
- * ⚠️ NEDEN SAF MODÜL: eski şerit (`components/OyunModlari.tsx`) renkleri
- * bileşenin içinde tutuyordu ve kontrast testi onları KAYNAK METNİNDEN
- * düzenli ifadeyle söküyordu — kaynak biçimi değişince test "körleşiyordu".
- * Burada React/RN yok; bileşenler de testler de aynı değerleri içe aktarıyor.
+ * ⚠️ NEDEN SAF MODÜL: bileşen renkleri kendi içinde tutunca kontrast testi
+ * onları kaynak metninden düzenli ifadeyle söküyordu ve biçim değişince
+ * körleşiyordu. Burada React/RN yok; bileşenler de testler de aynı değerleri
+ * içe aktarıyor.
  *
- * ⚠️ RENK ZEMİNE ALFAYLA BİNİYOR, ÜST SINIR ÖLÇÜLÜ. 2026-08-31 ölçümü (eski
- * renkler): gradyan üst alfası 0x30 iken açıklama 4.5'i geçiyor, 0x45'te
- * düşüyordu. 2026-09-16 yeni renklerle yeniden ölçüldü ve 0x30 YETMEDİ:
- * kupon limonu (#a3e635) parlak, açıklama o zeminde 4.48. Rozet yazısı da
- * 1987GS'te 3.99, havuzda 3.86 çıktı. Taranan değerlerden seçilen:
- *     zemin 0x2a · rozet 0x22 · rozet yazısı %25 açık ton
- *     en kötü: açıklama 4.80 · rozet 5.34 · eylem yazısı 5.06
- * Canlılık zeminden değil çizimden, kenarlıktan ve rozetten gelmeli.
+ * ⚠️ 2026-09-17 — CİHAZDA ÇÖKEN TASARIM, KÖK NEDEN ÖLÇÜLDÜ.
+ * v35 telefonda: kart zeminleri düz limon/mavi/sarı/kırmızı bloklar, üstlerindeki
+ * açık renkli yazılar okunmuyor (kullanıcı: "yazılar okunmuyor, çerçeveler
+ * basmakalıp, süperpozisyonlar"). Web önizlemesinde aynı kartlar soluk tonluydu.
+ * Sebep react-native-svg'nin YEREL yolunda:
+ *
+ *     node_modules/react-native-svg/src/lib/extract/extractGradient.ts
+ *     stops.push([offset, (color & 0x00ffffff) | (alpha << 24)])
+ *     alpha = stopOpacity (varsayılan 1)
+ *
+ * `#a3e6352a` gibi sekiz haneli rengin SAYDAMLIĞI ATILIYOR, yerine stopOpacity
+ * (1) konuyor → tam opak. Web ise `stop-color`u tarayıcıya aynen veriyor ve
+ * saydamlık çalışıyor. Yani önizleme cihazı TEMSİL ETMİYORDU ve kontrast
+ * ölçümü var olmayan bir zeminde yapılmıştı. Aynı yöntem eski mod şeridinde
+ * (Ağustos'tan beri) de vardı.
+ *
+ * Bu yüzden artık: METİN TAŞIYAN HİÇBİR ZEMİN SAYDAM RENK YA DA GRADYAN DEĞİL.
+ * Renk kimliği yalnız DÜZ, önceden karıştırılmış tonlardan geliyor
+ * (`karistir`) — her platformda aynı çizilen tek şey düz renk.
  */
 
 /** Mod anahtarları — `lib/ozellikler.ts` `modAcikMi` bu adları tanıyor. */
@@ -26,11 +37,7 @@ export type ModAnahtari = "tek" | "kupon" | "mini" | "gs1987" | "duello" | "havu
  */
 export const MOD_SIRASI: readonly ModAnahtari[] = ["kupon", "tek", "mini", "gs1987", "duello", "havuz"];
 
-/**
- * Mod renkleri. Kupon ile tek maç yan yana iki geniş kart — ikisi de yeşil
- * olunca (eski şeritte tek maç #22c55e, kupon kartı #a3e635) tek blok gibi
- * okunuyordu; tek maç elektrik maviye alındı.
- */
+/** Mod vurgu renkleri — yalnız ikon kutusu, küçük etiket ve dolu düğmede. */
 export const MOD_RENGI: Record<ModAnahtari, string> = {
   kupon: "#a3e635",
   tek: "#38bdf8",
@@ -40,51 +47,50 @@ export const MOD_RENGI: Record<ModAnahtari, string> = {
   havuz: "#a78bfa",
 };
 
-/** Kart gradyanının üst alfası (0–255). Üst sınır: bkz. başlık. */
-export const ZEMIN_UST_ALFA = 0x2a;
-/** Kart gradyanının alt alfası. */
-export const ZEMIN_ALT_ALFA = 0x05;
-/** Bedel/durum rozetinin zemin alfası — kart zeminin ÜSTÜNE biner. */
-export const ROZET_ALFA = 0x22;
-/**
- * Kenarlık alfası. Süs: kartı tanıtan şey yazısı ve eylemi, kenarlık değil —
- * sayfa zemininde 1.98–2.87 veriyor, 3.0 iddiası yok.
- */
-export const KENARLIK_ALFA = 0x66;
-/** Rozet yazısı mod renginden bu oranda beyaza açılıyor (bkz. başlık). */
-export const ROZET_YAZI_ACMA = 0.25;
+/** Kart yüzeyi — düz. Sayfa zemininden boşlukla ayrılıyor, kenarlık yok. */
+export const KART_ZEMINI = "#0f172a";
+/** Kart içindeki ikincil yüzey (maç düğmeleri, ilerleme boşluğu). */
+export const IC_YUZEY = "#1e293b";
+/** Metin tonları — hepsi KART_ZEMINI ve IC_YUZEY üstünde ölçülü. */
+export const METIN_ANA = "#f8fafc";
+export const METIN_IKINCIL = "#cbd5e1";
+export const METIN_SOLUK = "#94a3b8";
+/** Dolu vurgu düğmesinin yazısı (açık vurgu renklerinde koyu yazı). */
+export const DUGME_YAZISI = "#020617";
+
+/** İkon kutusu: mod rengi karta bu oranda karışmış DÜZ ton. */
+export const IKON_KUTUSU_ORANI = 0.2;
+
 /** Kupon ilerleme çubuğunun boş parçası. Bilgi "3/8" yazısında da var. */
-export const ILERLEME_BOS = "#475569";
+export const ILERLEME_BOS = "#334155";
 
 /**
- * Açıklama rengi — `Colors.muted` DEĞİL. `#64748b` mod zeminlerinde 2.53–2.86
- * veriyordu (2026-08-31 ölçümü).
+ * `ust` rengini `alt` rengine `oran` kadar karıştırıp DÜZ `#rrggbb` döndürür
+ * (0 = alt, 1 = ust). Saydamlık üretmez — bkz. başlık.
  */
-export const ACIKLAMA_RENGI = "#94a3b8";
-
-/** Alfa (0–255) → iki haneli onaltılık, `#rrggbb` sonuna eklenir. */
-export function alfa(n: number): string {
-  return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
-}
-
-/** `#rrggbb` rengi `oran` kadar beyaza karıştırır (0 = aynı, 1 = beyaz). */
-export function acikTon(renk: string, oran: number): string {
-  const h = renk.replace("#", "");
-  let o = "#";
+export function karistir(ust: string, alt: string, oran: number): string {
+  const u = ust.replace("#", "");
+  const a = alt.replace("#", "");
+  const o = Math.max(0, Math.min(1, oran));
+  let s = "#";
   for (let i = 0; i < 3; i++) {
-    const c = parseInt(h.substr(i * 2, 2), 16);
-    o += Math.round(c + (255 - c) * oran).toString(16).padStart(2, "0");
+    const cu = parseInt(u.substr(i * 2, 2), 16);
+    const ca = parseInt(a.substr(i * 2, 2), 16);
+    s += Math.round(cu * o + ca * (1 - o)).toString(16).padStart(2, "0");
   }
-  return o;
+  return s;
+}
+
+/** Modun ikon kutusu rengi. */
+export function ikonKutusu(key: ModAnahtari): string {
+  return karistir(MOD_RENGI[key], KART_ZEMINI, IKON_KUTUSU_ORANI);
 }
 
 /**
- * Izgarada çizilecek modlar. Maç listesi modunda (`tam`) kupon ve tek maç
- * ızgarada DEĞİL, üstte canlı içerikli geniş kartlar olarak çiziliyor; aynı
- * mod iki kez görünmesin. Girdinin sırası korunur.
+ * Listede (tam modda) kupon ve tek maç dışında kalan modlar — o ikisi üstte
+ * canlı içerikli kendi kartlarında; aynı mod iki kez görünmesin. Sıra korunur.
  */
-export function izgaraModlari<T extends { key: string }>(gorunen: readonly T[], tam: boolean): T[] {
-  if (!tam) return [...gorunen];
+export function digerModlar<T extends { key: string }>(gorunen: readonly T[]): T[] {
   return gorunen.filter((m) => m.key !== "kupon" && m.key !== "tek");
 }
 
@@ -119,4 +125,16 @@ export function kuponIlerlemesi(k: {
   const eksik = Math.max(0, maclar.length - girilen);
   const asama: KuponAsamasi = !k?.katildiMi ? "katil" : eksik > 0 ? "eksik" : "tamam";
   return { macSayisi: maclar.length, girilen, eksik, asama, dolular };
+}
+
+/**
+ * SVG gradyan durağı için rengi yerelde de doğru çizilecek biçime ayırır:
+ * `#rrggbbaa` → `{ renk: "#rrggbb", opaklik: aa/255 }`. react-native-svg yerel
+ * yolu sekiz haneli rengin saydamlığını atıyor (bkz. başlık); saydamlık
+ * `stopOpacity` ile verilmeli. Altı haneli ve tanınmayan değer aynen, opaklık 1.
+ */
+export function durakRengi(renk: string): { renk: string; opaklik: number } {
+  const m = /^#([0-9a-fA-F]{6})([0-9a-fA-F]{2})$/.exec(String(renk || ""));
+  if (!m) return { renk, opaklik: 1 };
+  return { renk: `#${m[1]}`, opaklik: parseInt(m[2], 16) / 255 };
 }

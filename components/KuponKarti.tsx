@@ -6,22 +6,25 @@
  * kartıydı — yani uygulama, haftanın 8 maçlık asıl oyununu keşfedilmesi
  * gereken bir yan özellik gibi sunuyordu.
  *
- * Ürün kararı: genişlik ligdeki maç sayısıyla verilir. Kupon 8 maç taşıyor;
- * günün maçı tek maç. Sıra buna göre: kupon birincil, günün maçı hemen altında
- * ikincil (o da 1987 grubunun tepki katmanını taşıyor).
+ * ⚠️ 2026-09-17 — v35 CİHAZDA OKUNMUYORDU. Kart zemini saydam renkli SVG
+ * gradyandı; react-native-svg yerelde saydamlığı atıp düz limon blok çizdi,
+ * açık renkli yazı üstünde kayboldu. Çizim `position: absolute` ile metnin
+ * üstüne taşıyordu, rozet ve kenarlıklar kalabalık yapıyordu (kullanıcı:
+ * "yazılar okunmuyor, çerçeveler basmakalıp, süperpozisyonlar"). Şimdi: düz
+ * kart, kenarlık yok, çizim kendi kutusunda, tek dolu düğme. Kurallar:
+ * components/OyunKartParcalari.tsx.
  *
- * ⚠️ 2026-09-16: KART ARTIK OYUN MERKEZİ'NİN İÇİNDE (kullanıcı bildirimi:
- * "görseller yetersiz, basit görünüm uygulamayı temsil edemiyor"). Mod
- * menüsünde ayrı bir "Haftalık" düğmesi ve altında ayrı bir kupon kartı
- * vardı; ikisi aynı oyunu iki kez anlatıyordu. Şimdi menüdeki haftalık kart
- * kuponun kendisi: çizim, maç maç ilerleme çubuğu, geri sayım, tek eylem.
- *
- * ⚠️ KUPON YOKSA `bosken` ÇİZİLİR, NEDENİ AYRILARAK. Eskiden `null` dönüyordu
- * (ana ekranın tepesinde boş kutu durmasın). Menünün içinde null, modun
- * kendisini yok ediyordu. İki ayrı durum var ve karıştırılmamalı:
+ * ⚠️ KUPON YOKSA `bosken` ÇİZİLİR, NEDENİ AYRILARAK:
  *   "yok"        → sunucu cevap verdi, açık kupon YOK (sezon arası)
- *   "bilinmiyor" → sunucuya soramadık (misafir: AUTH_REQUIRED, ağ hatası)
+ *   "bilinmiyor" → sunucuya soramadık (misafir, ağ hatası)
  * Misafire "kupon hazırlanıyor" demek, kupon açıkken yalan olurdu.
+ *
+ * ⚠️ OTURUM HAZIR OLMADAN İSTEK ATILMIYOR (2026-09-17). `getAuthHeaders`
+ * `auth.currentUser` boşsa başlıksız gönderiyor; uygulama açılışında Firebase
+ * oturumu henüz yüklenmemişken kart bağlanınca `/api/kupon/aktif` 401
+ * `AUTH_REQUIRED` dönüyor ve kart bir daha denemiyordu. Canlıda açık bir kupon
+ * (W41) varken v35 cihazında "bilinmiyor" kartı görüldü. Artık yükleme
+ * `useAuth().loading` bitince ve kullanıcı değişince yeniden yapılıyor.
  *
  * ⚠️ KALAN SÜRE SUNUCUDAN (`kalanSaniye`). Cihaz saatine güvenilmiyor —
  * kullanıcının saati yanlışsa geri sayım yalan söyler ve "daha var" derken
@@ -36,14 +39,15 @@ import { t, useLang } from "../lib/i18n";
 import { ulkeAdi } from "../lib/ulkeler";
 import { kuponBasligi, birincilKupon } from "../lib/kuponBaslik";
 import {
-  ACIKLAMA_RENGI, ILERLEME_BOS, KENARLIK_ALFA, MOD_RENGI, ROZET_ALFA, ROZET_YAZI_ACMA, ZEMIN_ALT_ALFA,
-  ZEMIN_UST_ALFA, acikTon, alfa, kuponIlerlemesi,
+  DUGME_YAZISI, IC_YUZEY, ILERLEME_BOS, METIN_ANA, METIN_IKINCIL, METIN_SOLUK, MOD_RENGI,
+  kuponIlerlemesi,
 } from "../lib/oyunMerkezi";
 import Colors from "../constants/colors";
+import { useAuth } from "../contexts/AuthContext";
 import Basinc from "./Basinc";
-import GradyanZemin from "./GradyanZemin";
 import IskeletBlok from "./Iskelet";
 import { KuponSanati } from "./OyunSanati";
+import { KartBasi, parca } from "./OyunKartParcalari";
 
 type Mac = {
   fixtureId: string;
@@ -88,6 +92,8 @@ function sureMetni(saniye: number): string {
 export default function KuponKarti({ bosken }: Props) {
   useLang();
   const router = useRouter();
+  const { user, loading: oturumYukleniyor } = useAuth();
+  const uid = user?.uid || null;
   const [kupon, setKupon] = useState<KuponT | null>(null);
   const [neden, setNeden] = useState<KuponYokNedeni>("bilinmiyor");
   const [loading, setLoading] = useState(true);
@@ -111,16 +117,21 @@ export default function KuponKarti({ bosken }: Props) {
     setLoading(false);
   }, []);
 
-  useEffect(() => { yukle(); }, [yukle]);
+  /* Oturum yüklenmeden istek yok; kullanıcı değişince (misafir → Google
+   * girişi) yeniden. bkz. başlık "OTURUM HAZIR OLMADAN". */
+  useEffect(() => {
+    if (oturumYukleniyor) return;
+    yukle();
+  }, [oturumYukleniyor, uid, yukle]);
 
   if (loading) {
     return (
-      <View style={[s.kart, { borderColor: RENK + alfa(KENARLIK_ALFA) }]}>
+      <View style={parca.kart}>
         <View style={{ gap: 10 }}>
-          <IskeletBlok style={{ width: 150, height: 20 }} />
-          <IskeletBlok style={{ width: "70%", height: 12 }} />
+          <IskeletBlok style={{ width: 170, height: 20 }} />
+          <IskeletBlok style={{ width: "80%", height: 14 }} />
           <IskeletBlok style={{ width: "100%", height: 8 }} />
-          <IskeletBlok style={{ width: "55%", height: 12 }} />
+          <IskeletBlok style={{ width: "60%", height: 14 }} />
         </View>
       </View>
     );
@@ -131,11 +142,7 @@ export default function KuponKarti({ bosken }: Props) {
   const ilerleme = kuponIlerlemesi(kupon);
 
   /* Başlık `app/kupon.tsx` ile AYNI anahtardan — iki yüzey aynı kuponu farklı
-   * adlandırırsa kullanıcı iki ayrı oyun sanır.
-   *
-   * ⚠️ NİYET TEK KAYNAKTI, GERÇEK KOPYAYDI: aynı üçlü ifade iki dosyada ayrı
-   * ayrı duruyordu ve ikisi birlikte bozuldu (ORTAK kupon "⚽  Ligi"). Artık
-   * gerçekten tek kaynak: lib/kuponBaslik.ts. */
+   * adlandırırsa kullanıcı iki ayrı oyun sanır. Tek kaynak: lib/kuponBaslik.ts. */
   const baslik = kuponBasligi(kupon, t, ulkeAdi);
 
   /* İlk iki maç önizleme olarak gösteriliyor: "8 maç" soyut, "Galatasaray -
@@ -150,8 +157,8 @@ export default function KuponKarti({ bosken }: Props) {
    *   - katıldı ve tamamladı → onay
    *
    * ⚠️ BOŞ MAÇ SAYISI DÜĞMEDE DEĞİL, İLERLEME SATIRINDA. "Tamamla · 3 maç boş"
-   * 360 px ekranda kesiliyordu ve geri sayımı iki satıra itiyordu (önizlemede
-   * ölçüldü). Sayı kaybolmuyor: çubuğun yanında, uyarı renginde.
+   * 360 px ekranda kesiliyordu ve geri sayımı iki satıra itiyordu. Sayı
+   * kaybolmuyor: çubuğun yanında, uyarı renginde.
    */
   const eylem =
     ilerleme.asama === "katil" ? { yazi: t("kuponJoinFor", { n: kupon.girisBedeli }), zemin: RENK }
@@ -160,28 +167,17 @@ export default function KuponKarti({ bosken }: Props) {
   const eksikMi = ilerleme.asama === "eksik";
 
   return (
-    <Basinc onPress={() => router.push("/kupon")} scaleTo={0.97}>
-      <View
-        accessibilityRole="button"
-        accessibilityLabel={`${t("weeklyKupon")}: ${baslik}`}
-        style={[s.kart, { borderColor: RENK + alfa(KENARLIK_ALFA) }]}
-      >
-        <GradyanZemin renkler={[RENK + alfa(ZEMIN_UST_ALFA), RENK + alfa(ZEMIN_ALT_ALFA)]} yon="capraz" />
-        <View style={s.sanat} pointerEvents="none">
-          <KuponSanati boyut={124} />
-        </View>
+    <Basinc onPress={() => router.push("/kupon")} scaleTo={0.98}>
+      <View accessibilityRole="button" accessibilityLabel={`${t("weeklyKupon")}: ${baslik}`} style={parca.kart}>
+        <KartBasi
+          modu="kupon"
+          Sanat={KuponSanati}
+          ad={t("weeklyKupon")}
+          alt={`${baslik} · ${t("kuponMatchCount", { n: ilerleme.macSayisi })}`}
+        />
+        <Text style={parca.aciklama}>{t("kuponHeroSub")}</Text>
 
-        <View style={{ paddingRight: 108 }}>
-          <View style={[s.rozet, { backgroundColor: RENK + alfa(ROZET_ALFA) }]}>
-            <Text style={[s.rozetYazi, { color: acikTon(RENK, ROZET_YAZI_ACMA) }]} numberOfLines={1}>{baslik}</Text>
-          </View>
-          <Text style={s.ad}>{t("weeklyKupon")}</Text>
-          <Text style={s.aciklama}>{t("kuponHeroSub")}</Text>
-        </View>
-
-        {/* Maç maç ilerleme: sekiz parça, dolu olan kupon renginde. "3/8"
-            sayısından hızlı okunuyor ve kuponun MAÇ MAÇ doldurulduğunu
-            yazısız anlatıyor. */}
+        {/* Maç maç ilerleme: sekiz parça, dolu olan kupon renginde. */}
         <View style={s.ilerlemeSatiri}>
           <View style={s.cubuk}>
             {ilerleme.dolular.map((dolu, i) => (
@@ -209,15 +205,13 @@ export default function KuponKarti({ bosken }: Props) {
         </View>
 
         <View style={s.altSatir}>
-          <Text style={s.sure}>⏳ {t("kuponClosesIn", { s: sureMetni(kupon.kalanSaniye) })}</Text>
+          <Text style={s.sure} numberOfLines={1}>⏳ {t("kuponClosesIn", { s: sureMetni(kupon.kalanSaniye) })}</Text>
           {eylem.zemin ? (
             <View style={[s.eylem, { backgroundColor: eylem.zemin }]}>
-              <Text style={s.eylemYazi} numberOfLines={1}>{eylem.yazi} →</Text>
+              <Text style={s.eylemYazi} numberOfLines={1}>{eylem.yazi}</Text>
             </View>
           ) : (
-            <View style={[s.eylem, s.eylemCizgi, { borderColor: RENK + alfa(KENARLIK_ALFA) }]}>
-              <Text style={[s.eylemYazi, { color: RENK }]}>✓ {eylem.yazi} →</Text>
-            </View>
+            <Text style={[parca.baglanti, { color: RENK }]}>✓ {eylem.yazi} ›</Text>
           )}
         </View>
       </View>
@@ -226,36 +220,21 @@ export default function KuponKarti({ bosken }: Props) {
 }
 
 const s = StyleSheet.create({
-  kart: {
-    backgroundColor: Colors.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    overflow: "hidden",
-    padding: 16,
-    marginBottom: 12,
-  },
-  sanat: { position: "absolute", right: -8, top: -8 },
-  rozet: { alignSelf: "flex-start", borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 },
-  rozetYazi: { fontSize: 11, fontWeight: "900" },
-  ad: { color: Colors.text, fontSize: 22, fontWeight: "900", marginTop: 8 },
-  aciklama: { color: ACIKLAMA_RENGI, fontSize: 12.5, lineHeight: 17, marginTop: 3 },
-
   ilerlemeSatiri: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14 },
   cubuk: { flex: 1, flexDirection: "row", gap: 4 },
-  parca: { flex: 1, height: 7, borderRadius: 4 },
-  ilerlemeYazi: { color: Colors.text, fontSize: 12, fontWeight: "800" },
+  parca: { flex: 1, height: 6, borderRadius: 3 },
+  ilerlemeYazi: { color: METIN_ANA, fontSize: 13, fontWeight: "800" },
 
-  onizleme: { marginTop: 12, gap: 3 },
-  macSatiri: { color: Colors.text, fontSize: 13.5, fontWeight: "700" },
-  vs: { color: ACIKLAMA_RENGI, fontWeight: "400" },
-  kalanMac: { color: ACIKLAMA_RENGI, fontSize: 12, marginTop: 1 },
+  onizleme: { marginTop: 14, padding: 12, borderRadius: 14, backgroundColor: IC_YUZEY, gap: 4 },
+  macSatiri: { color: METIN_ANA, fontSize: 14, fontWeight: "700" },
+  vs: { color: METIN_SOLUK, fontWeight: "400" },
+  kalanMac: { color: METIN_IKINCIL, fontSize: 13, marginTop: 2 },
 
   altSatir: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    gap: 10, marginTop: 14,
+    gap: 12, marginTop: 14,
   },
-  sure: { color: ACIKLAMA_RENGI, fontSize: 12, fontWeight: "700", flexShrink: 1 },
-  eylem: { borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10, flexShrink: 1 },
-  eylemCizgi: { borderWidth: 1, backgroundColor: "transparent" },
-  eylemYazi: { color: Colors.onAccent, fontWeight: "900", fontSize: 13 },
+  sure: { color: METIN_IKINCIL, fontSize: 13, fontWeight: "700", flexShrink: 1 },
+  eylem: { borderRadius: 999, paddingHorizontal: 18, paddingVertical: 11 },
+  eylemYazi: { color: DUGME_YAZISI, fontWeight: "900", fontSize: 14 },
 });

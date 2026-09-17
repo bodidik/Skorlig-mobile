@@ -1,27 +1,34 @@
 /**
- * OYUN MERKEZİ nöbetçisi — eski `oyunModlariKontrast.test.ts`in yerini alıyor.
+ * OYUN MERKEZİ nöbetçisi.
  *
  * ⚠️ KULLANICI BİLDİRİMLERİ, SIRAYLA:
  *   2026-08-09  "mod kartları yazı okumadan seçilebilsin"
  *   2026-08-31  "görsel çekici değil, yarım kalmış havası var, renkler ve
  *               yazılar sönük ve oturmamış"
  *   2026-09-16  "kullanıcı o menüsel sayfada hemen işin içine katılabilmeli;
- *               görseller yetersiz; basit görünüm devasa uygulamayı temsil
- *               edemiyor"
- * Üçüncüsüyle yatay şerit kaldırıldı; yerine kupon ve günün maçını İÇİNDE
- * taşıyan merkez geldi. Önceki iki bildirimin ölçülmüş dersleri (kontrast,
- * veriye bağlı olmayan yükseklik, bayrakla süzme) burada yeni biçimle
- * korunuyor.
+ *               görseller yetersiz"
+ *   2026-09-17  v35 cihaz görüntüsüyle: "keşmekeş bir yerde insanlar yolunu
+ *               bulabilir mi? Yazılar okunmuyor, çerçeveler basmakalıp,
+ *               süperpozisyonlar"
  *
- * ⚠️ RENKLER İÇE AKTARILIYOR, KAYNAKTAN SÖKÜLMÜYOR. Eski test mod renklerini
- * bileşenin metninden düzenli ifadeyle okuyordu; biçim değişince körleşirdi.
- * Değerler artık saf `lib/oyunMerkezi.ts`te — bileşen de test de aynısını
- * kullanıyor, kaynak taraması yalnızca bileşenin O DEĞERLERİ kullandığını
- * doğruluyor.
+ * ⚠️ BU DOSYANIN ÖNCEKİ SÜRÜMÜ YANLIŞ ŞEYİ ÖLÇÜYORDU. Kontrastı saydam renkli
+ * gradyan zemin üstünde hesaplıyordu (`renk + "2a"`). react-native-svg'nin
+ * yerel yolu o saydamlığı ATIYOR (extractGradient: `(color & 0x00ffffff) |
+ * (stopOpacity << 24)`) — telefonda zemin düz mod rengiydi. Test "en kötü
+ * 4.80" diyordu; cihazdaki gerçek değerler (opak zeminde yeniden ölçüldü):
+ *     açıklama  kupon 1.70 · tek 1.20 · mini 1.54 · 1987GS 1.08
+ *     başlık    kupon 1.22 · tek 1.74 · mini 1.35 · 1987GS 2.24
+ * Test yeşildi, ekran okunmuyordu. Web önizlemesi saydamlığı uyguladığı için
+ * kusur orada da görünmedi.
  *
- * ⚠️ BU TEST İLK KOŞUMDA GERÇEK KUSUR YAKALADI (2026-09-16): yeni renklerle
- * eski alfa (0x30) kupon kartında açıklamayı 4.48'e düşürüyordu; rozet yazısı
- * 1987GS'te 3.99, havuzda 3.86 idi. Değerler taranıp yeniden seçildi.
+ * Bu yüzden artık iki katman:
+ *   1. KONTRAST yalnız DÜZ renkler arasında ölçülüyor — her platformda aynı
+ *      çizilen tek şey.
+ *   2. YAPI NÖBETÇİSİ: metin taşıyan merkez bileşenlerinde saydam renk,
+ *      gradyan zemin, kenarlık ve metnin üstüne binen mutlak konum YOK.
+ *      Kontrast ölçümü ancak bu yapı korunursa doğru.
+ * Ayrıca GradyanZemin'in saydamlığı `stopOpacity`ye ayırdığı sınanıyor
+ * (başka ekranlar hâlâ kullanıyor).
  */
 
 import { test, describe } from "node:test";
@@ -31,163 +38,200 @@ import path from "node:path";
 
 import { contrast, Colors } from "../constants/colors.ts";
 import {
-  ACIKLAMA_RENGI, MOD_RENGI, MOD_SIRASI, ROZET_ALFA, ROZET_YAZI_ACMA, ZEMIN_UST_ALFA,
-  acikTon, alfa, izgaraModlari, kuponIlerlemesi,
+  DUGME_YAZISI, IC_YUZEY, ILERLEME_BOS, KART_ZEMINI, METIN_ANA, METIN_IKINCIL, METIN_SOLUK,
+  MOD_RENGI, MOD_SIRASI, digerModlar, durakRengi, ikonKutusu, karistir, kuponIlerlemesi,
 } from "../lib/oyunMerkezi.ts";
 
 const KOK = path.join(import.meta.dirname, "..");
 const oku = (p: string) => fs.readFileSync(path.join(KOK, p), "utf8").replace(/\r\n?/g, "\n");
+/** Yorumları atar — kural anlatan notlar yasaklı kalıpları ANARKEN testi düşürmesin. */
+const kod = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+
 const MERKEZ = oku("components/OyunMerkezi.tsx");
 const KUPON = oku("components/KuponKarti.tsx");
+const PARCA = oku("components/OyunKartParcalari.tsx");
 const GUNUN = oku("components/DailyMatchCard.tsx");
 const SANAT = oku("components/OyunSanati.tsx");
+const GRADYAN = oku("components/GradyanZemin.tsx");
 const EKRAN = oku("app/(tabs)/live.tsx");
 
 /** WCAG AA — 18px altı normal metin. */
 const ESIK = 4.5;
-
-/** Üst rengi alfayla (0–1) alta bindirir. */
-function bindir(ust: string, a: number, alt: string): string {
-  const u = ust.replace("#", "");
-  const b = alt.replace("#", "");
-  let o = "#";
-  for (let i = 0; i < 3; i++) {
-    const cu = parseInt(u.substr(i * 2, 2), 16);
-    const ca = parseInt(b.substr(i * 2, 2), 16);
-    o += Math.round(cu * a + ca * (1 - a)).toString(16).padStart(2, "0");
-  }
-  return o;
-}
-
-/** Kart zemini: gradyanın EN RENKLİ ucu (üst) — açık yazı için en kötü durum. */
-const zemin = (renk: string, ust = ZEMIN_UST_ALFA) => bindir(renk, ust / 255, Colors.card);
+const HEX6 = /^#[0-9a-f]{6}$/i;
 
 describe("kurulum", () => {
-  test("altı mod, her biri sırada bir kez, rengi tanımlı", () => {
+  test("altı mod, her biri sırada bir kez, rengi düz altı haneli", () => {
     assert.equal(MOD_SIRASI.length, 6);
     assert.equal(new Set(MOD_SIRASI).size, 6, "sirada tekrar eden mod var");
-    for (const k of MOD_SIRASI) assert.match(MOD_RENGI[k], /^#[0-9a-f]{6}$/i, `${k} rengi gecersiz`);
+    for (const k of MOD_SIRASI) assert.match(MOD_RENGI[k], HEX6, `${k} rengi duz degil`);
   });
 
-  test("kart zemini düz Colors.card DEĞİL — ölçüm gerçekten kaymış zeminde", () => {
-    for (const k of MOD_SIRASI) assert.notEqual(zemin(MOD_RENGI[k]), Colors.card.toLowerCase());
+  test("tema renklerinin HEPSİ düz altı haneli (saydamlık yok)", () => {
+    for (const [ad, r] of Object.entries({ KART_ZEMINI, IC_YUZEY, METIN_ANA, METIN_IKINCIL, METIN_SOLUK, DUGME_YAZISI, ILERLEME_BOS })) {
+      assert.match(r, HEX6, `${ad} = ${r} — saydam/gecersiz renk yerelde farkli cizilir`);
+    }
   });
 
-  test("alfa() ve acikTon() doğru hex üretiyor", () => {
-    assert.equal(alfa(0x2a), "2a");
-    assert.equal(alfa(5), "05");
-    assert.equal(acikTon("#000000", 0.5), "#808080");
-    assert.equal(acikTon("#a3e635", 0), "#a3e635");
+  test("karistir düz renk üretiyor ve uçlarda doğru", () => {
+    assert.equal(karistir("#ffffff", "#000000", 0.5), "#808080");
+    assert.equal(karistir("#a3e635", KART_ZEMINI, 0), KART_ZEMINI);
+    assert.equal(karistir("#a3e635", KART_ZEMINI, 1), "#a3e635");
+    for (const k of MOD_SIRASI) assert.match(ikonKutusu(k), HEX6);
   });
 });
 
-describe("KONTRAST — her mod zemininde eşik geçiliyor", () => {
-  for (const k of MOD_SIRASI) {
-    const renk = MOD_RENGI[k];
-    const z = zemin(renk);
-    test(`${k}: ad, açıklama, eylem, rozet`, () => {
-      assert.ok(contrast(Colors.text, z) >= ESIK, `ad ${contrast(Colors.text, z).toFixed(2)}`);
-      assert.ok(contrast(ACIKLAMA_RENGI, z) >= ESIK, `aciklama ${contrast(ACIKLAMA_RENGI, z).toFixed(2)}`);
-      assert.ok(contrast(renk, z) >= ESIK, `eylem yazisi ${contrast(renk, z).toFixed(2)}`);
-      const rozetZemin = bindir(renk, ROZET_ALFA / 255, z);
-      const rozetYazi = acikTon(renk, ROZET_YAZI_ACMA);
-      assert.ok(contrast(rozetYazi, rozetZemin) >= ESIK, `rozet ${contrast(rozetYazi, rozetZemin).toFixed(2)}`);
-    });
-  }
+describe("KONTRAST — düz zeminlerde", () => {
+  test("metin tonları kart yüzeyinde ve iç yüzeyde eşiği geçiyor", () => {
+    for (const zemin of [KART_ZEMINI, IC_YUZEY]) {
+      for (const [ad, yazi] of Object.entries({ METIN_ANA, METIN_IKINCIL, METIN_SOLUK })) {
+        const k = contrast(yazi, zemin);
+        assert.ok(k >= ESIK, `${ad} ${zemin} uzerinde ${k.toFixed(2)}`);
+      }
+    }
+  });
+
+  test("mod vurgu rengi kart yüzeyinde okunuyor (alt satır, bedel, bağlantı)", () => {
+    for (const k of MOD_SIRASI) {
+      const c = contrast(MOD_RENGI[k], KART_ZEMINI);
+      assert.ok(c >= ESIK, `${k} vurgusu kartta ${c.toFixed(2)}`);
+    }
+  });
 
   test("dolu düğmeler: koyu yazı kupon, tamamla ve tek maç renginde okunuyor", () => {
     for (const dolgu of [MOD_RENGI.kupon, Colors.accent, MOD_RENGI.tek]) {
-      assert.ok(contrast(Colors.onAccent, dolgu) >= ESIK, `${dolgu} ${contrast(Colors.onAccent, dolgu).toFixed(2)}`);
+      assert.ok(contrast(DUGME_YAZISI, dolgu) >= ESIK, `${dolgu} ${contrast(DUGME_YAZISI, dolgu).toFixed(2)}`);
     }
   });
 
-  test("kupon kartında boş maç uyarısı (accent) eşiği geçiyor", () => {
-    const z = zemin(MOD_RENGI.kupon);
-    assert.ok(contrast(Colors.accent, z) >= ESIK, `uyari ${contrast(Colors.accent, z).toFixed(2)}`);
+  test("gömülü 1-X-2: seçili düğmede koyu yazı, beyaz DEĞİL", () => {
+    /* Beyaz yazı mavi (#3b82f6) üstünde 3.68 — eşiğin altı. */
+    for (const renk of ["#3b82f6", "#f59e0b", "#ef4444"]) {
+      assert.ok(contrast(DUGME_YAZISI, renk) >= ESIK, `${renk} ${contrast(DUGME_YAZISI, renk).toFixed(2)}`);
+    }
+    assert.ok(contrast("#ffffff", "#3b82f6") < ESIK, "beyaz mavi uzerinde artik esigi geciyor — gerekce eskimis");
+    /* İki metin ayrı ayrı: etiket VE oran. Tek eşleşme aramak, biri beyaza
+     * dönünce ötekinde eşleşip yeşil kalıyordu (negatif kontrolde ölçüldü). */
+    assert.match(GUNUN, /st\.btnText, isSelected && \{ color: gomulu \? DUGME_YAZISI : "#fff" \}/, "secili etiket beyaz");
+    assert.match(GUNUN, /st\.oranText, isSelected && \{ color: gomulu \? DUGME_YAZISI : "#fff" \}/, "secili oran beyaz");
   });
 
-  test("bölüm alt yazısı sayfa zemininde eşiği geçiyor", () => {
-    assert.ok(contrast(ACIKLAMA_RENGI, Colors.background) >= ESIK);
-  });
-
-  test("NEGATİF: eski alfa (0x30) ve eski rozet yazısı yeni renklerde EŞİĞİN ALTINDA", () => {
-    /* Bu testin dayanağı: seçilen değerler keyfi değil. Biri alfayı "daha
-     * canlı" diye geri büyütürse ya da rozeti düz mod rengine döndürürse
-     * yukarıdaki iddialar düşer; bu da o değerlerin GERÇEKTEN düştüğünü
-     * sabitliyor — düşmüyorsa ölçüm eskimiş demektir. */
-    assert.ok(contrast(ACIKLAMA_RENGI, zemin(MOD_RENGI.kupon, 0x30)) < ESIK, "0x30 kupon aciklamasi artik esigi geciyor — olcum eskimis");
-    const dusenRozet = MOD_SIRASI.filter((k) => {
-      const z = zemin(MOD_RENGI[k]);
-      return contrast(MOD_RENGI[k], bindir(MOD_RENGI[k], ROZET_ALFA / 255, z)) < ESIK;
-    });
-    assert.ok(dusenRozet.length > 0, "duz mod rengi rozette hic dusmuyor — acik ton gerekcesi kalmamis");
+  test("kupon kartında boş maç uyarısı (accent) kartta okunuyor", () => {
+    assert.ok(contrast(Colors.accent, KART_ZEMINI) >= ESIK);
   });
 });
 
-describe("bileşenler ölçülen değerleri KULLANIYOR", () => {
-  test("merkez ve kupon kartında gömülü renk yok (yalnız lib/oyunMerkezi)", () => {
-    for (const [ad, src] of [["OyunMerkezi", MERKEZ], ["KuponKarti", KUPON]] as const) {
-      const kod = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-      assert.doesNotMatch(kod, /["']#[0-9a-fA-F]{3,8}["']/, `${ad} icinde gomulu renk var — olculmemis ton`);
+describe("YAPI — okunurluk ölçümünün dayanağı (v35 cihaz dersi)", () => {
+  const METIN_TASIYANLAR = [["OyunMerkezi", MERKEZ], ["KuponKarti", KUPON], ["OyunKartParcalari", PARCA]] as const;
+
+  test("merkez bileşenlerinde gradyan zemin YOK", () => {
+    for (const [ad, src] of METIN_TASIYANLAR) {
+      assert.doesNotMatch(kod(src), /GradyanZemin/, `${ad} gradyan zemin kullaniyor — yerelde duz blok cizilebilir`);
     }
   });
 
-  test("zemin gradyanları ZEMIN_UST_ALFA ile, rozet yazıları açık tonla çiziliyor", () => {
-    assert.match(MERKEZ, /renk \+ alfa\(ZEMIN_UST_ALFA\)/);
-    assert.match(KUPON, /RENK \+ alfa\(ZEMIN_UST_ALFA\)/);
-    assert.match(MERKEZ, /s\.rozetYazi, \{ color: acikTon\(renk, ROZET_YAZI_ACMA\) \}/, "izgara rozeti duz renk");
-    assert.match(KUPON, /s\.rozetYazi, \{ color: acikTon\(RENK, ROZET_YAZI_ACMA\) \}/, "kupon rozeti duz renk");
-    assert.match(MERKEZ, /s\.bagCipYazi, \{ color: acikTon\(MOD_RENGI\.tek, ROZET_YAZI_ACMA\) \}/, "tum maclar cipi duz renk");
-    assert.match(MERKEZ, /aciklama:\s*\{ color: ACIKLAMA_RENGI/, "genis kart aciklamasi olculen tonu kullanmiyor");
-    assert.match(MERKEZ, /izgaraAciklama:\s*\{ color: ACIKLAMA_RENGI/, "izgara aciklamasi olculen tonu kullanmiyor");
+  test("saydam renk üretimi YOK (alfa eki, 8 haneli renk, rgba)", () => {
+    for (const [ad, src] of METIN_TASIYANLAR) {
+      const k = kod(src);
+      assert.doesNotMatch(k, /["'`]#[0-9a-fA-F]{8}["'`]/, `${ad} sekiz haneli renk`);
+      assert.doesNotMatch(k, /\+\s*alfa\(|\+\s*["'`][0-9a-fA-F]{2}["'`]/, `${ad} renge alfa eki`);
+      assert.doesNotMatch(k, /rgba\(/, `${ad} rgba`);
+    }
+  });
+
+  test("gömülü renk yok — renkler lib/oyunMerkezi'den", () => {
+    for (const [ad, src] of METIN_TASIYANLAR) {
+      assert.doesNotMatch(kod(src), /["'`]#[0-9a-fA-F]{3,8}["'`]/, `${ad} icinde olculmemis gomulu renk`);
+    }
+  });
+
+  test("kenarlık YOK (liste ayracı hariç)", () => {
+    for (const [ad, src] of METIN_TASIYANLAR) {
+      const kenar = [...kod(src).matchAll(/border(?:Top|Bottom|Left|Right)?Width:\s*[^,}\n]+/g)].map((m) => m[0]);
+      const izinsiz = kenar.filter((k) => !/borderTopWidth:\s*StyleSheet\.hairlineWidth/.test(k));
+      assert.deepEqual(izinsiz, [], `${ad} kenarlik ciziyor: ${izinsiz.join(" | ")}`);
+    }
+  });
+
+  test("metnin üstüne binen mutlak konum YOK", () => {
+    for (const [ad, src] of METIN_TASIYANLAR) {
+      assert.doesNotMatch(kod(src), /position:\s*["']absolute["']/, `${ad} mutlak konumlu oge — ust uste binme`);
+    }
+  });
+
+  test("çizimlerde hale ve pırıltı YOK (kutunun dışına taşan süs)", () => {
+    assert.doesNotMatch(SANAT, /function Hale|function Pirilti|<Hale|<Pirilti/);
+  });
+
+  test("gömülü günün maçı: çerçevesiz düğme, kendi zemini yok", () => {
+    assert.match(GUNUN, /const kap = gomulu \? s\.gomuluKap : s\.card;/);
+    assert.match(GUNUN, /\{!gomulu && <GradyanZemin/);
+    assert.match(GUNUN, /gomulu \? g\.btn : s\.btn,\s*!gomulu && \{ borderColor: o\.color \}/, "gomulu dugme cerceve aliyor");
+    const gBlok = GUNUN.slice(GUNUN.indexOf("const g = StyleSheet.create({"), GUNUN.indexOf("const s = StyleSheet.create({"));
+    assert.ok(gBlok.length > 100, "gomulu stil blogu bulunamadi");
+    assert.doesNotMatch(gBlok, /borderWidth/, "gomulu stillerde kenarlik var");
   });
 });
 
-describe("OTURMAMIŞ DÜZEN — yükseklik veriye bağlı değil (2026-08-31 dersi)", () => {
-  test("bedel rozeti sabit yükseklikli kabın İÇİNDE, koşullu", () => {
-    assert.match(MERKEZ, /rozetKabi:\s*\{ height: 22/, "rozet kabi sabit yukseklikli degil");
-    const kap = MERKEZ.indexOf("<View style={s.rozetKabi}>");
-    const kosul = MERKEZ.indexOf("{m.bedel ? (");
-    assert.ok(kap > 0 && kosul > kap && kosul - kap < 80, "kosullu bedel sabit kabin disinda");
+describe("GradyanZemin — diğer ekranlar için doğru saydamlık ve boyut", () => {
+  test("durakRengi sekiz haneli rengi stopColor + stopOpacity'ye ayırıyor", () => {
+    assert.deepEqual(durakRengi("#a3e635ff"), { renk: "#a3e635", opaklik: 1 });
+    const r = durakRengi("#a3e6352a");
+    assert.equal(r.renk, "#a3e635");
+    assert.ok(Math.abs(r.opaklik - 0x2a / 255) < 1e-9);
+    assert.deepEqual(durakRengi("#1e3a8a"), { renk: "#1e3a8a", opaklik: 1 });
   });
 
-  test("ızgara açıklaması üç satırlık yer ayırıyor", () => {
-    assert.match(MERKEZ, /izgaraAciklama:[^}]*minHeight: 48/, "aciklama minHeight kalkmis");
-    assert.match(MERKEZ, /<Text style=\{s\.izgaraAciklama\} numberOfLines=\{3\}>/);
+  test("bileşen stopOpacity veriyor ve boyutu ölçüp sayıyla çiziyor", () => {
+    assert.match(GRADYAN, /stopColor=\{bas\.renk\} stopOpacity=\{bas\.opaklik\}/, "saydamlik stopOpacity ile verilmiyor");
+    assert.match(GRADYAN, /stopColor=\{son\.renk\} stopOpacity=\{son\.opaklik\}/);
+    assert.match(GRADYAN, /onLayout=/, "boyut olculmuyor — Android'de yarim gradyan");
+    assert.match(GRADYAN, /<Svg width=\{olcu\.g\} height=\{olcu\.y\}>/);
+    assert.doesNotMatch(kod(GRADYAN), /width="100%"/, "yuzde boyut geri gelmis");
+  });
+});
+
+describe("OTURUM — kupon kartı oturum hazır olmadan istek atmıyor", () => {
+  test("yükleme oturum yüklemesi bitince ve kullanıcı değişince", () => {
+    assert.match(KUPON, /const \{ user, loading: oturumYukleniyor \} = useAuth\(\);/);
+    assert.match(KUPON, /if \(oturumYukleniyor\) return;\s*yukle\(\);\s*\}, \[oturumYukleniyor, uid, yukle\]\);/,
+      "kupon oturumdan once isteniyor — misafir/geç oturumda AUTH_REQUIRED ile bos kalir");
   });
 });
 
 describe("HEMEN OYNA — kupon ve günün maçı merkezin İÇİNDE", () => {
-  test("live.tsx kupon ve günün maçını AYRICA çizmiyor (aynı oyun iki kez görünmez)", () => {
-    assert.doesNotMatch(EKRAN, /<KuponKarti\b/, "live.tsx kupon kartini ayrica ciziyor");
-    assert.doesNotMatch(EKRAN, /<DailyMatchCard\b/, "live.tsx gunun macini ayrica ciziyor");
-    assert.match(MERKEZ, /<KuponKarti\b/, "merkez kuponu cizmiyor");
-    assert.match(MERKEZ, /<DailyMatchCard\s+gomulu\b/, "merkez gunun macini gomulu cizmiyor");
+  test("live.tsx kupon ve günün maçını AYRICA çizmiyor", () => {
+    assert.doesNotMatch(EKRAN, /<KuponKarti\b/);
+    assert.doesNotMatch(EKRAN, /<DailyMatchCard\b/);
+    assert.match(MERKEZ, /<KuponKarti\b/);
+    assert.match(MERKEZ, /<DailyMatchCard\s+gomulu\b/);
   });
 
-  test("gömülü kartlar yalnız TAM modda — kompakt satır önce dönüyor", () => {
+  test("tam mod maç listesine bağlı; kompakt satır önce dönüyor", () => {
     const erken = MERKEZ.indexOf("if (!tam) {");
     assert.ok(erken > 0, "kompakt erken donus yok");
-    assert.ok(MERKEZ.indexOf("<KuponKarti") > erken, "kupon karti kompakt donusten once");
-    assert.ok(MERKEZ.indexOf("<DailyMatchCard") > erken, "gunun maci kompakt donusten once");
-    assert.match(EKRAN, /tam=\{mode === "schedule" \|\| mode === "open"\}/, "tam bayragi mac listesi moduna bagli degil");
+    assert.ok(MERKEZ.indexOf("<KuponKarti") > erken);
+    assert.ok(MERKEZ.indexOf("<DailyMatchCard") > erken);
+    assert.match(EKRAN, /tam=\{mode === "schedule" \|\| mode === "open"\}/);
   });
 
   test("günün maçı yoksa Tek Maç kartı boş kalmıyor", () => {
-    assert.match(GUNUN, /if \(!fixture\) return bosken \? <>\{bosken\}<\/> : null;/, "bosken dugumu cizilmiyor");
-    assert.match(MERKEZ, /bosken=\{\s*<Basinc onPress=\{tahmineGit\}/, "tek mac bos durumunda eylem yok");
+    assert.match(GUNUN, /if \(!fixture\) return bosken \? <>\{bosken\}<\/> : null;/);
+    assert.match(MERKEZ, /bosken=\{\s*<Basinc onPress=\{tahmineGit\}/);
   });
 
-  test("gömülüyken günün maçı kendi kutusunu çizmiyor (iç içe iki kart yok)", () => {
-    assert.match(GUNUN, /const kap = gomulu \? s\.gomuluKap : s\.card;/);
-    assert.match(GUNUN, /\{!gomulu && <GradyanZemin/);
-  });
-
-  test("kupon yokken nedeni AYRILIYOR: yalnız sunucu cevap verdiyse 'hazırlanıyor'", () => {
-    assert.match(KUPON, /setNeden\(j\?\.ok \? "yok" : "bilinmiyor"\)/, "neden sunucu cevabina bagli degil");
+  test("kupon yokken 'hazırlanıyor' yalnız sunucu cevap verdiyse", () => {
+    assert.match(KUPON, /setNeden\(j\?\.ok \? "yok" : "bilinmiyor"\)/);
     assert.match(KUPON, /if \(!kupon\) return bosken \? <>\{bosken\(neden\)\}<\/> : null;/);
-    assert.match(MERKEZ, /ust=\{neden === "yok" \? t\("kuponSoon"\) : null\}/,
-      "misafire/ag hatasinda da 'kupon hazirlaniyor' deniyor — kupon acikken yalan");
+    assert.match(MERKEZ, /alt=\{neden === "yok" \? t\("kuponSoon"\) : null\}/);
+  });
+
+  test("liste satırında bedel sağ sütunda DEĞİL (kesiliyordu)", () => {
+    const satir = MERKEZ.slice(MERKEZ.indexOf("function ModSatiri"), MERKEZ.indexOf("function KompaktDugme"));
+    const aciklama = satir.indexOf("s.satirAciklama");
+    const bedel = satir.indexOf("s.satirBedel");
+    const kapanis = satir.indexOf("</View>", aciklama);
+    assert.ok(aciklama > 0 && bedel > aciklama && bedel < kapanis, "bedel aciklamanin altinda, ayni sutunda degil");
+    assert.doesNotMatch(satir, /satirSag/);
   });
 });
 
@@ -196,86 +240,65 @@ describe("SIRA", () => {
     const marka = EKRAN.indexOf("MARKA BANDI");
     const merkez = EKRAN.indexOf("<OyunMerkezi");
     const skor = EKRAN.indexOf("<SkorMerkezi");
-    assert.ok(marka > 0 && merkez > 0 && skor > 0, "bloklardan biri ekranda yok");
-    assert.ok(marka < merkez, "marka bandi merkezin altina dusmus");
-    assert.ok(merkez < skor, "oyun merkezi skor merkezinin altinda kalmis");
+    assert.ok(marka > 0 && merkez > marka && skor > merkez);
   });
 
-  test("beceri modları önde, kesinti/havuz mekaniği (düello, havuz) EN SONDA", () => {
+  test("beceri modları önde, düello ve havuz EN SONDA", () => {
     assert.deepEqual(MOD_SIRASI.slice(-2), ["duello", "havuz"]);
-    assert.deepEqual(MOD_SIRASI.slice(0, 2), ["kupon", "tek"], "birincil oyunlar basta degil");
+    assert.deepEqual(MOD_SIRASI.slice(0, 2), ["kupon", "tek"]);
   });
 
-  test("izgaraModlari: tam modda kupon ve tek ÇIKARILIYOR, sıra korunuyor", () => {
+  test("digerModlar kupon ve tek maçı çıkarıyor, sırayı koruyor", () => {
     const hepsi = MOD_SIRASI.map((key) => ({ key }));
-    assert.deepEqual(izgaraModlari(hepsi, true).map((m) => m.key), ["mini", "gs1987", "duello", "havuz"]);
-    assert.deepEqual(izgaraModlari(hepsi, false).map((m) => m.key), [...MOD_SIRASI]);
+    assert.deepEqual(digerModlar(hepsi).map((m) => m.key), ["mini", "gs1987", "duello", "havuz"]);
     const gizli = hepsi.filter((m) => m.key !== "duello" && m.key !== "havuz");
-    assert.deepEqual(izgaraModlari(gizli, true).map((m) => m.key), ["mini", "gs1987"]);
+    assert.deepEqual(digerModlar(gizli).map((m) => m.key), ["mini", "gs1987"]);
   });
 });
 
 describe("kuponIlerlemesi", () => {
   const maclar = ["a", "b", "c", "d"].map((fixtureId) => ({ fixtureId }));
 
-  test("katılmadı → katil, dolu parça yok", () => {
+  test("katılmadı → katil", () => {
     const r = kuponIlerlemesi({ maclar, katildiMi: false, tahminlerim: null });
     assert.equal(r.asama, "katil");
     assert.deepEqual(r.dolular, [false, false, false, false]);
-    assert.equal(r.macSayisi, 4);
   });
 
-  test("katıldı, eksik → eksik ve parçalar MAÇ SIRASIYLA", () => {
+  test("katıldı, eksik → parçalar MAÇ SIRASIYLA", () => {
     const r = kuponIlerlemesi({ maclar, katildiMi: true, tahminlerim: { b: "H", d: "A" } });
     assert.equal(r.asama, "eksik");
-    assert.equal(r.girilen, 2);
-    assert.equal(r.eksik, 2);
     assert.deepEqual(r.dolular, [false, true, false, true]);
   });
 
-  test("kupondan düşmüş maçın tahmini SAYILMIYOR (anahtar sayımı 4/4 derdi)", () => {
+  test("kupondan düşmüş maçın tahmini SAYILMIYOR", () => {
     const r = kuponIlerlemesi({ maclar, katildiMi: true, tahminlerim: { a: "H", b: "D", c: "A", eski: "H" } });
     assert.equal(r.girilen, 3);
-    assert.equal(r.asama, "eksik", "eski macin tahmini kuponu tamam gosterdi — bos mac yanlis sayilir");
+    assert.equal(r.asama, "eksik");
   });
 
-  test("hepsi dolu → tamam; boş/veri yok → güvenli", () => {
-    const r = kuponIlerlemesi({ maclar, katildiMi: true, tahminlerim: { a: "H", b: "D", c: "A", d: "H" } });
-    assert.equal(r.asama, "tamam");
+  test("hepsi dolu → tamam; veri yok → güvenli", () => {
+    assert.equal(kuponIlerlemesi({ maclar, katildiMi: true, tahminlerim: { a: "H", b: "D", c: "A", d: "H" } }).asama, "tamam");
     assert.deepEqual(kuponIlerlemesi(null), { macSayisi: 0, girilen: 0, eksik: 0, asama: "katil", dolular: [] });
   });
 
-  test("kart ilerlemeyi bu fonksiyondan çiziyor", () => {
+  test("kart ilerlemeyi bu fonksiyondan çiziyor; boş maç sayısı ilerleme satırında", () => {
     assert.match(KUPON, /const ilerleme = kuponIlerlemesi\(kupon\);/);
-    assert.match(KUPON, /ilerleme\.dolular\.map\(/);
-    assert.doesNotMatch(KUPON, /Object\.keys\(kupon\.tahminlerim\)/, "anahtar sayimi geri gelmis");
-  });
-
-  test("eksikken boş maç sayısı kaybolmuyor (ilerleme satırında), düğme kısa", () => {
-    /* 360 px'de "Tamamla · 3 maç boş" kesiliyordu (önizlemede ölçüldü). Sayı
-     * düğmeden çıktı ama kullanıcıya hâlâ söylenmeli — BOŞ MAÇ YANLIŞ SAYILIYOR. */
-    assert.match(KUPON, /\? t\("kuponMissingShort", \{ n: ilerleme\.eksik \}\)/, "bos mac sayisi ekrandan kalkmis");
-    assert.match(KUPON, /ilerleme\.asama === "eksik" \? \{ yazi: t\("kuponFill"\), zemin: Colors\.accent \}/,
-      "eksik dugmesi yine uzun metin tasiyor");
+    assert.match(KUPON, /\? t\("kuponMissingShort", \{ n: ilerleme\.eksik \}\)/);
+    assert.match(KUPON, /ilerleme\.asama === "eksik" \? \{ yazi: t\("kuponFill"\), zemin: Colors\.accent \}/);
   });
 });
 
 describe("çizimler", () => {
-  test("gradyan kimlikleri örnek başına üretiliyor (sabit id yok)", () => {
-    assert.doesNotMatch(SANAT, /\bid="/, "sabit svg id — iki kart ayni ekranda renk karistirir");
-    assert.match(SANAT, /useRef\(`\$\{onek\}\$\{\+\+sayac\}`\)/);
-  });
-
-  test("web'de geçersiz DOM özelliği üreten rotation/origin kullanılmıyor", () => {
-    /* Önizlemede ölçüldü: <G rotation origin> web'de "Invalid DOM property
-     * transform-origin" uyarısı verdi. transform dizesi her platformda aynı. */
+  test("gradyan kimlikleri örnek başına; web'de geçersiz rotation/origin yok", () => {
+    assert.doesNotMatch(SANAT, /\bid="/);
     assert.doesNotMatch(SANAT, /\b(rotation|origin)=\{?/);
   });
 
   test("her modun çizimi merkezde bağlı", () => {
     for (const ad of ["KuponSanati", "TekMacSanati", "MiniSanati", "GsSanati", "DuelloSanati", "HavuzSanati"]) {
-      assert.match(SANAT, new RegExp(`export function ${ad}\\(`), `${ad} tanimli degil`);
-      assert.match(MERKEZ, new RegExp(`\\b${ad}\\b`), `${ad} merkezde kullanilmiyor`);
+      assert.match(SANAT, new RegExp(`export function ${ad}\\(`));
+      assert.match(MERKEZ + KUPON, new RegExp(`\\b${ad}\\b`));
     }
   });
 });

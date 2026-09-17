@@ -15,6 +15,7 @@ import { macSaatiEtiketi, takvimGunFarki } from "../lib/macSaati";
 import { ligEtiketi } from "../lib/ulkeler";
 import hataMesaji from "../lib/hataMesaji";
 import { apiFetch } from "../lib/apiFetch";
+import { DUGME_YAZISI, IC_YUZEY, METIN_ANA, METIN_IKINCIL, METIN_SOLUK } from "../lib/oyunMerkezi";
 
 type Fixture = {
   fixtureId: string;
@@ -159,6 +160,14 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
   }
 
   const kap = gomulu ? s.gomuluKap : s.card;
+  /* ⚠️ GÖMÜLÜYKEN ÇERÇEVESİZ VE OKUNUR (2026-09-17, v35 cihaz görüntüsü).
+   * Oyun Merkezi'nin Tek Maç kartında bu kartın 2 px renkli çerçeveli
+   * düğmeleri ve çerçeveli "detaylı tahmin" düğmesi, dış kartın içinde
+   * ikinci ve üçüncü kutu katmanıydı; düğme yazısı #94a3b8 11–12 px idi.
+   * Gömülüyken: düz iç yüzey, beyaz yazı, renk kimliği yalnız düğmenin üst
+   * şeridinde; seçilince dolu renk + koyu yazı (beyaz yazı mavi #3b82f6'da
+   * 3.68 — eşiğin altı). */
+  const st = gomulu ? { ...s, ...g } : s;
 
   if (loading) return (
     <View style={kap}>
@@ -193,9 +202,9 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
     <View style={kap}>
       {!gomulu && <GradyanZemin renkler={Gradyan.card} yon="dikey" />}
       {/* Üst bilgi */}
-      <View style={s.meta}>
+      <View style={st.meta}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
-          <Text style={s.league}>{ligEtiketi(fixture.league, fixture.country) || t("matchFallback")}</Text>
+          <Text style={st.league}>{ligEtiketi(fixture.league, fixture.country) || t("matchFallback")}</Text>
           {gunFarki >= 2 && (
             <View style={s.countdownBadge}>
               <Text style={s.countdownText}>{t("inDays", { n: gunFarki })}</Text>
@@ -207,20 +216,20 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
             <Text style={s.geriSayimYazi}>⏳ {geriSayim}</Text>
           </View>
         ) : kickoff ? (
-          <Text style={s.kickoff}>⏱ {kickoff}</Text>
+          <Text style={st.kickoff}>⏱ {kickoff}</Text>
         ) : null}
       </View>
 
       {/* Takım isimleri */}
-      <View style={s.teams}>
-        <Text style={s.teamName} numberOfLines={2}>{fixture.home}</Text>
-        <Text style={s.vs}>vs</Text>
-        <Text style={s.teamName} numberOfLines={2}>{fixture.away}</Text>
+      <View style={st.teams}>
+        <Text style={st.teamName} numberOfLines={2}>{fixture.home}</Text>
+        <Text style={st.vs}>vs</Text>
+        <Text style={st.teamName} numberOfLines={2}>{fixture.away}</Text>
       </View>
 
       {/* Sonuç butonları */}
       {!submitted ? (
-        <View style={s.buttons}>
+        <View style={st.buttons}>
           {OUTCOMES.map(o => {
             const label = o.key === "home" ? fixture.home
               : o.key === "away" ? fixture.away
@@ -238,19 +247,21 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
               >
                 <View
                   style={[
-                    s.btn,
-                    { borderColor: o.color },
-                    isSelected && { backgroundColor: o.color, shadowColor: o.color, shadowOpacity: 0.6, shadowRadius: 8, elevation: 6 },
+                    gomulu ? g.btn : s.btn,
+                    !gomulu && { borderColor: o.color },
+                    isSelected && { backgroundColor: o.color },
+                    isSelected && !gomulu && { shadowColor: o.color, shadowOpacity: 0.6, shadowRadius: 8, elevation: 6 },
                   ]}
                 >
+                  {gomulu && <View style={[g.btnSerit, { backgroundColor: o.color }]} />}
                   {busy && isSelected
-                    ? <ActivityIndicator color="#fff" size="small" />
+                    ? <ActivityIndicator color={gomulu ? DUGME_YAZISI : "#fff"} size="small" />
                     : <>
-                        <Text style={[s.btnText, isSelected && { color: "#fff" }]} numberOfLines={1}>
+                        <Text style={[st.btnText, isSelected && { color: gomulu ? DUGME_YAZISI : "#fff" }]} numberOfLines={1}>
                           {label}
                         </Text>
                         {typeof oran === "number" && oran > 1 && (
-                          <Text style={[s.oranText, isSelected && { color: "#fff" }]}>
+                          <Text style={[st.oranText, isSelected && { color: gomulu ? DUGME_YAZISI : "#fff" }]}>
                             {oran.toFixed(2)}
                           </Text>
                         )}
@@ -281,7 +292,7 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
               ? <ActivityIndicator color="#052e16" size="small" />
               : <Text style={s.gonderYazi}>{t("sendPred")}</Text>}
           </TouchableOpacity>
-          <Text style={s.iptalIpucu}>{t("tapToCancel")}</Text>
+          <Text style={st.iptalIpucu}>{t("tapToCancel")}</Text>
         </>
       )}
 
@@ -305,7 +316,7 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
           })}
           style={s.detailLink}
         >
-          <Text style={s.detailText}>{t("seeMatchRank")}</Text>
+          <Text style={st.detailText}>{t("seeMatchRank")}</Text>
         </TouchableOpacity>
       ) : (
         /* ⚠️ ESKİDEN live sekmesine "focusId" ile atıyordu — kullanıcı maçı
@@ -323,17 +334,39 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
               kickoffISO: fixture.kickoffISO || "",
             },
           })}
-          style={s.detayDugme}
+          style={st.detayDugme}
         >
-          <Text style={s.detayDugmeYazi}>{t("detailedPred2")} →</Text>
+          <Text style={st.detayDugmeYazi}>{t("detailedPred2")} →</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 }
 
+/** Gömülü görünüm — bkz. bileşendeki "GÖMÜLÜYKEN ÇERÇEVESİZ" notu. */
+const g = StyleSheet.create({
+  meta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  league: { color: "#a3e635", fontSize: 12, fontWeight: "800" },
+  kickoff: { color: METIN_IKINCIL, fontSize: 12, fontWeight: "700" },
+  teams: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 8 },
+  teamName: { flex: 1, color: METIN_ANA, fontSize: 16, fontWeight: "800", textAlign: "center" },
+  vs: { color: METIN_SOLUK, fontSize: 12, fontWeight: "700", paddingHorizontal: 4 },
+  buttons: { flexDirection: "row", gap: 8, marginBottom: 4 },
+  btn: {
+    flex: 1, paddingTop: 13, paddingBottom: 11, borderRadius: 12,
+    backgroundColor: IC_YUZEY, alignItems: "center", justifyContent: "center", overflow: "hidden",
+  },
+  btnSerit: { position: "absolute", left: 0, right: 0, top: 0, height: 3 },
+  btnText: { color: METIN_ANA, fontWeight: "800", fontSize: 13 },
+  oranText: { color: METIN_IKINCIL, fontSize: 12, fontWeight: "700", marginTop: 2 },
+  iptalIpucu: { color: METIN_SOLUK, fontSize: 12, textAlign: "center", marginTop: 6 },
+  detailText: { color: METIN_IKINCIL, fontSize: 13, fontWeight: "700" },
+  detayDugme: { marginTop: 12, alignSelf: "center", paddingVertical: 4 },
+  detayDugmeYazi: { color: "#fbbf24", fontSize: 14, fontWeight: "800" },
+});
+
 const s = StyleSheet.create({
-  gomuluKap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16 },
+  gomuluKap: { paddingTop: 14 },
   card: {
     backgroundColor: "#0f172a",
     borderRadius: 16,

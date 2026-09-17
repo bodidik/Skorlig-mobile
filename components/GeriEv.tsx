@@ -52,9 +52,13 @@ const UST = 8;
  * unutulur ve sessizce örtülü kalır. Alan kök yığında `contentStyle` ile
  * bir kez ayrılıyor (app/_layout.tsx).
  *
- * ⚠️ `insets.top` BURAYA EKLENMİYOR: çubuk pencereye göre konumlanırken
- * onu kendisi ekliyor, ekran içeriği ise gezgin tarafından zaten güvenli
- * alanın altından başlatılıyor. İkisini de eklemek boşluğu ikiye katlardı.
+ * ⚠️ `insets.top` BU SABİTE EKLENMİYOR ama yığın ONU AYRICA ekliyor
+ * (app/_layout.tsx: `insets.top + GERIEV_ALANI`). Eski not "ekran içeriği
+ * gezgin tarafından zaten güvenli alanın altından başlatılıyor" diyordu —
+ * web önizlemesinde (insets.top = 0) doğru, Android'de YANLIŞ:
+ * `edgeToEdgeEnabled` içeriği durum çubuğunun altına çiziyor ve çubuk
+ * (`top: insets.top + UST`) başlığın üstüne biniyordu (2026-09-17,
+ * emülatörde ölçüldü).
  */
 export const GERIEV_ALANI = UST + DUGME + UST;
 

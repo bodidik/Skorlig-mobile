@@ -16,6 +16,11 @@
  * (IARC "simüle edilmiş şans oyunu" değerlendirmesi, bkz. OyunMerkezi başlığı).
  * Havuz bile jetonla değil "paylaşım" ağıyla anlatılıyor.
  *
+ * ⚠️ HALE VE PIRILTI YOK (2026-09-17). Çizimin arkasındaki yarı saydam hale
+ * kartın yazısının altına taşıyordu ve pırıltılar kart kenarına biniyordu —
+ * kullanıcının "süperpozisyonlar" dediği şeyin bir parçası. Çizim artık kendi
+ * düz renkli kutusunun İÇİNDE; kutunun dışına hiçbir şey çizilmiyor.
+ *
  * ⚠️ GRADYAN KİMLİKLERİ ÖRNEK BAŞINA TEKİL. react-native-svg `id`leri belge
  * genelinde çözüyor; aynı ekranda iki kart aynı kimliği kullanırsa ikincisi
  * birincinin rengini alır (GradyanZemin'de yaşandı).
@@ -25,7 +30,6 @@ import React, { useRef } from "react";
 import Svg, {
   Circle, Defs, G, Line, LinearGradient, Path, RadialGradient, Rect, Stop,
 } from "react-native-svg";
-import { MOD_RENGI } from "../lib/oyunMerkezi";
 
 let sayac = 0;
 function useKimlik(onek: string): (ad: string) => string {
@@ -34,27 +38,6 @@ function useKimlik(onek: string): (ad: string) => string {
 }
 
 type Boyut = { boyut?: number };
-
-/** Işıltı: çizimin arkasında modun renginden yumuşak hale. */
-function Hale({ id, renk }: { id: string; renk: string }) {
-  return (
-    <>
-      <Defs>
-        <RadialGradient id={id} cx="50%" cy="50%" r="50%">
-          <Stop offset="0" stopColor={renk} stopOpacity={0.55} />
-          <Stop offset="1" stopColor={renk} stopOpacity={0} />
-        </RadialGradient>
-      </Defs>
-      <Circle cx="60" cy="60" r="58" fill={`url(#${id})`} />
-    </>
-  );
-}
-
-/** Pırıltı yıldızı — dört uçlu. */
-function Pirilti({ x, y, r, renk }: { x: number; y: number; r: number; renk: string }) {
-  const d = `M${x} ${y - r} Q${x + r * 0.18} ${y - r * 0.18} ${x + r} ${y} Q${x + r * 0.18} ${y + r * 0.18} ${x} ${y + r} Q${x - r * 0.18} ${y + r * 0.18} ${x - r} ${y} Q${x - r * 0.18} ${y - r * 0.18} ${x} ${y - r}Z`;
-  return <Path d={d} fill={renk} />;
-}
 
 /**
  * HAFTALIK TAHMİN — sekiz yuvalı kupon. Yuvaların bir kısmı işaretli: kuponun
@@ -66,7 +49,6 @@ export function KuponSanati({ boyut = 112 }: Boyut) {
   const dolu = new Set([0, 1, 3, 4, 6]);
   return (
     <Svg width={boyut} height={boyut} viewBox="0 0 120 120">
-      <Hale id={k("hale")} renk={MOD_RENGI.kupon} />
       <Defs>
         <LinearGradient id={k("bilet")} x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0" stopColor="#d9f99d" />
@@ -98,8 +80,6 @@ export function KuponSanati({ boyut = 112 }: Boyut) {
             : <Circle key={i} cx={cx} cy={cy} r="4" fill="none" stroke="#1a2e05" strokeWidth={1.6} />;
         })}
       </G>
-      <Pirilti x={96} y={22} r={7} renk="#ecfccb" />
-      <Pirilti x={20} y={92} r={4.5} renk="#bef264" />
     </Svg>
   );
 }
@@ -109,7 +89,6 @@ export function TekMacSanati({ boyut = 88 }: Boyut) {
   const k = useKimlik("tm");
   return (
     <Svg width={boyut} height={boyut} viewBox="0 0 120 120">
-      <Hale id={k("hale")} renk={MOD_RENGI.tek} />
       <Defs>
         <LinearGradient id={k("saha")} x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor="#16a34a" />
@@ -136,7 +115,6 @@ export function TekMacSanati({ boyut = 88 }: Boyut) {
       <Path d="M52 30 Q58 26 64 26.5 L58 30 Z" fill="#0f172a" opacity={0.9} />
       <Path d="M84 41 Q88 48 86 55 L80 50 Z" fill="#0f172a" opacity={0.9} />
       <Path d="M44 41 Q40 48 42 55 L47 50 Z" fill="#0f172a" opacity={0.9} />
-      <Pirilti x={98} y={24} r={6} renk="#dcfce7" />
     </Svg>
   );
 }
@@ -146,7 +124,6 @@ export function MiniSanati({ boyut = 84 }: Boyut) {
   const k = useKimlik("mn");
   return (
     <Svg width={boyut} height={boyut} viewBox="0 0 120 120">
-      <Hale id={k("hale")} renk={MOD_RENGI.mini} />
       <Defs>
         <LinearGradient id={k("kupa")} x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0" stopColor="#fde68a" />
@@ -172,8 +149,6 @@ export function MiniSanati({ boyut = 84 }: Boyut) {
       <Rect x="55" y="70" width="10" height="14" fill="#b45309" />
       <Rect x="42" y="84" width="36" height="9" rx="3" fill="#92400e" />
       <Rect x="36" y="93" width="48" height="10" rx="3" fill="#78350f" />
-      <Pirilti x={60} y={12} r={6} renk="#fef9c3" />
-      <Pirilti x={96} y={96} r={4.5} renk="#bae6fd" />
     </Svg>
   );
 }
@@ -183,7 +158,6 @@ export function GsSanati({ boyut = 84 }: Boyut) {
   const k = useKimlik("gs");
   return (
     <Svg width={boyut} height={boyut} viewBox="0 0 120 120">
-      <Hale id={k("hale")} renk={MOD_RENGI.gs1987} />
       <Defs>
         <LinearGradient id={k("sol")} x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor="#ef4444" />
@@ -199,7 +173,6 @@ export function GsSanati({ boyut = 84 }: Boyut) {
       <Path d="M60 12 L96 24 V56 Q96 88 60 108 Q24 88 24 56 V24 Z" fill="none" stroke="#fff7ed" strokeWidth={3} />
       <Path d="M60 38 L65.5 50 L78 51 L68.5 59 L71.5 72 L60 65 L48.5 72 L51.5 59 L42 51 L54.5 50 Z"
         fill="#fff7ed" />
-      <Pirilti x={100} y={14} r={6} renk="#fef08a" />
     </Svg>
   );
 }
@@ -209,7 +182,6 @@ export function DuelloSanati({ boyut = 84 }: Boyut) {
   const k = useKimlik("dl");
   return (
     <Svg width={boyut} height={boyut} viewBox="0 0 120 120">
-      <Hale id={k("hale")} renk={MOD_RENGI.duello} />
       <Circle cx="36" cy="60" r="22" fill="#1d4ed8" />
       <Circle cx="84" cy="60" r="22" fill="#b91c1c" />
       <Circle cx="36" cy="60" r="22" fill="none" stroke="#bfdbfe" strokeWidth={2.5} />
@@ -225,7 +197,6 @@ export function HavuzSanati({ boyut = 84 }: Boyut) {
   const uclar: Array<[number, number]> = [[20, 34], [100, 34], [20, 86], [100, 86], [60, 12]];
   return (
     <Svg width={boyut} height={boyut} viewBox="0 0 120 120">
-      <Hale id={k("hale")} renk={MOD_RENGI.havuz} />
       {uclar.map(([x, y], i) => (
         <Line key={`c${i}`} x1="60" y1="62" x2={x} y2={y} stroke="#c4b5fd" strokeWidth={2.4} opacity={0.8} />
       ))}
