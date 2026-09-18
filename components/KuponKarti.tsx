@@ -31,11 +31,12 @@
  * kilit kapanır. Aynı kural `app/kupon.tsx` içinde de yazılı.
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { apiJson } from "../lib/apiFetch";
-import { t, useLang } from "../lib/i18n";
+import { getLang, t, useLang } from "../lib/i18n";
+import { tarihAraligiEtiketi } from "../lib/macSaati";
 import { ulkeAdi } from "../lib/ulkeler";
 import { kuponBasligi, birincilKupon } from "../lib/kuponBaslik";
 import {
@@ -95,6 +96,7 @@ export default function KuponKarti({ bosken }: Props) {
   const { user, loading: oturumYukleniyor } = useAuth();
   const uid = user?.uid || null;
   const [kupon, setKupon] = useState<KuponT | null>(null);
+  const [liste, setListe] = useState<KuponT[]>([]);
   const [neden, setNeden] = useState<KuponYokNedeni>("bilinmiyor");
   const [loading, setLoading] = useState(true);
 
@@ -108,6 +110,7 @@ export default function KuponKarti({ bosken }: Props) {
        * için sonuç tesadüfen doğruydu. İki tür birlikte dönseydi ülke
        * kuponu ORTAK'ı gizlerdi. */
       setKupon(birincilKupon(liste));
+      setListe(liste);
       /* Yalnız sunucu GERÇEKTEN cevap verdiyse "yok" — bkz. başlık. */
       setNeden(j?.ok ? "yok" : "bilinmiyor");
     } catch {
@@ -118,11 +121,16 @@ export default function KuponKarti({ bosken }: Props) {
   }, []);
 
   /* Oturum yüklenmeden istek yok; kullanıcı değişince (misafir → Google
-   * girişi) yeniden. bkz. başlık "OTURUM HAZIR OLMADAN". */
-  useEffect(() => {
+   * girişi) yeniden. bkz. başlık "OTURUM HAZIR OLMADAN".
+   *
+   * ⚠️ EKRANA HER DÖNÜŞTE YENİLENİR (2026-09-18, kullanıcı: "kupon oynayınca
+   * ana sayfada o kupon seçenek olarak hâlâ sıfırdan sunuluyor"). Eskiden
+   * yalnız ilk açılışta yükleniyordu: kupon ekranında katılıp geri dönen
+   * oyuncu kartı "Katıl" ile görüyordu. */
+  useFocusEffect(useCallback(() => {
     if (oturumYukleniyor) return;
     yukle();
-  }, [oturumYukleniyor, uid, yukle]);
+  }, [oturumYukleniyor, uid, yukle]));
 
   if (loading) {
     return (
@@ -144,6 +152,11 @@ export default function KuponKarti({ bosken }: Props) {
   /* Başlık `app/kupon.tsx` ile AYNI anahtardan — iki yüzey aynı kuponu farklı
    * adlandırırsa kullanıcı iki ayrı oyun sanır. Tek kaynak: lib/kuponBaslik.ts. */
   const baslik = kuponBasligi(kupon, t, ulkeAdi);
+  /* Hangi haftanın kuponu — planlayıcı 4 hafta ileri kuruyor; tarih yazmayan
+   * kart W41'e katılan oyuncuya W39'u "aynı kupon sıfırlanmış" gibi gösterdi. */
+  const yerel = getLang() === "en" ? "en-US" : "tr-TR";
+  const tarihi = (k: KuponT) => tarihAraligiEtiketi((k.maclar || []).map((m) => m.kickoffISO), { yerel });
+  const digerKatilinan = liste.filter((k) => k.katildiMi && k.id !== kupon.id && k.durum === "open");
 
   /* İlk iki maç önizleme olarak gösteriliyor: "8 maç" soyut, "Galatasaray -
    * Fenerbahçe" somut. Kartın tıklanma sebebi bu satır. */
@@ -173,7 +186,7 @@ export default function KuponKarti({ bosken }: Props) {
           modu="kupon"
           Sanat={KuponSanati}
           ad={t("weeklyKupon")}
-          alt={`${baslik} · ${t("kuponMatchCount", { n: ilerleme.macSayisi })}`}
+          alt={[baslik, tarihi(kupon)].filter(Boolean).join(" · ")}
         />
         <Text style={parca.aciklama}>{t("kuponHeroSub")}</Text>
 
@@ -204,6 +217,12 @@ export default function KuponKarti({ bosken }: Props) {
           )}
         </View>
 
+        {digerKatilinan.length > 0 && (
+          <Text style={[s.digerKatilinan, { color: RENK }]} numberOfLines={1}>
+            {t("homeOtherJoined", { d: digerKatilinan.map(tarihi).filter(Boolean).join(", ") })}
+          </Text>
+        )}
+
         <View style={s.altSatir}>
           <Text style={s.sure} numberOfLines={1}>⏳ {t("kuponClosesIn", { s: sureMetni(kupon.kalanSaniye) })}</Text>
           {eylem.zemin ? (
@@ -229,6 +248,7 @@ const s = StyleSheet.create({
   macSatiri: { color: METIN_ANA, fontSize: 14, fontWeight: "700" },
   vs: { color: METIN_SOLUK, fontWeight: "400" },
   kalanMac: { color: METIN_IKINCIL, fontSize: 13, marginTop: 2 },
+  digerKatilinan: { fontSize: 13, fontWeight: "800", marginTop: 12 },
 
   altSatir: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",

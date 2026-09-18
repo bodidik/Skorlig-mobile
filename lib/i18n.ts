@@ -908,6 +908,9 @@ const strings = {
     skorExactCount:   "{n} tam skor",
     skorSeeRank:      "Sıralama",
     skorErr:          "Tahmin gönderilemedi",
+    // Ana ekran "oynadın" durumu (2026-09-18)
+    homeOtherJoined:  "✓ Katıldığın diğer hafta: {d}",
+    predYourPick:     "✓ Tahminin: {s}",
     // mini/create + TournamentCreate
     maxNMatches:      "En fazla {n} maç seçebilirsin.",
     nameAndPick:      "Turnuvaya bir isim ver ve {a}-{b} maç seç (önerilen: 5).",
@@ -2446,6 +2449,9 @@ const strings = {
     skorExactCount:   "{n} exact",
     skorSeeRank:      "Ranking",
     skorErr:          "Prediction could not be sent",
+    // Home "played" state (2026-09-18)
+    homeOtherJoined:  "✓ Your other week: {d}",
+    predYourPick:     "✓ Your pick: {s}",
     maxNMatches:      "You can pick at most {n} matches.",
     nameAndPick:      "Name your tournament and pick {a}-{b} matches (recommended: 5).",
     createdPublic:    "\"{n}\" is created! 🎉\n\nPublic tournament — it will appear in the \"Tournaments\" list.\n\nCode: {c}",

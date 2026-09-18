@@ -118,3 +118,41 @@ export function takvimGunFarki(d: Date, simdi: Date): number {
   const b = new Date(simdi.getFullYear(), simdi.getMonth(), simdi.getDate()).getTime();
   return Math.round((a - b) / 86400000);
 }
+
+/**
+ * Maç listesinin tarih aralığı: "25–27 Eyl" · "30 Eyl – 2 Eki" · "25 Eyl".
+ *
+ * NEDEN (2026-09-18, kullanıcı: "kupon oynayınca ana sayfada o kupon hâlâ
+ * sıfırdan sunuluyor"): planlayıcı 4 hafta ileri kupon kuruyor, ana ekran kartı
+ * ise hangi haftanın kuponu olduğunu YAZMIYORDU — W41'e katılan oyuncu W39
+ * kurulunca aynı kartı "Katıl" ile görüp oynadığı kuponun sıfırlandığını
+ * sanıyordu. Yıl yalnız bugünden farklıysa yazılır.
+ */
+export function tarihAraligiEtiketi(
+  isoListe: ReadonlyArray<string | null | undefined>,
+  s: MacSaatiSecenek = {},
+): string {
+  const tarihler = (isoListe || [])
+    .map((x) => new Date(String(x || "")))
+    .filter((d) => Number.isFinite(d.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+  if (!tarihler.length) return "";
+  const yerel = s.yerel || "tr-TR";
+  const simdi = s.simdi || new Date();
+  const ilk = tarihler[0];
+  const son = tarihler[tarihler.length - 1];
+  const gunAy = (d: Date) => {
+    const e = d.toLocaleDateString(yerel, { day: "numeric", month: "short" });
+    return d.getFullYear() === simdi.getFullYear() ? e : e + " " + d.getFullYear();
+  };
+  if (ayniGunMu(ilk, son)) return gunAy(ilk);
+  if (ilk.getFullYear() === son.getFullYear() && ilk.getMonth() === son.getMonth()) {
+    /* Gün önde yazan dil (tr: "27 Eyl") → "25–27 Eyl"; ay önde (en: "Sep 27")
+     * → "Sep 25–27". */
+    const sonEtiket = gunAy(son);
+    return /^\d/.test(sonEtiket)
+      ? `${ilk.getDate()}–${sonEtiket}`
+      : `${gunAy(ilk)}–${son.getDate()}`;
+  }
+  return `${gunAy(ilk)} – ${gunAy(son)}`;
+}

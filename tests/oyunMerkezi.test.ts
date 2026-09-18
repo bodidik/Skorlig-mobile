@@ -193,7 +193,9 @@ describe("GradyanZemin — diğer ekranlar için doğru saydamlık ve boyut", ()
 describe("OTURUM — kupon kartı oturum hazır olmadan istek atmıyor", () => {
   test("yükleme oturum yüklemesi bitince ve kullanıcı değişince", () => {
     assert.match(KUPON, /const \{ user, loading: oturumYukleniyor \} = useAuth\(\);/);
-    assert.match(KUPON, /if \(oturumYukleniyor\) return;\s*yukle\(\);\s*\}, \[oturumYukleniyor, uid, yukle\]\);/,
+    /* 2026-09-18: useEffect → useFocusEffect(useCallback(...)) — ekrana dönüşte de
+     * yenilensin (bkz. tests/anaEkranOynandi.test.ts); oturum kapısı aynı. */
+    assert.match(KUPON, /if \(oturumYukleniyor\) return;\s*yukle\(\);\s*\}, \[oturumYukleniyor, uid, yukle\]\)\);/,
       "kupon oturumdan once isteniyor — misafir/geç oturumda AUTH_REQUIRED ile bos kalir");
   });
 });

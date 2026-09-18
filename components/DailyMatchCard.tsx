@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   View, Text, TouchableOpacity, ActivityIndicator,
   Animated, StyleSheet, Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import Basinc from "./Basinc";
 import GradyanZemin from "./GradyanZemin";
 import Konfeti from "./Konfeti";
@@ -56,6 +56,8 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  /* Konfeti yalnız ŞİMDİ gönderilen tahminde; sunucudan okunan eski tahminde değil. */
+  const [yeniGonderildi, setYeniGonderildi] = useState(false);
   const [busy, setBusy] = useState(false);
   const [oranlar, setOranlar] = useState<{ home: number; draw: number; away: number } | null>(null);
   const lcAnim = useRef(new Animated.Value(0)).current;
@@ -98,6 +100,27 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
     })();
     return () => { cancelled = true; };
   }, [fixture?.fixtureId]);
+
+  /* ⚠️ OYNANMIŞ MAÇ SIFIRDAN SUNULMAZ (2026-09-18, kullanıcı: "kupon
+   * oynayınca ana sayfada o kupon seçenek olarak hâlâ sıfırdan sunuluyor.
+   * Tek maç/haftalık kupon... Bunu oynadığımız anlaşılsın ana sayfada").
+   * "Gönderildi" durumu yalnız bellekteydi: uygulama yeniden açılınca ya da
+   * tahmin "Skor & detaylı tahmin" ekranından yapılınca kart 1-X-2'yi yeniden
+   * sunuyordu. Artık sunucudan okunuyor (`/api/pred/flags` → `sonuclar`) ve
+   * ekrana her dönüşte tazeleniyor. */
+  const tahminiOku = useCallback(async () => {
+    const fid = fixture?.fixtureId;
+    if (!fid || !userId) return;
+    try {
+      const j = await apiFetch(`/api/pred/flags?fixtureIds=${encodeURIComponent(fid)}`).then((x) => x.json());
+      if (!j?.ok || !Array.isArray(j.fixtures) || !j.fixtures.includes(fid)) return;
+      const secim = OUTCOMES.find((o) => o.api === j.sonuclar?.[fid])?.key ?? null;
+      setSubmitted(true);
+      if (secim) setSelected(secim);
+    } catch { /* okunamazsa kart oynanabilir kalır; gönderimde sunucu yine karar verir */ }
+  }, [fixture?.fixtureId, userId]);
+
+  useFocusEffect(useCallback(() => { tahminiOku(); }, [tahminiOku]));
 
   /* ⚠️ SEÇİM ARTIK GÖNDERMİYOR — yalnızca taslak.
    *
@@ -144,6 +167,7 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
         return;
       }
       setSubmitted(true);
+      setYeniGonderildi(true);
       titret("gol");
       // LC animasyonu
       Animated.sequence([
@@ -274,8 +298,14 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
         </View>
       ) : (
         <View style={s.doneRow}>
-          <Konfeti anahtar={fixture.fixtureId} />
-          <Text style={s.doneText}>{t("predSaved")}</Text>
+          {yeniGonderildi && <Konfeti anahtar={fixture.fixtureId} />}
+          <Text style={st.doneText}>
+            {selected
+              ? t("predYourPick", {
+                s: selected === "home" ? fixture.home : selected === "away" ? fixture.away : t("draw"),
+              })
+              : t("predSaved")}
+          </Text>
           <Animated.Text style={[s.lcBadge, { opacity: lcOpacity, transform: [{ translateY: lcY }] }]}>
             +LC
           </Animated.Text>
