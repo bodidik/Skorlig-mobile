@@ -26,6 +26,7 @@ import hataMesaji from "../lib/hataMesaji";
 import { t, useLang } from "../lib/i18n";
 import { ulkeAdi } from "../lib/ulkeler";
 import { kuponBasligi, kuponAltMetni } from "../lib/kuponBaslik";
+import { sureMetni } from "../lib/sure";
 
 type Mac = {
   fixtureId: string;
@@ -61,15 +62,10 @@ const SECIM: Array<{ k: "H" | "D" | "A"; etiket: string; renk: string }> = [
   { k: "A", etiket: "2", renk: "#ef4444" },
 ];
 
-function sureMetni(saniye: number): string {
-  if (saniye <= 0) return t("closedLower");
-  const g = Math.floor(saniye / 86400);
-  const s = Math.floor((saniye % 86400) / 3600);
-  const d = Math.floor((saniye % 3600) / 60);
-  if (g > 0) return t("daysHours", { g, s });
-  if (s > 0) return t("hoursMin", { s, d });
-  return t("nMin", { n: d });
-}
+/* ⚠️ GERİ SAYIM METNİ ARTIK `lib/sure.ts`TE. Burada ve
+ * `components/KuponKarti.tsx`te aynı fonksiyonun iki kopyası duruyordu;
+ * ikisinin yorumu da "AYNI kural" diyordu — kopya olduğu biliniyor ama
+ * ayrışma engellenmiyordu. Üçüncü tüketici eklenirken taban çıkarıldı. */
 
 export default function KuponEkrani() {
   useLang(); // dil değişince ekran yeniden çizilsin
@@ -206,7 +202,7 @@ export default function KuponEkrani() {
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <Text style={{ color: Colors.text, fontSize: 16, fontWeight: "800" }}>{baslik}</Text>
                 <Text style={{ color: acik ? Colors.accent : Colors.muted, fontSize: 11, fontWeight: "700" }}>
-                  {acik ? sureMetni(k.kalanSaniye) : t("closedLower")}
+                  {acik ? sureMetni(k.kalanSaniye, t) : t("closedLower")}
                 </Text>
               </View>
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>

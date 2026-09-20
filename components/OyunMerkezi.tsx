@@ -56,6 +56,8 @@ import {
   digerModlar, type ModAnahtari,
 } from "../lib/oyunMerkezi";
 import Basinc from "./Basinc";
+import SimdiSeridi from "./SimdiSeridi";
+import { enAcil, type Acil } from "../lib/acilDurum";
 import KuponKarti from "./KuponKarti";
 import DailyMatchCard from "./DailyMatchCard";
 import SkorTahminiKarti from "./SkorTahminiKarti";
@@ -101,6 +103,38 @@ export default function OyunMerkezi({
 
   const bedelMetni = (n?: number | null) => (typeof n === "number" && n > 0 ? `${n} LC` : null);
   const tahmineGit = () => router.push("/(tabs)/predict" as any);
+
+  /**
+   * "ŞİMDİ" ŞERİDİ — kartlar aciliyetlerini buraya bildiriyor.
+   *
+   * ⚠️ KARTLAR YENİDEN SIRALANMIYOR (bkz. lib/acilDurum.ts): üç kart veriyi
+   * ayrı ayrı ve farklı zamanlarda çekiyor; aciliyete göre sıralamak
+   * kartları kullanıcının parmağının altında oynatırdı. Şerit kartların
+   * ÜSTÜNE çıkıyor, düzen sabit kalıyor.
+   *
+   * ⚠️ ANAHTARA GÖRE SAKLANIYOR, LİSTEYE EKLENMİYOR: aynı kart yeniden
+   * bildirdiğinde eskisi değişmeli. Diziye `push` etseydik her odaklanmada
+   * kopya birikirdi.
+   *
+   * ⚠️ HOOK'LAR `if (!tam)` ERKEN DÖNÜŞÜNÜN ÜSTÜNDE — BU BİR KUSUR
+   * DÜZELTMESİ. İlk yazımda aşağıdaydılar: `tam` değiştiğinde (maç listesi
+   * ↔ Benimkiler/Turnuvalar) React'in gördüğü hook sayısı değişiyor ve
+   * "Rendered fewer hooks than expected" ile ÇÖKÜYOR. Koşullu dönüşün
+   * altına hook koymak sessiz değil, gürültülü bir çökme.
+   */
+  const [aciller, setAciller] = React.useState<Partial<Record<ModAnahtari, Acil | null>>>({});
+  const bildir = React.useCallback((k: ModAnahtari) => (a: Acil | null) => {
+    setAciller((o) => {
+      /* ⚠️ DEĞİŞMEDİYSE DURUMA HİÇ DOKUNMA: kartlar odakta her yenilemede
+       * bildiriyor; aynı değeri yeniden yazmak ebeveyni gereksiz çizer ve
+       * çizim → bildirim → çizim döngüsüne kapı açar. */
+      const e = o[k] ?? null;
+      const y = a ?? null;
+      if (e === y) return o;
+      if (e && y && e.metin === y.metin && e.oncelik === y.oncelik) return o;
+      return { ...o, [k]: y };
+    });
+  }, []);
 
   const tanim: Record<ModAnahtari, Omit<Mod, "key">> = {
     kupon: {
@@ -161,6 +195,8 @@ export default function OyunMerkezi({
   const diger = digerModlar(gorunenModlar);
   const acik = (k: ModAnahtari) => gorunenModlar.some((m) => m.key === k);
 
+  const simdi = enAcil(Object.values(aciller), MOD_SIRASI);
+
   /**
    * ANA KARTLAR — sırası `MOD_SIRASI`TAN geliyor, JSX'ten DEĞİL.
    *
@@ -173,6 +209,7 @@ export default function OyunMerkezi({
   const anaKartlar: Partial<Record<ModAnahtari, () => React.ReactNode>> = {
     kupon: () => (
         <KuponKarti
+          onAcil={bildir("kupon")}
           bosken={(neden) => (
             /* "yok": sunucu açık kupon olmadığını SÖYLEDİ. "bilinmiyor": soramadık
              * (misafir, ağ) — o zaman "hazırlanıyor" yalan olabilir. */
@@ -222,6 +259,7 @@ export default function OyunMerkezi({
         />
         <DailyMatchCard
           gomulu
+          onAcil={bildir("tek")}
           country={country || undefined}
           userId={userId}
           bosken={
@@ -239,6 +277,17 @@ export default function OyunMerkezi({
   return (
     <View style={s.kok}>
       <Text style={s.baslik}>{t("whatToPlay")}</Text>
+
+      {/* ŞİMDİ — acil bir şey yoksa hiçbir şey çizilmiyor (bkz. SimdiSeridi). */}
+      <SimdiSeridi
+        acil={simdi}
+        onGit={(a) => {
+          /* Hedef, modun kendi tanımındaki eylem — ikinci bir yönlendirme
+           * tablosu yazmak "aynı ad, farklı hedef" sınıfını açardı. */
+          const bas = (tanim as any)[a.anahtar]?.bas;
+          if (typeof bas === "function") bas();
+        }}
+      />
 
       {/* ANA KARTLAR — sıra MOD_SIRASI'ndan. Kapalı ya da tanımsız mod atlanır. */}
       {MOD_SIRASI.filter((k) => anaKartlar[k] && acik(k)).map((k) => (

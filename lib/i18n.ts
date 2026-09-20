@@ -99,6 +99,14 @@ const strings = {
     nickReserved:     "Bu kullanıcı adı kullanılamaz (rezerve).",
     nickLength:       "2-20 karakter olmalı.",
     nickInvalid:      "Geçersiz karakter kullandın.",
+    /* Ana ekran "şimdi" şeridi — açılışta öne çıkan tek acil durum.
+     * ⚠️ "KUPON" KELİMESİ YOK: bahis dili nöbetçisi (api tarafı) hem tr hem
+     * en'de yakaladı ve haklıydı — Google Play IARC "simulated gambling"
+     * soruyor. Ürünün adı zaten "Haftalık Tahmin" / "Weekly Predictions"
+     * (`weeklyKupon`); şerit o adı kullanıyor. */
+    simdiHaftalikKapaniyor: "Haftalık Tahmin {s} içinde kapanıyor — henüz katılmadın",
+    simdiMacBasliyor:       "Günün maçı {s} içinde başlıyor — tahminin yok",
+    simdiGit:               "Git",
     // onboarding + geri doldurma: kullanıcı adı
     pickYourNickname: "Kullanıcı adını seç",
     yourNickname:     "Adın: {n}",
@@ -1693,6 +1701,9 @@ const strings = {
     nickReserved:     "This username is not available (reserved).",
     nickLength:       "Must be 2-20 characters.",
     nickInvalid:      "You used an invalid character.",
+    simdiHaftalikKapaniyor: "Weekly Predictions close in {s} — you haven't joined yet",
+    simdiMacBasliyor:       "Today's match starts in {s} — no prediction yet",
+    simdiGit:               "Go",
     pickYourNickname: "Pick your username",
     yourNickname:     "Your name: {n}",
     nickWhy:          "This name appears in rankings and races",

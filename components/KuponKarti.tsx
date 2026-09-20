@@ -31,7 +31,7 @@
  * kilit kapanır. Aynı kural `app/kupon.tsx` içinde de yazılı.
  */
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { apiJson } from "../lib/apiFetch";
@@ -49,6 +49,8 @@ import Basinc from "./Basinc";
 import IskeletBlok from "./Iskelet";
 import { KuponSanati } from "./OyunSanati";
 import { KartBasi, parca } from "./OyunKartParcalari";
+import { sureMetni } from "../lib/sure";
+import { kuponAciliyeti, type Acil } from "../lib/acilDurum";
 
 type Mac = {
   fixtureId: string;
@@ -75,22 +77,24 @@ export type KuponYokNedeni = "yok" | "bilinmiyor";
 type Props = {
   /** Kupon gösterilemezken çizilecek kart. Verilmezse eski davranış: hiçbir şey. */
   bosken?: (neden: KuponYokNedeni) => React.ReactNode;
+  /**
+   * Ana ekranın "şimdi" şeridi için aciliyet bildirimi.
+   *
+   * ⚠️ YENİ AĞ ÇAĞRISI AÇMIYOR: bu kart `/api/kupon/aktif`i ZATEN çekiyor,
+   * aciliyet o yanıttan türüyor. Şeridin ayrıca sorması iki gerçeklik
+   * açardı (kart "40 dk" derken şerit "38 dk" diyebilirdi).
+   */
+  onAcil?: (a: Acil | null) => void;
 };
 
 const RENK = MOD_RENGI.kupon;
 
-/** Geri sayım metni — `app/kupon.tsx` ile AYNI kural. */
-function sureMetni(saniye: number): string {
-  if (saniye <= 0) return t("closedLower");
-  const g = Math.floor(saniye / 86400);
-  const s = Math.floor((saniye % 86400) / 3600);
-  const d = Math.floor((saniye % 3600) / 60);
-  if (g > 0) return t("daysHours", { g, s });
-  if (s > 0) return t("hoursMin", { s, d });
-  return t("nMin", { n: d });
-}
+/* ⚠️ GERİ SAYIM METNİ `lib/sure.ts`TE. Burada ve `app/kupon.tsx`te aynı
+ * fonksiyonun iki kopyası duruyordu; ikisinin yorumu da "AYNI kural"
+ * diyordu, yani kopya olduğu biliniyordu ama ayrışma engellenmiyordu.
+ * Üçüncü tüketici (ana ekran "şimdi" şeridi) eklenirken taban çıkarıldı. */
 
-export default function KuponKarti({ bosken }: Props) {
+export default function KuponKarti({ bosken, onAcil }: Props) {
   useLang();
   const router = useRouter();
   const { user, loading: oturumYukleniyor } = useAuth();
@@ -99,6 +103,24 @@ export default function KuponKarti({ bosken }: Props) {
   const [liste, setListe] = useState<KuponT[]>([]);
   const [neden, setNeden] = useState<KuponYokNedeni>("bilinmiyor");
   const [loading, setLoading] = useState(true);
+
+  /* ⚠️ GERİ ÇAĞRI REF'TE TUTULUYOR, `yukle`nin BAĞIMLILIĞI DEĞİL.
+   *
+   * `onAcil` ebeveyn her çizildiğinde yeni bir işlev olabiliyor. Bağımlılığa
+   * koysaydık `yukle` kimliği değişir, `useFocusEffect` yeniden çalışır ve
+   * kart odakta durdukça kendini yeniden yükleyip dururdu.
+   *
+   * ⚠️ Deponun "ref yetmez, durum kullan" kuralı BURAYA UYMUYOR: o kural
+   * depoya YAZAN etkiler için (yükleme bitmeden yazıp veriyi silme sınıfı).
+   * Burada ref yalnızca en güncel geri çağrıyı taşıyor, karar verisi değil. */
+  const acilRef = useRef(onAcil);
+  acilRef.current = onAcil;
+
+  const bildirAcil = (k: KuponT | null) => {
+    acilRef.current?.(
+      kuponAciliyeti(k, (sn) => t("simdiHaftalikKapaniyor", { s: sureMetni(sn, t) }))
+    );
+  };
 
   const yukle = useCallback(async () => {
     try {
@@ -109,13 +131,16 @@ export default function KuponKarti({ bosken }: Props) {
        * YEDEK dala düşerek görünüyordu: TR40'ta liste tek elemanlı olduğu
        * için sonuç tesadüfen doğruydu. İki tür birlikte dönseydi ülke
        * kuponu ORTAK'ı gizlerdi. */
-      setKupon(birincilKupon(liste));
+      const birincil = birincilKupon(liste);
+      setKupon(birincil);
       setListe(liste);
       /* Yalnız sunucu GERÇEKTEN cevap verdiyse "yok" — bkz. başlık. */
       setNeden(j?.ok ? "yok" : "bilinmiyor");
+      bildirAcil(birincil);
     } catch {
       setKupon(null);
       setNeden("bilinmiyor");
+      bildirAcil(null);
     }
     setLoading(false);
   }, []);
@@ -224,7 +249,7 @@ export default function KuponKarti({ bosken }: Props) {
         )}
 
         <View style={s.altSatir}>
-          <Text style={s.sure} numberOfLines={1}>⏳ {t("kuponClosesIn", { s: sureMetni(kupon.kalanSaniye) })}</Text>
+          <Text style={s.sure} numberOfLines={1}>⏳ {t("kuponClosesIn", { s: sureMetni(kupon.kalanSaniye, t) })}</Text>
           {eylem.zemin ? (
             <View style={[s.eylem, { backgroundColor: eylem.zemin }]}>
               <Text style={s.eylemYazi} numberOfLines={1}>{eylem.yazi}</Text>

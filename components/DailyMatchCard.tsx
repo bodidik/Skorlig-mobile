@@ -16,6 +16,9 @@ import { ligEtiketi } from "../lib/ulkeler";
 import hataMesaji from "../lib/hataMesaji";
 import { apiFetch } from "../lib/apiFetch";
 import { DUGME_YAZISI, IC_YUZEY, METIN_ANA, METIN_IKINCIL, METIN_SOLUK } from "../lib/oyunMerkezi";
+import { macAciliyeti, type Acil } from "../lib/acilDurum";
+import { sureMetni } from "../lib/sure";
+import { nowFromServer } from "../lib/serverTime";
 
 type Fixture = {
   fixtureId: string;
@@ -38,6 +41,14 @@ type Props = {
   gomulu?: boolean;
   /** Günün maçı yokken çizilecek düğüm. Verilmezse eski davranış: hiçbir şey. */
   bosken?: React.ReactNode;
+  /**
+   * Ana ekranın "şimdi" şeridi için aciliyet bildirimi.
+   *
+   * ⚠️ YENİ AĞ ÇAĞRISI AÇMIYOR: bu kart maçı ve oynanma durumunu ZATEN
+   * çekiyor; aciliyet o veriden türüyor. Şeridin ayrıca sorması iki
+   * gerçeklik açardı.
+   */
+  onAcil?: (a: Acil | null) => void;
 };
 
 /* Renkler predict/kupon ile BİREBİR: ev=mavi, beraberlik=kehribar,
@@ -49,7 +60,7 @@ const OUTCOMES = [
   { key: "away", api: "A", color: "#ef4444" },
 ] as const;
 
-export default function DailyMatchCard({ country, userId, gomulu = false, bosken }: Props) {
+export default function DailyMatchCard({ country, userId, gomulu = false, bosken, onAcil }: Props) {
   useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
   const [fixture, setFixture] = useState<Fixture | null>(null);
@@ -62,11 +73,37 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
   const [oranlar, setOranlar] = useState<{ home: number; draw: number; away: number } | null>(null);
   const lcAnim = useRef(new Animated.Value(0)).current;
   // Geri sayım her dakika yenilensin — saniyelik tik pil ve render israfı.
-  const [, setTik] = useState(0);
+  const [tik, setTik] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTik((n) => n + 1), 60_000);
     return () => clearInterval(id);
   }, []);
+
+  /* ⚠️ GERİ ÇAĞRI REF'TE: `onAcil` ebeveyn her çizildiğinde yeni bir işlev
+   * olabiliyor; bağımlılığa koymak aşağıdaki etkiyi gereksiz yere yeniden
+   * çalıştırırdı. Ref burada yalnız en güncel işlevi taşıyor, karar verisi
+   * DEĞİL — deponun "ref yetmez, durum kullan" kuralı depoya YAZAN etkiler
+   * için (yükleme bitmeden yazıp veriyi silme sınıfı). */
+  const acilRef = useRef(onAcil);
+  acilRef.current = onAcil;
+
+  /* Ana ekranın "şimdi" şeridine aciliyet bildirimi.
+   *
+   * ⚠️ YENİ AĞ ÇAĞRISI YOK: `kickoffISO` bu kartın zaten çektiği maçtan,
+   * `submitted` zaten sorduğu `/api/pred/flags` yanıtından geliyor.
+   * ⚠️ SAAT SUNUCUDAN (`nowFromServer`), cihazdan DEĞİL.
+   * ⚠️ `tik` BAĞIMLILIKTA: dakikalık tik olmasa şerit, maç başladıktan sonra
+   * da "başlamak üzere" demeye devam ederdi. */
+  useEffect(() => {
+    acilRef.current?.(
+      macAciliyeti(
+        { kickoffISO: fixture?.kickoffISO ?? null, oynandi: submitted },
+        "tek",
+        (sn) => t("simdiMacBasliyor", { s: sureMetni(sn, t) }),
+        nowFromServer()
+      )
+    );
+  }, [fixture?.kickoffISO, submitted, tik]);
 
   useEffect(() => {
     let cancelled = false;
