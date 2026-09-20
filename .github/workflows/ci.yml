@@ -1,0 +1,40 @@
+name: CI
+
+# ⚠️ MOBİL SÜİT TEK BAŞINA YETMEZ — bu bilerek yazıldı.
+#
+# Devir belgesinde kayıtlı bedel (13 Eylül): mobil süit 318/318 geçti,
+# commit atıldı, ve API deposundaki nöbetçi eksik bir İngilizce i18n
+# anahtarını yakaladı. Sebep: API testlerinin 57'si MOBİL KAYNAKLARI okuyor
+# (tr/en eşliği, istemci-uç sözleşmesi, hata sözlüğü, bahis dili).
+#
+# Bu workflow o ikinci yarıyı KAPSAMAZ; onu api deposunun CI'ı yapıyor ve
+# orası mobil depoyu checkout ediyor. Buradaki iş yalnızca mobilin kendi
+# kapısı: tsc + süit.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  mobil:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Bagimliliklar
+        run: npm ci
+
+      # `npm test` = tsc --noEmit && node --experimental-strip-types --test
+      # Testler RN'i içe aktarmıyor (bkz. lib/i18n.ts başlığı: statik
+      # react-native içe aktarımı modülü Node altında YÜKLENEMEZ yapıyor),
+      # o yüzden emülatör gerekmiyor.
+      - name: Tip denetimi + suit
+        run: npm test
