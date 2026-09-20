@@ -10,6 +10,8 @@ import { getDeviceCountry } from "../lib/locale";
 import { apiFetch } from "../lib/apiFetch";
 import { savePendingCountry, flushPendingCountry } from "../lib/pendingCountry";
 import { savePendingTeam, flushPendingTeam } from "../lib/pendingTeam";
+import { savePendingNickname } from "../lib/pendingNickname";
+import { adOner, gonderilebilirMi } from "../lib/takmaAd";
 import { filterAndRankCountries } from "../lib/countrySort";
 import { FALLBACK_COUNTRIES, type CountryOpt } from "../lib/countriesFallback";
 import { t, useLang } from "../lib/i18n";
@@ -48,6 +50,26 @@ export default function WelcomeScreen() {
   const [autoDetected, setAutoDetected] = useState(false);
   const [busy, setBusy]             = useState(false);
 
+  /**
+   * TAKMA AD — ülkenin ÜSTÜNDE, zorunlu.
+   *
+   * ⚠️ ÖLÇÜLEN KUSUR (2026-09-20, canlı sıralama): 6 insan oyuncunun 5'i
+   * ekranda ham Firebase kimliği olarak görünüyordu ("ApdTA2V9…"), botlar ise
+   * okunabilir adlarla. Ad sorulmadığı için değil — SORULDUĞU YER yüzünden:
+   * takma ad yalnızca Profil sekmesinin içindeydi, onboarding hiç sormuyordu.
+   *
+   * ⚠️ TAKIM GİBİ İSTEĞE BAĞLI DEĞİL, ÜLKE GİBİ ZORUNLU. Takım için yazılan
+   * gerekçe ("zorunlu kılmak kullanıcıyı yalan söylemeye iter") burada
+   * geçmiyor: herkesin seçebileceği bir adı vardır. Atlanabilir olsaydı
+   * ölçülen kusur aynen sürerdi — zaten atlanabilirdi ve sürüyordu.
+   *
+   * Sürtünme öneriyle düşürülüyor: Google adı varsa alan DOLU açılır, tek
+   * dokunuşla geçilir. Yalnızca İLK AD (bkz. lib/takmaAd.ts gizlilik notu).
+   */
+  const [nick, setNick]             = useState("");
+  const [nickHata, setNickHata]     = useState<string | null>(null);
+  const [nickOnerildi, setNickOnerildi] = useState(false);
+
   // Ülke seçici
   const [pickerOpen, setPickerOpen]   = useState(false);
   // Gömülü listeyle BAŞLA: onboarding ağa bağlı kalmasın. Sunucu yanıtı
@@ -81,6 +103,16 @@ export default function WelcomeScreen() {
     const guess = getDeviceCountry();
     if (guess) { setCountry(guess); setAutoDetected(true); }
   }, []);
+
+  /* Google adından ÖN SEÇİM — ülkedeki kalıbın aynısı: doldur, kullanıcı
+   * onaylasın. Oturum onboarding sürerken açılabildiği için `user` bağımlı.
+   * ⚠️ KULLANICI YAZMAYA BAŞLADIYSA EZME: `nick` doluysa dokunma, yoksa
+   * oturum gecikmeli oturduğunda kişinin yazdığı ad silinirdi. */
+  useEffect(() => {
+    if (nick) return;
+    const oneri = adOner(user?.displayName);
+    if (oneri) { setNick(oneri); setNickOnerildi(true); }
+  }, [user]);
 
   // Desteklenen ülkeler — sunucu tek kaynak (canonicalCountry ile uyumlu).
   useEffect(() => {
@@ -189,6 +221,24 @@ export default function WelcomeScreen() {
   }
 
   async function handleStart() {
+    // Ad yazılmadan devam edilemez: adsız kullanıcı sıralamada ham hesap
+    // kimliği olarak görünür (ölçüldü — 6 insanın 5'i).
+    const ad = nick.trim();
+    if (!gonderilebilirMi(ad)) {
+      /* ⚠️ ÖNCE ALANI GÖRÜNÜR YAP. "Atla" düğmesi son slayttan ÖNCE de
+       * buraya giriyor ve ad alanı yalnızca son slaytta çiziliyor: hatayı
+       * olduğu yerde yazsaydık düğme hiçbir şey yapmamış gibi görünürdü
+       * (deponun kayıtlı "sessiz boşluk" kusuru). Ülke için bu sorun yok,
+       * onun seçicisi modal — her slayttan açılıyor. */
+      if (!isLast) {
+        const son = SLIDES.length - 1;
+        setSlide(son);
+        listRef.current?.scrollToIndex({ index: son, animated: true });
+      }
+      setNickHata(t("nickLength"));
+      return;
+    }
+
     // Ülke seçilmeden devam edilemez: ülkesiz kullanıcı hiçbir ülke
     // sıralamasında görünmez ve maç listesi yereline göre kurulamaz.
     if (!country) {
@@ -197,8 +247,26 @@ export default function WelcomeScreen() {
     }
 
     setBusy(true);
+
+    /* ⚠️ AD ÜLKEDEN FARKLI: REDDEDİLEBİLİR (benzersizlik, rezerve kelime).
+     * Ülke/takım gibi "gönder ve geç" yapılamaz — çakışan bir ad sessizce
+     * düşerdi ve kullanıcı adsız başlardı, yani düzeltmenin kendisi ölçülen
+     * kusuru geri üretirdi. Ret ekranda gösterilir ve onboarding İLERLEMEZ.
+     *
+     * ⚠️ BU KONTROL `try/finally`NİN DIŞINDA, bilerek: ilk yazımda içindeydi
+     * ve `return` `finally`yi de çalıştırdığı için ret durumunda ekran yine
+     * `markFirstRunDone()` çağırıp maçlara geçiyordu — yani ret GÖRÜNMEDEN
+     * yutuluyordu. Aynı `finally` ülke/takım için doğru (onlar reddedilmez). */
+    if (user) {
+      const cevap = await gonderAd(ad);
+      if (cevap === "RET") { setBusy(false); return; }
+    } else {
+      // Oturum yok: yerele yaz, `_layout` kimlik oturunca gönderir. Ret
+      // ihtimali o zaman doğarsa NicknameBackfillPrompt yeniden sorar.
+      await savePendingNickname(ad);
+    }
+
     try {
-      // Önce yerele yaz — oturum henüz hazır değilse bile seçim kaybolmasın.
       await savePendingCountry(country);
       // Takım isteğe bağlı: yalnızca seçildiyse kaydedilir.
       if (team) await savePendingTeam(team);
@@ -212,6 +280,43 @@ export default function WelcomeScreen() {
       await markFirstRunDone();
       setBusy(false);
       router.replace("/(tabs)/live");
+    }
+  }
+
+  /**
+   * Adı sunucuya gönderir.
+   *
+   * @returns "TAMAM" kaydedildi · "RET" sunucu reddetti (ekranda sebebi var)
+   *          · "ERTELENDI" ağ/oturum sorunu — yerele yazıldı, `_layout`
+   *          açılışta yeniden dener.
+   *
+   * ⚠️ AĞ HATASI RET DEĞİL. İkisini ayırmazsak internet dalgalanması
+   * kullanıcıyı onboarding'de kilitler; oysa ülke tarafında yıllardır
+   * çalışan çözüm "yerele yaz, sonra gönder". Yalnızca sunucunun AÇIKÇA
+   * reddettiği ad ilerlemeyi durdurur.
+   */
+  async function gonderAd(ad: string): Promise<"TAMAM" | "RET" | "ERTELENDI"> {
+    try {
+      const res  = await apiFetch("/api/users/set-nickname", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: ad }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.ok) return "TAMAM";
+
+      const kod = String(data?.error || "");
+      if (kod === "NICKNAME_TAKEN")    { setNickHata(t("nickTaken"));    return "RET"; }
+      if (kod === "NICKNAME_RESERVED") { setNickHata(t("nickReserved")); return "RET"; }
+      if (kod === "NICKNAME_LENGTH")   { setNickHata(t("nickLength"));   return "RET"; }
+      if (kod === "NICKNAME_INVALID")  { setNickHata(t("nickInvalid"));  return "RET"; }
+
+      // Tanımadığımız bir hata (5xx, kapalı uç): kullanıcıyı kilitleme.
+      await savePendingNickname(ad);
+      return "ERTELENDI";
+    } catch {
+      await savePendingNickname(ad);
+      return "ERTELENDI";
     }
   }
 
@@ -263,6 +368,32 @@ export default function WelcomeScreen() {
                 </View>
               ))}
             </View>
+
+            {/* Kullanıcı adı (son slayt) — zorunlu, ÜLKENİN ÜSTÜNDE.
+                Sıra kasıtlı: ekranda ilk sorulan şey kişinin kim olacağı. */}
+            {item === SLIDES[SLIDES.length - 1] && (
+              <View style={{ backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: nickHata ? "#ef444466" : nick ? GOLD + "33" : "#ef444466", paddingHorizontal: 14, paddingVertical: 12, gap: 8 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <Text style={{ fontSize: 18 }}>🏷️</Text>
+                  <Text style={{ flex: 1, color: nick ? GOLD : "#ef4444", fontWeight: "700", fontSize: 13 }}>
+                    {nick ? t("yourNickname", { n: nick }) : t("pickYourNickname")}
+                  </Text>
+                </View>
+                <TextInput
+                  value={nick}
+                  onChangeText={(x) => { setNick(x); setNickHata(null); setNickOnerildi(false); }}
+                  placeholder={t("nicknamePh")}
+                  placeholderTextColor="#475569"
+                  maxLength={20}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={{ backgroundColor: BG, borderRadius: 10, borderWidth: 1, borderColor: "#1e293b", paddingHorizontal: 12, paddingVertical: 9, color: "#fff", fontSize: 15 }}
+                />
+                <Text style={{ color: nickHata ? "#ef4444" : "#64748b", fontSize: 11 }}>
+                  {nickHata ? nickHata : nickOnerildi ? t("nickSuggested") : t("nickWhy")}
+                </Text>
+              </View>
+            )}
 
             {/* Ülke seçimi (son slayt) — zorunlu, dokunarak değiştirilebilir */}
             {item === SLIDES[SLIDES.length - 1] && (

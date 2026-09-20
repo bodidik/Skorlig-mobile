@@ -13,8 +13,10 @@ import { isFirstRun } from "../lib/firstRun";
 import { configureNotificationHandler, registerForPush } from "../lib/push";
 import { flushPendingCountry } from "../lib/pendingCountry";
 import { flushPendingTeam } from "../lib/pendingTeam";
+import { flushPendingNickname } from "../lib/pendingNickname";
 import ErrorBoundary from "../components/ErrorBoundary";
 import CountryBackfillPrompt from "../components/CountryBackfillPrompt";
+import NicknameBackfillPrompt from "../components/NicknameBackfillPrompt";
 import GeriEv, { GERIEV_ALANI } from "../components/GeriEv";
 import {
   capturePendingRef, captureRefFromInitialUrl, applyPendingRef,
@@ -109,11 +111,17 @@ function AuthGuard() {
   // auth'tan önce seçiliyor; buraya eklenmezse seçim yerelde kalır ve
   // sunucuya HİÇ gitmez — ülke tarafında tam bu sebeple 837 kullanıcı
   // ülkesiz kalmıştı. bkz. lib/pendingChoice.ts
+  //
+  // ⚠️ TAKMA AD DA AYNI YOLDAN, ama TEK FARKLA: reddedilebilir (benzersizlik,
+  // rezerve kelime). Reddi `lib/pendingNickname.ts` düşürüyor, ardından
+  // NicknameBackfillPrompt yeniden soruyor. Buraya eklenmezse onboarding'de
+  // yazılan ad, oturum o an hazır değilse sunucuya HİÇ gitmez.
   useEffect(() => {
     if (!user || countryDone.current) return;
     countryDone.current = true;
     flushPendingCountry();
     flushPendingTeam();
+    flushPendingNickname();
   }, [user]);
 
   // Paylaşılan bağlantıdaki davet kodunu yakala (uygulama kapalıyken açıldı)
@@ -218,6 +226,8 @@ export default function RootLayout() {
         <GeriEv />
         {/* Ülkesi eksik mevcut kullanıcılar için geri doldurma (engellemez) */}
         <CountryBackfillPrompt />
+        {/* Adı eksik mevcut kullanıcılar — sıralamada kimlik olarak görünüyorlar */}
+        <NicknameBackfillPrompt />
       </AuthProvider>
     </ErrorBoundary>
   );
