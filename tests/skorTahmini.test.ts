@@ -22,6 +22,8 @@ import {
   MAKS_GOL, eylemDurumu, golAyarla, ilkTaslak, oneCikanMac, puanIsaretli, type SkorMaci,
 } from "../lib/skorTahmini.ts";
 import { t, setLang } from "../lib/i18n.ts";
+/* Sıra artık MOD_SIRASI'ndan; ekran yerleşimi iddiası onu okumalı. */
+import { MOD_SIRASI, digerModlar } from "../lib/oyunMerkezi.ts";
 
 const KOK = path.join(import.meta.dirname, "..");
 const oku = (p: string) => fs.readFileSync(path.join(KOK, p), "utf8").replace(/\r\n?/g, "\n");
@@ -125,17 +127,29 @@ describe("puan formülü mobilde YOK", () => {
 });
 
 describe("ana ekran yerleşimi", () => {
-  test("kart Tek Maç'tan SONRA, 'Diğer oyunlar'dan ÖNCE ve yalnız bayrak açıkken", () => {
+  test("kart Tek Maç'tan ÖNCE, 'Diğer oyunlar'dan ÖNCE ve yalnız bayrak açıkken", () => {
+    /* ⚠️ BU İDDİA TERSİNE ÇEVRİLDİ (kullanıcı kararı 2026-09-20): "skor
+     * tahminini öne çıkaralım, maç sonucu o kadar dikkat çekmiyor." Eskiden
+     * `skor > tek` (Tek Maç'tan SONRA) yazıyordu.
+     *
+     * ⚠️ SIRA ARTIK JSX'TEN OKUNMUYOR: ana kartlar `MOD_SIRASI` üzerinden
+     * çiziliyor, yani ekrandaki sırayı belirleyen şey o dizi. Kaynaktaki
+     * yazım sırasına bakan eski ölçüt bugün YANLIŞ CEVAP verirdi. */
     const k = kod(MERKEZ);
-    assert.match(k, /const skorVar = gorunenModlar\.some\(\(m\) => m\.key === "skor"\);/);
-    const tek = k.indexOf("<DailyMatchCard");
-    const skor = k.indexOf("{skorVar && <SkorTahminiKarti />}");
-    const diger = k.indexOf('t("otherGames")');
-    assert.ok(tek > 0, "Tek Mac karti bulunamadi");
-    assert.ok(diger > 0, "diger oyunlar bolumu bulunamadi");
-    assert.ok(skor > tek, "Skor Tahmini karti Tek Mac'tan once ya da yok");
-    assert.ok(skor < diger, "Skor Tahmini karti 'Diger oyunlar'dan sonra");
-    /* Kart bir kez çiziliyor ve diğer oyunlar satırlarına da düşmüyor. */
+    assert.match(k, /skor: \(\) => <SkorTahminiKarti \/>/, "skor karti ana kartlar tablosunda yok");
+    assert.match(k, /MOD_SIRASI\.filter\(\(k\) => anaKartlar\[k\] && acik\(k\)\)/,
+      "ana kartlar MOD_SIRASI'ndan cizilmiyor — sira olculemez");
+
+    const sira = [...MOD_SIRASI];
+    assert.ok(sira.indexOf("skor") > 0, "skor sirada yok");
+    assert.ok(sira.indexOf("skor") < sira.indexOf("tek"),
+      "Skor Tahmini Tek Mac'tan SONRA — urun karari geri donmus");
+
+    /* "Diğer oyunlar" geniş kartlardan sonra çiziliyor; skor geniş kart. */
+    assert.ok(!digerModlar(sira.map((key) => ({ key }))).some((m) => m.key === "skor"),
+      "skor 'diger oyunlar' satirlarina dusmus — iki kez cizilir");
+
+    /* Kart bir kez çiziliyor. */
     assert.equal(k.split("<SkorTahminiKarti").length - 1, 1);
   });
 

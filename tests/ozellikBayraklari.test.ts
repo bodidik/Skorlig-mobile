@@ -167,8 +167,18 @@ describe("kaynak nöbetçisi", () => {
     assert.match(s, /gorunenModlar\.map\(\(m\) => <KompaktDugme/, "kompakt satir suzulmemis listeyi ciziyor");
     assert.match(s, /const diger = digerModlar\(gorunenModlar\)/, "diger oyunlar suzulmemis listeden turuyor");
     assert.match(s, /diger\.map\(\(m, i\) => <ModSatiri/, "liste suzulmus diger modlari cizmiyor");
-    assert.match(s, /const kuponVar = gorunenModlar\.some\(/, "kupon karti suzulmus listeye bakmiyor");
-    assert.match(s, /const tekVar = gorunenModlar\.some\(/, "tek mac karti suzulmus listeye bakmiyor");
+    /* ⚠️ ŞEKİL DEĞİŞTİ (2026-09-20), KURAL AYNI. Eskiden üç ayrı değişken
+     * vardı (`kuponVar`/`tekVar`/`skorVar`) ve guard onların ADINA bakıyordu.
+     * Şimdi tek bir `acik(k)` yardımcısı var ve ana kartlar `MOD_SIRASI`
+     * üzerinden çiziliyor (sıra artık tek kaynakta). Korunan özellik
+     * değişmedi: kartlar SÜZÜLMÜŞ listeden türüyor. */
+    assert.match(s, /const acik = \(k: ModAnahtari\) => gorunenModlar\.some\(\(m\) => m\.key === k\)/,
+      "ana kart gorunurlugu suzulmus listeye bakmiyor");
+    assert.match(s, /MOD_SIRASI\.filter\(\(k\) => anaKartlar\[k\] && acik\(k\)\)/,
+      "ana kartlar suzgecten gecmeden ciziliyor");
+    /* ⚠️ `MOD_SIRASI.map(` HÂLÂ YASAK: süzgeçsiz sırayı doğrudan çizmek,
+     * kapalı bir modu (düello/havuz) ekrana basmak demekti. `.filter(...)`
+     * zincirinin ardındaki `.map` bu desene UYMUYOR, yani yasak duruyor. */
     assert.ok(!/MOD_SIRASI\.map\(/.test(s), "suzulmemis sira dogrudan ciziliyor");
   });
 

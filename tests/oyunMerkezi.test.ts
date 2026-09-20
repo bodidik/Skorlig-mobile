@@ -247,7 +247,23 @@ describe("SIRA", () => {
 
   test("beceri modları önde, düello ve havuz EN SONDA", () => {
     assert.deepEqual(MOD_SIRASI.slice(-2), ["duello", "havuz"]);
-    assert.deepEqual(MOD_SIRASI.slice(0, 3), ["kupon", "tek", "skor"]);
+    /* ⚠️ SKOR, TEK'İN ÜSTÜNDE (kullanıcı kararı 2026-09-20: "skor tahminini
+     * öne çıkaralım, maç sonucu o kadar dikkat çekmiyor"). Sıra bir ürün
+     * kararı; kazara geri dönmesin diye tam dizi olarak yazılı. */
+    assert.deepEqual(MOD_SIRASI.slice(0, 3), ["kupon", "skor", "tek"]);
+  });
+
+  test("ANA KART SIRASI MOD_SIRASI'ndan türüyor — JSX'ten DEĞİL", () => {
+    /* ⚠️ ÖNCEDEN İKİ GERÇEKLİK: sıra hem MOD_SIRASI'nda hem OyunMerkezi'nin
+     * JSX yazım sırasındaydı. MOD_SIRASI değişse ekran eski sırayı çizmeye
+     * devam ederdi ve bunu hiçbir iddia görmezdi. */
+    const src = kod(oku("components/OyunMerkezi.tsx"));
+    assert.match(src, /MOD_SIRASI\.filter\(\(k\) => anaKartlar\[k\] && acik\(k\)\)\.map\(/,
+      "ana kartlar MOD_SIRASI uzerinden cizilmiyor — sira yine JSX'te olabilir");
+    /* Kartların JSX'teki yazım sırası artık ANLAMSIZ olmalı: hepsi tek bir
+     * nesnenin alanları. Doğrudan ardışık render kalmışsa iki gerçeklik sürer. */
+    assert.doesNotMatch(src, /\{skorVar && <SkorTahminiKarti \/>\}/,
+      "eski kosullu render geri gelmis");
   });
 
   test("digerModlar geniş kartlıları (kupon, tek maç, skor) çıkarıyor, sırayı koruyor", () => {

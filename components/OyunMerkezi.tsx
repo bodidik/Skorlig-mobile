@@ -159,16 +159,19 @@ export default function OyunMerkezi({
   }
 
   const diger = digerModlar(gorunenModlar);
-  const kuponVar = gorunenModlar.some((m) => m.key === "kupon");
-  const tekVar = gorunenModlar.some((m) => m.key === "tek");
-  const skorVar = gorunenModlar.some((m) => m.key === "skor");
+  const acik = (k: ModAnahtari) => gorunenModlar.some((m) => m.key === k);
 
-  return (
-    <View style={s.kok}>
-      <Text style={s.baslik}>{t("whatToPlay")}</Text>
-
-      {/* 1 ─ HAFTALIK TAHMİN. Kupon yoksa mod kaybolmuyor. */}
-      {kuponVar && (
+  /**
+   * ANA KARTLAR — sırası `MOD_SIRASI`TAN geliyor, JSX'ten DEĞİL.
+   *
+   * ⚠️ ÖNCEDEN İKİ GERÇEKLİK VARDI: sıra hem `lib/oyunMerkezi.ts MOD_SIRASI`
+   * dizisinde hem burada JSX'in yazım sırasında duruyordu. İkisi ayrışabilir
+   * ve ayrıştığında kimse fark etmezdi — `MOD_SIRASI` değişse ekran eski
+   * sırayı çizmeye devam ederdi. Bu depoda kayıtlı kusur şekli; artık tek
+   * kaynak var ve nöbetçisi `tests/oyunMerkezi.test.ts`te.
+   */
+  const anaKartlar: Partial<Record<ModAnahtari, () => React.ReactNode>> = {
+    kupon: () => (
         <KuponKarti
           bosken={(neden) => (
             /* "yok": sunucu açık kupon olmadığını SÖYLEDİ. "bilinmiyor": soramadık
@@ -191,42 +194,58 @@ export default function OyunMerkezi({
             </Basinc>
           )}
         />
-      )}
+    ),
 
-      {/* 2 ─ TEK MAÇ: günün maçı kartın İÇİNDE, 1-X-2 buradan gönderiliyor. */}
-      {tekVar && (
-        <View style={parca.kart}>
-          <KartBasi
-            modu="tek"
-            Sanat={TekMacSanati}
-            ad={tanim.tek.ad}
-            alt={[t("dailyMatchLbl"), tanim.tek.bedel].filter(Boolean).join(" · ")}
-            sag={
-              <Basinc onPress={tahmineGit} scaleTo={0.94}>
-                <Text style={[parca.baglanti, { color: MOD_RENGI.tek }]}>{t("allMatchesLink")} ›</Text>
-              </Basinc>
-            }
-          />
-          <DailyMatchCard
-            gomulu
-            country={country || undefined}
-            userId={userId}
-            bosken={
-              <Basinc onPress={tahmineGit} scaleTo={0.97}>
-                <View style={[s.dolguEylem, { backgroundColor: MOD_RENGI.tek }]}>
-                  <Text style={s.dolguEylemYazi}>{t("pickAMatch")}</Text>
-                </View>
-              </Basinc>
-            }
-          />
-        </View>
-      )}
+    /* SKOR TAHMİNİ — tam skor. Kart İÇİNDEN oynanıyor: maç seçiliyor, skor
+     * giriliyor, `POST /api/skor/tahmin` buradan gidiyor.
+     *
+     * ⚠️ TEK MAÇIN ÜSTÜNE ALINDI (kullanıcı kararı 2026-09-20): "skor
+     * tahminini öne çıkaralım, maç sonucu o kadar dikkat çekmiyor." 1-X-2
+     * üç şıklı bir seçim; tam skor tahmini hem daha çok düşündürüyor hem
+     * paylaşılacak bir iddia üretiyor ("2-1 dedim"). İkisi de kart içinden
+     * oynanabildiği için sıra doğrudan ilgiyi belirliyor. */
+    skor: () => <SkorTahminiKarti />,
 
-      {/* 2b ─ SKOR TAHMİNİ: tek maç biçiminde tam skor tahmini (kullanıcı isteği
-          2026-09-17). Bayrak kapalıysa mod listede yok, kart çizilmez. */}
-      {skorVar && <SkorTahminiKarti />}
+    /* TEK MAÇ: günün maçı kartın İÇİNDE, 1-X-2 buradan gönderiliyor. */
+    tek: () => (
+      <View style={parca.kart}>
+        <KartBasi
+          modu="tek"
+          Sanat={TekMacSanati}
+          ad={tanim.tek.ad}
+          alt={[t("dailyMatchLbl"), tanim.tek.bedel].filter(Boolean).join(" · ")}
+          sag={
+            <Basinc onPress={tahmineGit} scaleTo={0.94}>
+              <Text style={[parca.baglanti, { color: MOD_RENGI.tek }]}>{t("allMatchesLink")} ›</Text>
+            </Basinc>
+          }
+        />
+        <DailyMatchCard
+          gomulu
+          country={country || undefined}
+          userId={userId}
+          bosken={
+            <Basinc onPress={tahmineGit} scaleTo={0.97}>
+              <View style={[s.dolguEylem, { backgroundColor: MOD_RENGI.tek }]}>
+                <Text style={s.dolguEylemYazi}>{t("pickAMatch")}</Text>
+              </View>
+            </Basinc>
+          }
+        />
+      </View>
+    ),
+  };
 
-      {/* 3 ─ DİĞER OYUNLAR: tek kart, satırlar. Dört ayrı çerçeveli karo
+  return (
+    <View style={s.kok}>
+      <Text style={s.baslik}>{t("whatToPlay")}</Text>
+
+      {/* ANA KARTLAR — sıra MOD_SIRASI'ndan. Kapalı ya da tanımsız mod atlanır. */}
+      {MOD_SIRASI.filter((k) => anaKartlar[k] && acik(k)).map((k) => (
+        <React.Fragment key={k}>{anaKartlar[k]!()}</React.Fragment>
+      ))}
+
+      {/* DİĞER OYUNLAR: tek kart, satırlar. Dört ayrı çerçeveli karo
           "keşmekeş"in parçasıydı; liste taranabilir ve sırası belli. */}
       {diger.length > 0 && (
         <>

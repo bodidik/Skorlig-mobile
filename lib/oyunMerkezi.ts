@@ -34,8 +34,18 @@ export type ModAnahtari = "tek" | "kupon" | "skor" | "mini" | "gs1987" | "duello
  * ⚠️ SIRA BİLİNÇLİ: beceri odaklı modlar önde, kesinti/havuz mekaniği taşıyan
  * modlar (düello, havuz) arkada — IARC "simüle edilmiş şans oyunu" ve
  * "dolandırılıyor muyum" algısı. Ayrıntı `components/OyunMerkezi.tsx` başlığında.
+ *
+ * ⚠️ SKOR, TEK'İN ÜSTÜNE ALINDI (kullanıcı kararı 2026-09-20): "skor tahminini
+ * öne çıkaralım, maç sonucu o kadar dikkat çekmiyor." 1-X-2 üç şıklı bir
+ * seçim; tam skor hem daha çok düşündürüyor hem paylaşılacak bir iddia
+ * üretiyor ("2-1 dedim"). İkisi de kart İÇİNDEN oynanabiliyor (ikisi de kendi
+ * ucuna POST ediyor), yani aradaki farkı doğrudan SIRA belirliyor.
+ *
+ * ⚠️ BU DİZİ ARTIK EKRANIN DA SIRASI. Önceden ana kartların sırası
+ * `OyunMerkezi.tsx`te JSX yazım sırasıydı ve bu dizi yalnız "diğer oyunlar"ı
+ * sıralıyordu — iki gerçeklik. Dizi değişip ekran değişmeyebilirdi.
  */
-export const MOD_SIRASI: readonly ModAnahtari[] = ["kupon", "tek", "skor", "mini", "gs1987", "duello", "havuz"];
+export const MOD_SIRASI: readonly ModAnahtari[] = ["kupon", "skor", "tek", "mini", "gs1987", "duello", "havuz"];
 
 /** Mod vurgu renkleri — yalnız ikon kutusu, küçük etiket ve dolu düğmede. */
 export const MOD_RENGI: Record<ModAnahtari, string> = {
