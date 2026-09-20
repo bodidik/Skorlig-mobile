@@ -107,6 +107,9 @@ const strings = {
     simdiHaftalikKapaniyor: "Haftalık Tahmin {s} içinde kapanıyor — henüz katılmadın",
     simdiMacBasliyor:       "Günün maçı {s} içinde başlıyor — tahminin yok",
     simdiGit:               "Git",
+    // Benimkiler: skor tahminleri (ayrı defter, bkz. live.tsx mySkor notu)
+    mySkorPreds:            "Skor tahminlerim ({n})",
+    mySkorUnavailable:      "Skor tahminlerin şu an okunamadı. Aşağı çekip yenileyebilirsin.",
     // onboarding + geri doldurma: kullanıcı adı
     pickYourNickname: "Kullanıcı adını seç",
     yourNickname:     "Adın: {n}",
@@ -1704,6 +1707,8 @@ const strings = {
     simdiHaftalikKapaniyor: "Weekly Predictions close in {s} — you haven't joined yet",
     simdiMacBasliyor:       "Today's match starts in {s} — no prediction yet",
     simdiGit:               "Go",
+    mySkorPreds:            "My score predictions ({n})",
+    mySkorUnavailable:      "Your score predictions could not be loaded. Pull down to refresh.",
     pickYourNickname: "Pick your username",
     yourNickname:     "Your name: {n}",
     nickWhy:          "This name appears in rankings and races",

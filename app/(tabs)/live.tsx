@@ -34,6 +34,10 @@ import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { t, useLang } from "../../lib/i18n";
+/* Skor Tahmini bölümü: mod rengi ve puan işareti tek kaynaktan — ikinci bir
+ * renk/biçim kopyası, kart ile listenin ayrışması demekti. */
+import { MOD_RENGI } from "../../lib/oyunMerkezi";
+import { puanIsaretli } from "../../lib/skorTahmini";
 import { useOzellikler } from "../../hooks/useOzellikler";
 import { fiksturSaatEtiketi } from "../../lib/macSaati";
 import { ulkeAdi, ligEtiketi, ligSiraAnahtari } from "../../lib/ulkeler";
@@ -129,6 +133,24 @@ type Live2Resp = {
 };
 
 type Mode = "schedule" | "open" | "mine" | "tournaments" | "gs1987";
+
+/**
+ * Skor Tahmini kaydı — `/api/pred/my` `skor` alanı.
+ *
+ * ⚠️ `home`/`away` TAKIM ADI; tahmin edilen skor `tahmin` içinde. Sunucudaki
+ * kayıtta ikisi de `home`/`away` adını taşıyor (orada skor demek) ve uç
+ * bunları ayırıyor — burada karıştırmak takım adı yerine sayı basmak olurdu.
+ */
+type MySkorItem = {
+  fixtureId: string;
+  home: string | null;
+  away: string | null;
+  league: string | null;
+  kickoffISO: string | null;
+  tahmin: { home: number; away: number };
+  sonuc: { puan?: number } | null;
+  olusturuldu: string | null;
+};
 
 type MyPredItem = {
   fixtureId: string;
@@ -809,6 +831,21 @@ export default function LiveScreen() {
   const [myPreds, setMyPreds] = useState<{ current: MyPredItem[]; old: MyPredItem[] }>({ current: [], old: [] });
   // fixtureId -> settle sonucu (puan + kategori kırılımı)
   const [settledMap, setSettledMap] = useState<Record<string, { points: number; detail: any }>>({});
+  /**
+   * SKOR TAHMİNLERİ — AYRI DEFTER, AYRI BÖLÜM.
+   *
+   * ⚠️ KULLANICI BİLDİRİMİ (2026-09-20): "2-0 tahmin gönderdim, kaydedildi
+   * yazıyor, Benim maçlar kısmında görünmüyor." Skor tahminleri sunucuda
+   * `skor_tahminleri` koleksiyonunda; bu liste `predictions`ı okuyor. İki
+   * ayrı defter, tek kullanıcı beklentisi — hiçbir "tahminlerim" yüzeyinde
+   * görünmüyorlardı.
+   *
+   * ⚠️ `myPreds` İÇİNE KARIŞTIRILMIYOR: iki oyunun şekli ve puanlaması
+   * farklı; aynı listeye koymak "bu satır hangi oyun" sorusunu kullanıcıya
+   * bırakırdı.
+   */
+  const [mySkor, setMySkor] = useState<MySkorItem[]>([]);
+  const [skorOkunamadi, setSkorOkunamadi] = useState(false);
   const [myPredsLoading, setMyPredsLoading] = useState(false);
   const [showOldPreds, setShowOldPreds] = useState(false);
 
@@ -1140,6 +1177,11 @@ export default function LiveScreen() {
         current: j?.ok && Array.isArray(j.current) ? j.current : [],
         old:     j?.ok && Array.isArray(j.old)     ? j.old     : [],
       });
+      /* ⚠️ OKUNAMADI ile BOŞ ayrı: sunucu skor deposunu okuyamazsa
+       * `skorOkunamadi` geliyor. Sessizce boş liste göstermek "hiç skor
+       * tahminin yok" diye okunurdu — deponun kayıtlı "sessiz boşluk" sınıfı. */
+      setMySkor(j?.ok && Array.isArray(j.skor) ? j.skor : []);
+      setSkorOkunamadi(!!j?.skorOkunamadi);
       // settle edilmiş maçların puan özeti
       const m: Record<string, { points: number; detail: any }> = {};
       if (hist?.ok && Array.isArray(hist.items)) {
@@ -1151,6 +1193,8 @@ export default function LiveScreen() {
       setSettledMap(m);
     } catch {
       setMyPreds({ current: [], old: [] });
+      setMySkor([]);
+      setSkorOkunamadi(true); // ağ düştü: "yok" demek yanlış olurdu
     } finally {
       setMyPredsLoading(false);
     }
@@ -1267,12 +1311,35 @@ export default function LiveScreen() {
     })();
   }, [load, countryReady, mode]);
 
-  // ekran odağa gelince open listesini yenile (predict'ten dönüş dahil)
+  /**
+   * Ekran odağa gelince AÇIK OLAN MODU yenile — yalnız "open"u değil.
+   *
+   * ⚠️ KULLANICI BİLDİRİMİ (2026-09-20): "Galatasaray–Kasımpaşa maçına 2-0
+   * tahmin gönderdim, kaydedildi yazıyor. Benim maçlar kısmında görünmüyor."
+   *
+   * ÖLÇÜLDÜ — tahmin KAYBOLMUYOR, liste BAYAT kalıyor. Eski hâl yalnız
+   * `mode === "open"` iken yeniliyordu (yorumu "predict'ten dönüş dahil"
+   * diyordu, ama tek modu kapsıyordu). Akış şu:
+   *   Benimkiler'desin → oradaki maça dokun (goPredict, bu dosyada 2125/2155)
+   *   → /(tabs)/predict ayrı bir SEKME, `live.tsx` monte kalıyor
+   *   → tahmini gönder, geri dön → `mode` DEĞİŞMEDİ, dolayısıyla mod
+   *     değişimine bağlı `useEffect` de çalışmıyor
+   *   → `useFocusEffect` yalnız "open"u yeniliyor → Benimkiler eski listede
+   * Sunucu tarafında kusur yok: `/api/pred/my` tarih süzgeci uygulamıyor
+   * (`fixtureIdsFilter: null`) ve gelecek maçlar `current`a giriyor
+   * (26 saatlik pencere negatif farkı kapsıyor).
+   *
+   * ⚠️ AYNI SINIFIN ÜÇÜNCÜ ÖRNEĞİ. 18 Eylül'de kupon kartı ve Tek Maç kartı
+   * tam bu sebeple `useFocusEffect`e bağlanmıştı ("kupon oynayınca ana
+   * sayfada hâlâ sıfırdan sunuluyor"); bu liste o turda atlanmış.
+   */
   useFocusEffect(
     useCallback(() => {
       if (mode === "open" && countryReady) loadOpen();
+      else if (mode === "mine") loadMyPreds();
+      else if (mode === "tournaments") loadMyTournaments();
       loadUserStats();
-    }, [mode, countryReady, loadOpen, loadUserStats])
+    }, [mode, countryReady, loadOpen, loadMyPreds, loadMyTournaments, loadUserStats])
   );
 
   // 1987GS sekmesine geçince üyelik kontrolü
@@ -2135,6 +2202,48 @@ export default function LiveScreen() {
                     </View>
                   );
                 })}
+
+                {/* SKOR TAHMİNLERİM — ayrı defter, ayrı bölüm (bkz. mySkor notu). */}
+                {(mySkor.length > 0 || skorOkunamadi) && (
+                  <>
+                    <View style={{ paddingVertical: 10, borderTopWidth: 1, borderTopColor: Colors.border, marginTop: 4 }}>
+                      <Text style={{ color: Colors.muted, fontSize: 12, fontWeight: "700" }}>
+                        {t("mySkorPreds", { n: mySkor.length })}
+                      </Text>
+                    </View>
+                    {skorOkunamadi ? (
+                      /* ⚠️ "OKUNAMADI" ile "YOK" AYRI: sessiz boş liste
+                       * "hiç skor tahminin yok" diye okunurdu. */
+                      <Text style={{ color: "#f59e0b", fontSize: 12, paddingBottom: 8 }} accessibilityRole="alert">
+                        {t("mySkorUnavailable")}
+                      </Text>
+                    ) : mySkor.map((sp) => (
+                      <TouchableOpacity
+                        key={`skor-${sp.fixtureId}`}
+                        onPress={() => router.push("/skor-tahmini" as any)}
+                        /* ⚠️ `StyleSheet.hairlineWidth` DEĞİL: bu dosya
+                         * `StyleSheet`i react-native'den içe aktarmıyor ve
+                         * tsc onu DOM tipine bağlayıp düştü. Kıl çizgi için
+                         * yalnızca bunun uğruna yeni bir içe aktarım
+                         * eklemek yerine sabit 1 — çevredeki satırlar da
+                         * `borderTopWidth: 1` kullanıyor. */
+                        style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 9, borderTopWidth: 1, borderTopColor: Colors.border }}
+                      >
+                        <Text style={{ flex: 1, color: "#cbd5e1", fontSize: 13 }} numberOfLines={1}>
+                          {sp.home && sp.away ? `${sp.home} – ${sp.away}` : sp.fixtureId}
+                        </Text>
+                        <Text style={{ color: MOD_RENGI.skor, fontWeight: "800", fontSize: 13 }}>
+                          {sp.tahmin.home}–{sp.tahmin.away}
+                        </Text>
+                        {sp.sonuc && typeof sp.sonuc.puan === "number" && (
+                          <Text style={{ color: "#94a3b8", fontSize: 12, fontWeight: "700", minWidth: 30, textAlign: "right" }}>
+                            {puanIsaretli(sp.sonuc.puan)}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </>
+                )}
 
                 {myPreds.old.length > 0 && (
                   <>
