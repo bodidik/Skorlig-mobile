@@ -32,6 +32,12 @@ const SOZLUK: Record<string, string> = {
   // ── Tahmin / maç ─────────────────────────────────────────────────
   MATCH_STARTED: "Maç başladı, tahmin kapandı.",
   MATCH_ALREADY_STARTED: "Maç başladı, tahmin kapandı.",
+  /* Açılış penceresi — api/lib/ekonomi.cjs TAHMIN_ACILIS_SAAT.
+   * ⚠️ SAAT SAYISI YAZILMIYOR: bu haritada tam bir örneği var, havuzun
+   * `NOT_OPEN_YET` metni "Başlamasına 24 saat kala açılır" diyor ve pencere
+   * değişirse sessizce yalan olur. Kalan süreyi yanıttaki `opensAtISO`dan
+   * hesaplayıp tahmin ekranı söylüyor. */
+  PRED_NOT_OPEN_YET: "Bu maça tahmin henüz açılmadı. Maç yaklaşınca açılacak.",
 
   // ── Maç havuzu ───────────────────────────────────────
   MATCH_LOCKED: "Maç başladı, bahis kapandı.",

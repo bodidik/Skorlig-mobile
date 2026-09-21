@@ -45,7 +45,11 @@ describe("arama kutusu üç yüzeyde de bağlı", () => {
     const src = oku("app/(tabs)/live.tsx");
     assert.equal((src.match(/<AramaKutusu/g) || []).length, 2,
       "canli sekmesinde iki arama kutusu olmali (maclar + tahminlerim)");
-    assert.match(src, /suzulmusGuncel\.map/, "guncel tahminler suzulmus listeden cizilmiyor");
+    /* 2026-09-20: güncel liste artık iki bölümde (oynanacak / oynanan) çiziliyor;
+     * ikisi de `guncelBolunmus`tan, o da SÜZÜLMÜŞ listeden türüyor. İddia aynı:
+     * arama çizilen listeyi daraltmalı. */
+    assert.match(src, /for \(const mp of suzulmusGuncel\)/, "bolumler suzulmus listeden turemiyor");
+    assert.match(src, /guncelBolunmus\.oynanacak\.map/, "guncel tahminler cizilmiyor");
     assert.match(src, /suzulmusEski\.map/, "eski tahminler suzulmus listeden cizilmiyor");
   });
 

@@ -100,6 +100,20 @@ type CupMeta = {
 };
 
 type ViewKey = "genel" | "fav" | "me";
+
+/**
+ * Sunucunun `ben` bloğu: kendi sıram, KIRPMADAN bağımsız.
+ * `rank === null` → havuzda hiç satırım yok (henüz sonuçlanmış maçım yok).
+ */
+type BenSira = {
+  userId: string;
+  displayName?: string | null;
+  rank: number | null;
+  poolSize: number;
+  total?: number;
+  played?: number;
+  rating?: number;
+};
 type ScopeKey = "country" | "global";
 type ModeKey = "global" | "cup" | "kupon";
 
@@ -207,6 +221,15 @@ export default function StatsScreen() {
 
   const [totalsRows, setTotalsRows] = useState<TotRow[]>([]);
   const [updatedAtTotals, setUpdatedAtTotals] = useState<string | null>(null);
+  /**
+   * KENDİ SIRAM — sunucunun `ben` bloğu (api/routes/leaderboard.cjs benBlogu).
+   *
+   * `rank: null` "havuzda yoksun" demek ve BU AYRIM KORUNUYOR: blok hiç
+   * gelmemesiyle (kimliksiz istek) sıranın olmaması aynı şey değil; ikisini
+   * birleştirmek deponun kayıtlı "değerlendiremedim ile olumsuz karışıyor"
+   * kusuru olurdu.
+   */
+  const [benSira, setBenSira] = useState<BenSira | null>(null);
 
   // Sıralama kapsamı: kendi ülken mi, tüm dünya mı.
   // Varsayılan "country" — oyuncu önce kendi ülkesinde yarıştığını görmeli;
@@ -440,13 +463,21 @@ export default function StatsScreen() {
         });
         setTotalsRows(rows);
         setUpdatedAtTotals(j.updatedAt || null);
+        /* ⚠️ KENDİ SIRAM SUNUCUDAN, LİSTEDEN DEĞİL. Sıra konumsal ve TAM
+         * kümeden gelir; bu ekran `limit=300` istiyor, havuzda 1700+ satır
+         * var. Kendi satırımı listede ARAMAK, 300'ün ötesindeki oyuncuda
+         * sessizce `undefined` verirdi — kullanıcının bildirdiği kusur bu
+         * ("arayıp bulma olmaz"). */
+        setBenSira(j?.ben ?? null);
       } else {
         setTotalsRows([]);
         setUpdatedAtTotals(null);
+        setBenSira(null);
       }
     } catch {
       setTotalsRows([]);
       setUpdatedAtTotals(null);
+      setBenSira(null);
     }
   }
 
@@ -731,6 +762,12 @@ export default function StatsScreen() {
     <>
       <ScrollView
         style={{ flex: 1, backgroundColor: Colors.bg }}
+        /* ⚠️ ŞERİDİN YÜKSEKLİĞİ KADAR ALT DOLGU: sabit şerit mutlak konumlu,
+         * yani akışta yer kaplamıyor ve dolgu olmazsa listenin SON satırını
+         * örterdi. Şerit görünmüyorken dolgu da yok. */
+        contentContainerStyle={
+          mode === "global" && view === "genel" && benSira ? { paddingBottom: 56 } : undefined
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -1414,6 +1451,63 @@ export default function StatsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* ══ KENDİ SIRAM — SABİT ŞERİT ═══════════════════════════════════════
+          KULLANICI İSTEĞİ (2026-09-20): "arayıp bulma olmaz, benim sıralamam
+          gözümün önünde olmalı."
+
+          ⚠️ LİSTENİN İÇİNE KONMADI, ÜSTÜNE KONDU. Listenin başına eklenen bir
+          satır 100 satır aşağı kaydırınca kaybolur — istek tam olarak bunun
+          tersi. Şerit ScrollView'ın KARDEŞİ ve mutlak konumlu, yani kaydırma
+          onu taşımıyor.
+
+          ⚠️ YALNIZCA GENEL SIRALAMA GÖRÜNÜMÜNDE: "Ben" ve "Takımıma göre"
+          sekmeleri zaten kişiye özel, orada şerit kendini tekrar ederdi.
+
+          ⚠️ TIKLANABİLİR GÖRÜNMÜYOR ve bu bilerek: deponun kayıtlı kusuru
+          "ekranda duran ama hiçbir şeyi değiştirmeyen kontrol". Şerit bilgi
+          taşıyor, düğme taklidi yapmıyor. */}
+      {mode === "global" && view === "genel" && benSira && (
+        <View
+          style={{
+            position: "absolute", left: 0, right: 0, bottom: 0,
+            paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12,
+            backgroundColor: "#0b1220",
+            borderTopWidth: 1, borderTopColor: Colors.accent,
+            flexDirection: "row", alignItems: "center", gap: 10,
+          }}
+          accessibilityRole="summary"
+          accessibilityLabel={
+            benSira.rank != null
+              ? t("myRankBarA11y", { r: benSira.rank, c: benSira.poolSize })
+              : t("myRankBarNone")
+          }
+        >
+          <Text style={{ color: Colors.accent, fontSize: 11, fontWeight: "800", letterSpacing: 0.4 }}>
+            {t("myRankBarTtl")}
+          </Text>
+          {benSira.rank != null ? (
+            <>
+              <Text style={{ color: "#e2e8f0", fontSize: 15, fontWeight: "900" }}>
+                #{benSira.rank}
+              </Text>
+              <Text style={{ color: Colors.muted, fontSize: 11 }}>
+                / {benSira.poolSize}
+              </Text>
+              {typeof benSira.total === "number" && (
+                <Text style={{ color: "#7dd3fc", fontSize: 12, fontWeight: "700", marginLeft: "auto" }}>
+                  {t("nPts", { n: Math.round(benSira.total) })}
+                </Text>
+              )}
+            </>
+          ) : (
+            /* SESSİZ BOŞLUK DEĞİL: sıra yokken sebebini söylüyor. */
+            <Text style={{ color: Colors.muted, fontSize: 11, flex: 1 }}>
+              {t("myRankBarNone")}
+            </Text>
+          )}
+        </View>
+      )}
 
       <Modal
         visible={adminModalOpen}

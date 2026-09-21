@@ -113,6 +113,24 @@ const QUICK_SCORES: { h: number; a: number }[] = [
   { h: 0, a: 4 }, { h: 4, a: 1 }, { h: 1, a: 4 },
 ];
 
+/**
+ * "Tahmin henüz açılmadı" cümlesi — kalan süreyi ve açılış anını söyler.
+ *
+ * ⚠️ SESSİZ RET OLMASIN: kapının kendisi sunucuda (`PRED_NOT_OPEN_YET`), ama
+ * kullanıcıya "olmaz" demek yetmez; bu deponun kayıtlı "sessiz boşluk"
+ * kusurunda ekran hangi alanın neden reddedildiğini söylemiyordu.
+ * Saat okunamazsa yalnızca pencereyi yazar — uydurma bir tarih basmaz.
+ */
+function acilisMetni(l: { opensAtISO?: string; acilisSaat?: number }): string {
+  const saat = Number(l?.acilisSaat);
+  const acilisMs = l?.opensAtISO ? new Date(l.opensAtISO).getTime() : NaN;
+  if (!Number.isFinite(acilisMs)) {
+    return Number.isFinite(saat) && saat > 0 ? t("notOpenYetWindow", { s: saat }) : t("notOpenYet");
+  }
+  const kalanSaat = Math.max(1, Math.round((acilisMs - nowFromServer()) / 3600000));
+  return t("notOpenYetIn", { h: kalanSaat });
+}
+
 export default function PredictScreen() {
   useLang(); // dil değişince ekran yeniden çizilsin
   const ozellik = useOzellikler(); // düello/havuz çıkış sürümünde gizli
@@ -144,6 +162,9 @@ export default function PredictScreen() {
     locked: boolean;
     reason?: string;
     lockAtISO?: string;
+    /** `PRED_NOT_OPEN_YET`: tahminin açılacağı an ve pencere (saat). */
+    opensAtISO?: string;
+    acilisSaat?: number;
   }>({ locked: false });
 
   const [fixtureId, setFixtureId] = useState<string>("");
@@ -601,6 +622,33 @@ export default function PredictScreen() {
     }
   }
 
+    /* 🕓 HENÜZ AÇILMADI — maça `openAheadH` saatten fazla varsa form açılmaz.
+     *
+     * ⚠️ PENCERE SUNUCUDAN. Kural gönderim ucunda uygulanıyor
+     * (`PRED_NOT_OPEN_YET`, api/lib/ekonomi.cjs TAHMIN_ACILIS_SAAT); buraya
+     * sabit yazmak kilit değerinde ölçülmüş "iki gerçeklik" kusurunun aynısı
+     * olurdu. Alan gelmezse (eski sunucu) kapı ÇİZİLMEZ: sunucunun kabul
+     * ettiği tahmini arayüzden vermemek, bu ekranda bir kez yaşanan
+     * "detaylı tahmin açılmıyor" çıkmazıdır.
+     *
+     * `locked` ile aynı dönüşte veriliyor ama AYRI alan: kilit "artık geç",
+     * bu "henüz erken" — ekran iki farklı cümle söylemek zorunda. */
+    const acilisSaat = Number(st?.openAheadH);
+    if (Number.isFinite(acilisSaat) && acilisSaat > 0 && kickoffISO) {
+      const koMs = new Date(kickoffISO).getTime();
+      if (Number.isFinite(koMs)) {
+        const acilisMs = koMs - acilisSaat * 3600 * 1000;
+        if (nowFromServer() < acilisMs) {
+          return {
+            locked: true,
+            reason: "PRED_NOT_OPEN_YET",
+            opensAtISO: new Date(acilisMs).toISOString(),
+            acilisSaat,
+          };
+        }
+      }
+    }
+
     return { locked: false as const };
   }
 
@@ -875,6 +923,8 @@ useEffect(() => {
       "SkorLig",
       predLock.reason === "MATCH_STARTED"
         ? t("lockedStarted")
+        : predLock.reason === "PRED_NOT_OPEN_YET"
+        ? acilisMetni(predLock)
         : t("lockedBefore")
     );
     return;
@@ -1107,11 +1157,17 @@ useEffect(() => {
         {/* ── KİLİT BANNER (en üstte, görünür olsun) ── */}
         {predLock.locked && (
           <View style={{ padding: 12, borderRadius: 10, backgroundColor: "#1a0606", borderWidth: 1, borderColor: "#ef4444", flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Text style={{ fontSize: 18 }}>🔒</Text>
+            <Text style={{ fontSize: 18 }}>{predLock.reason === "PRED_NOT_OPEN_YET" ? "🕓" : "🔒"}</Text>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: "#fca5a5", fontWeight: "800", fontSize: 13 }}>{t("predLockedTitle")}</Text>
+              <Text style={{ color: "#fca5a5", fontWeight: "800", fontSize: 13 }}>
+                {predLock.reason === "PRED_NOT_OPEN_YET" ? t("predNotOpenTitle") : t("predLockedTitle")}
+              </Text>
               <Text style={{ fontSize: 11, color: "#f87171", marginTop: 2 }}>
-                {predLock.reason === "MATCH_STARTED" ? t("lockedStarted") : t("lockedBefore")}
+                {predLock.reason === "MATCH_STARTED"
+                  ? t("lockedStarted")
+                  : predLock.reason === "PRED_NOT_OPEN_YET"
+                  ? acilisMetni(predLock)
+                  : t("lockedBefore")}
               </Text>
             </View>
           </View>

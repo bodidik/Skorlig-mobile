@@ -116,6 +116,10 @@ type Live2Resp = {
 
   window?: OpenWindow;
   lockBeforeMin?: number;
+  /** Tahmin kaç saat önceden AÇILIYOR — sunucudaki tek kaynak
+   *  (api/lib/ekonomi.cjs TAHMIN_ACILIS_SAAT). Kilitle aynı gerekçe: buradaki
+   *  sabit yalnızca yanıt gelmediğinde kullanılan yedek. */
+  openAheadH?: number;
 
   windowDays?: WindowDays;
 
@@ -213,6 +217,16 @@ type EmptyLiveLeague = {
   matches: EmptyLiveMatch[];
 };
 
+/* ⚠️ YEDEK DEĞER — GERÇEK KAYNAK SUNUCUDA. Kural 20 Eylül 2026'da gerçekten
+ * uygulanmaya başlandı: `/api/pred/submit` 96 saatten uzak maçta
+ * `PRED_NOT_OPEN_YET` döndürüyor (api/lib/ekonomi.cjs TAHMIN_ACILIS_SAAT).
+ * Liste yanıtı `openAheadH` taşıyor ve KAPIYI O AÇAR/KAPAR. Bu sabit yalnızca
+ * `/live2/open` sorgusunun `fwdH` parametresi ve başlık etiketi için duruyor.
+ *
+ * ⚠️ ALAN GELMEZSE KAPI ÇİZİLMEZ (`acilisSaat = 0`), bilerek: eski bir sunucu
+ * kuralı uygulamıyor olabilir ve o zaman düğmeyi gizlemek kullanıcıyı yine
+ * "sunucu kabul ederdi ama kapı yok" çıkmazına düşürürdü. Kapı ancak sunucu
+ * kuralı İLAN ederse görünür. */
 const PREDICT_OPEN_AHEAD_HOURS = 96;
 const SCHEDULE_BACK_HOURS = 8;
 const SCHEDULE_FWD_DAYS = 60;
@@ -395,10 +409,20 @@ function kickoffMs(fx: Fx): number | null {
   return parseKickoffMs(fx.kickoffISO || null);
 }
 
-/* ⚠️ `isWithinPredictWindow96h` KALDIRILDI: sunucuda karşılığı olmayan bir
- * kuraldı (pred/submit yalnızca maç başlayınca kilitler) ve Tahmin düğmesini
- * 4 günden uzak maçlarda gizliyordu — kullanıcı 5 gün sonraki maça sunucunun
- * kabul edeceği tahmini arayüzden VEREMİYORDU. */
+/* ⚠️ `isWithinPredictWindow96h` BİR KEZ KALDIRILDI, ŞİMDİ GERİ GELDİ — FARK
+ * SUNUCUDA. Eski hâli sunucuda karşılığı olmayan bir kuraldı (pred/submit
+ * yalnızca maç başlayınca kilitliyordu) ve Tahmin düğmesini 4 günden uzak
+ * maçlarda gizliyordu; kullanıcı sunucunun KABUL EDECEĞİ tahmini arayüzden
+ * veremiyordu. 20 Eylül 2026'dan beri sunucu gönderimi `PRED_NOT_OPEN_YET`
+ * ile reddediyor, yani kapının kapalı görünmesi artık DOĞRU bilgi.
+ *
+ * Pencere parametre olarak geliyor (liste yanıtındaki `openAheadH`): kuralın
+ * kopyası burada tutulsaydı sunucu değeri değiştiğinde ekran yine yalan
+ * söylerdi. */
+function tahminAcildiMi(koMs: number | null, acilisSaat: number, simdiMs: number): boolean {
+  if (koMs == null || !Number.isFinite(koMs)) return false;
+  return koMs - simdiMs <= acilisSaat * 3600 * 1000;
+}
 
 /* ⚠️ BURADAKI `fetchWithTimeout` KALDIRILDI: lib/fetchPolicy'nin zaman asimi
  * bolumunun elle yazilmis, eksik bir kopyasiydi (yeniden deneme ve ag
@@ -428,9 +452,11 @@ type ItemProps = {
   adminMode: boolean;
   selected: boolean;
   onSelect: (fx: Fx) => void;
+  /** Tahmin kaç saat önceden açılıyor — sunucudan (`openAheadH`). */
+  acilisSaat: number;
 };
 
-const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasPred, adminMode, selected, onSelect }) => {
+const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasPred, adminMode, selected, onSelect, acilisSaat }) => {
   const showPredBadge = hasPred === true;
   const st = String(item.status || "").toUpperCase();
   const isLive = st === "LIVE" || st === "HT";
@@ -463,7 +489,22 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
    * çiziliyor ve kullanıcıyı sunucunun 409 ile reddedeceği çıkmaz bir
    * tahmin ekranına götürüyordu — "geçmiş maça tahmin gönderilebiliyor"
    * algısının kaynağı buydu. Sunucu kilidi zaten sağlamdı; kusur kapıda. */
-  const tahmineAcik = !isFinished && !isLive && !sonucBekliyor && !kickoffGecmis;
+  /* ⚠️ AÇILIŞ PENCERESİ GERİ KONDU — çünkü sunucu artık uyguluyor. Yukarıdaki
+   * not eski (yalnızca arayüzde duran) kuralın neden söküldüğünü anlatıyor;
+   * bugün `/api/pred/submit` 96 saatten uzak maçta `PRED_NOT_OPEN_YET`
+   * döndürüyor, yani düğmeyi çizmek kullanıcıyı reddedilecek bir ekrana
+   * götürmek olurdu — tam olarak OVERDUE maçlarda ölçülen kusur.
+   *
+   * Kapı SESSİZ DEĞİL: aşağıda kaç saat sonra açılacağı yazılıyor. */
+  const simdiMs = nowFromServer();
+  const acilisGecerli = Number.isFinite(acilisSaat) && acilisSaat > 0;
+  const tahminAcildi = !acilisGecerli || tahminAcildiMi(koMs, acilisSaat, simdiMs);
+  const acilisaKalanSaat =
+    !tahminAcildi && Number.isFinite(koMs) && koMs > 0
+      ? Math.max(1, Math.round((koMs - simdiMs) / 3600000 - acilisSaat))
+      : null;
+
+  const tahmineAcik = !isFinished && !isLive && !sonucBekliyor && !kickoffGecmis && tahminAcildi;
 
   const highlight = mode === "open" ? true : isLive;
   const cardBg = selected ? "#1e1b4b" : isLive ? "#071a0f" : Colors.card;
@@ -608,6 +649,12 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
               <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("matchOver")}</Text>
             ) : tahmineAcik ? (
               <Text style={{ color: "#4ade80", fontSize: 11 }}>{t("canPredict")}</Text>
+            ) : acilisaKalanSaat != null ? (
+              /* Kapının SEBEBİ ve ne zaman açılacağı: "Tahmin henüz açılmadı"
+                 tek başına kullanıcıya yapabileceği bir şey söylemiyordu. */
+              <Text style={{ color: "#f59e0b", fontSize: 11 }}>
+                {t("notOpenYet")} • {t("opensInH", { h: acilisaKalanSaat })}
+              </Text>
             ) : (
               <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("notOpenYet")}</Text>
             )}
@@ -824,6 +871,9 @@ export default function LiveScreen() {
   const [countryFallback, setCountryFallback] = useState(false);
   const [nextCountryMatchISO, setNextCountryMatchISO] = useState<string | null>(null);
   const [lockBeforeMin, setLockBeforeMin] = useState<number | null>(null);
+  /* Tahmin açılış penceresi — SUNUCUDAN. `null` = sunucu kuralı ilan etmedi,
+   * o zaman arayüz kapı çizmez (bkz. PREDICT_OPEN_AHEAD_HOURS notu). */
+  const [openAheadH, setOpenAheadH] = useState<number | null>(null);
 
   const [predFlags, setPredFlags] = useState<Record<string, boolean>>({});
   const [predLoading, setPredLoading] = useState(false);
@@ -877,6 +927,25 @@ export default function LiveScreen() {
     () => (predSuzuluyor ? suz(myPreds.old, predArama, predAlanlari).items : myPreds.old),
     [myPreds.old, predArama, predSuzuluyor]
   );
+
+  /* OYNANACAK / OYNANAN ayrımı (kullanıcı isteği 2026-09-20).
+   * Ölçüt: tahmin HÂLÂ değiştirilebiliyor mu — durum NS ve kilit anı
+   * (kickoff − sunucunun `lockBeforeMin`i) gelmemiş. Saati okunamayan maç
+   * "oynanan" tarafına düşer: düzenleme düğmesi göstermek sunucunun
+   * reddedeceği bir kapı açmak olurdu.
+   * ⚠️ Zamana bağlı: `nowFromServer()` her çizimde okunuyor, saklanmıyor. */
+  const guncelBolunmus = (() => {
+    const simdi = nowFromServer();
+    const kilitMs = (typeof lockBeforeMin === "number" ? lockBeforeMin : 10) * 60000;
+    const oynanacak: MyPredItem[] = [];
+    const oynanan: MyPredItem[] = [];
+    for (const mp of suzulmusGuncel) {
+      const ko = mp.kickoffISO ? new Date(mp.kickoffISO).getTime() : NaN;
+      const ns = String(mp.status || "NS").toUpperCase() === "NS";
+      (ns && Number.isFinite(ko) && simdi < ko - kilitMs ? oynanacak : oynanan).push(mp);
+    }
+    return { oynanacak, oynanan };
+  })();
 
   const [myTournaments, setMyTournaments] = useState<MiniTournament[]>([]);
   const [myTournamentsLoading, setMyTournamentsLoading] = useState(false);
@@ -1019,6 +1088,7 @@ export default function LiveScreen() {
         setCap(null);
         setRuntimeMode(null);
         setLockBeforeMin(null);
+        setOpenAheadH(null);
         setCountryFallback(false);
         setNextCountryMatchISO(null);
         return;
@@ -1034,6 +1104,7 @@ export default function LiveScreen() {
       setCountryFallback(!!j?.countryFallback);
       setNextCountryMatchISO(j?.nextCountryMatchISO || null);
       setLockBeforeMin(typeof j?.lockBeforeMin === "number" ? j.lockBeforeMin : null);
+      setOpenAheadH(typeof j?.openAheadH === "number" ? j.openAheadH : null);
 
       if (list.length === 0) setError(null);
     } catch (e: any) {
@@ -1049,6 +1120,7 @@ export default function LiveScreen() {
       setCap(null);
       setRuntimeMode(null);
       setLockBeforeMin(null);
+      setOpenAheadH(null);
     } finally {
       setLoading(false);
     }
@@ -1075,6 +1147,7 @@ export default function LiveScreen() {
         setCap(typeof j?.cap === "number" ? j.cap : null);
         setRuntimeMode(j?.runtimeMode ?? null);
         setLockBeforeMin(typeof j?.lockBeforeMin === "number" ? j.lockBeforeMin : null);
+        setOpenAheadH(typeof j?.openAheadH === "number" ? j.openAheadH : null);
         return;
       }
 
@@ -1088,6 +1161,7 @@ export default function LiveScreen() {
       setCountryFallback(!!j?.countryFallback);
       setNextCountryMatchISO(j?.nextCountryMatchISO || null);
       setLockBeforeMin(typeof j?.lockBeforeMin === "number" ? j.lockBeforeMin : null);
+      setOpenAheadH(typeof j?.openAheadH === "number" ? j.openAheadH : null);
 
       if (list.length === 0) setError(null);
     } catch (e: any) {
@@ -1105,6 +1179,7 @@ export default function LiveScreen() {
       setCountryFallback(false);
       setNextCountryMatchISO(null);
       setLockBeforeMin(null);
+      setOpenAheadH(null);
     } finally {
       setLoading(false);
     }
@@ -1479,19 +1554,21 @@ export default function LiveScreen() {
       const bd = winDays?.backDays ?? 1;
       const fd = winDays?.fwdDays ?? SCHEDULE_FWD_DAYS;
       parts.push(`Liste: -${bd}g / +${fd}g`);
-      parts.push(`Tahmin: +${PREDICT_OPEN_AHEAD_HOURS}h`);
+      /* Etiket sunucunun İLAN ETTİĞİ pencereyi söyler; alan yoksa yerel
+       * varsayılan yazılır (kapı da o zaman çizilmiyor). */
+      parts.push(`Tahmin: +${openAheadH ?? PREDICT_OPEN_AHEAD_HOURS}h`);
     } else {
       const backH = typeof win?.backH === "number" ? win.backH : null;
       const fwdH = typeof win?.fwdH === "number" ? win.fwdH : null;
       if (backH != null || fwdH != null) parts.push(`Pencere: -${backH ?? "?"}h / +${fwdH ?? "?"}h`);
-      parts.push(`Tahmin: +${PREDICT_OPEN_AHEAD_HOURS}h`);
+      parts.push(`Tahmin: +${openAheadH ?? PREDICT_OPEN_AHEAD_HOURS}h`);
       if (typeof lockBeforeMin === "number") parts.push(`Kilit: ${lockBeforeMin} dk`);
     }
 
     if (typeof cap === "number") parts.push(`Cap: ${cap}`);
     if (runtimeMode?.profile) parts.push(`Mode: ${runtimeMode.profile}`);
     return parts.join(" • ");
-  }, [mode, winDays, win, lockBeforeMin, cap, runtimeMode]);
+  }, [mode, winDays, win, lockBeforeMin, openAheadH, cap, runtimeMode]);
 
   // ===== ADMIN helpers =====
   const selectFx = useCallback((fx: Fx) => {
@@ -1675,6 +1752,95 @@ export default function LiveScreen() {
     }
   }
 
+  /**
+   * BENİMKİLER SATIRI — tek kaynak.
+   *
+   * KULLANICI İSTEĞİ (2026-09-20): "listeler karışık: tahminlerim /
+   * oynadığım / oynanacak ayrımı". Satır iki bölümde de çiziliyor
+   * (oynanacak · oynanan); JSX'i kopyalamak iki şeklin zamanla ayrışması
+   * demekti (deponun kayıtlı "iki gerçeklik" sınıfı).
+   *
+   * `duzenlenebilir` yalnızca tahmin HÂLÂ değiştirilebiliyorsa true.
+   */
+  const benimTahminSatiri = (mp: MyPredItem, duzenlenebilir: boolean) => {
+                  const isFT = String(mp.status || "").toUpperCase() === "FT";
+                  const isLive = ["1H","HT","2H","LIVE"].includes(String(mp.status || "").toUpperCase());
+                  const chips = buildPredChips(mp.pred);
+                  const oc = mp.pred?.outcome?.toUpperCase();
+                  const ocColor = oc === "H" ? "#3b82f6" : oc === "D" ? "#f59e0b" : oc === "A" ? "#ef4444" : "#64748b";
+                  const settled = settledMap[String(mp.fixtureId)];
+                  return (
+                    <View
+                      key={mp.fixtureId}
+                      style={{ borderRadius: 10, backgroundColor: "#1e2433", borderWidth: 1, borderColor: isLive ? "#22c55e55" : "#334155", overflow: "hidden" }}
+                    >
+                      {/* tek şerit: maç + tahmin + butonlar */}
+                      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 7, gap: 8 }}>
+                        {/* sol: takımlar + lig */}
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: "#cbd5e1", fontWeight: "600", fontSize: 12 }} numberOfLines={1}>
+                            {mp.home || mp.fixtureId} — {mp.away || ""}
+                          </Text>
+                          <Text style={{ color: "#64748b", fontSize: 10 }}>
+                            {mp.kickoffISO ? new Date(mp.kickoffISO).toLocaleString("tr-TR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" }) : ""}
+                            {mp.league ? "  " + mp.league : ""}
+                          </Text>
+                        </View>
+
+                        {/* tahmin rozeti */}
+                        {mp.pred && (oc || mp.pred.home != null) ? (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                            {oc && <View style={{ backgroundColor: ocColor + "33", borderRadius: 5, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: ocColor + "66" }}>
+                              <Text style={{ color: ocColor, fontWeight: "800", fontSize: 11 }}>{oc}</Text>
+                            </View>}
+                            {mp.pred.home != null && <Text style={{ color: ocColor, fontWeight: "700", fontSize: 11 }}>{mp.pred.home}–{mp.pred.away}</Text>}
+                          </View>
+                        ) : (
+                          <Text style={{ color: "#475569", fontSize: 10, fontStyle: "italic" }}>—</Text>
+                        )}
+
+                        {/* status / skor + sonuç rozeti */}
+                        <View style={{ alignItems: "flex-end", minWidth: 34 }}>
+                          <Text style={{ color: isLive ? "#22c55e" : isFT ? "#e2e8f0" : "#475569", fontSize: 12, fontWeight: "800" }}>
+                            {mp.score ? `${mp.score.home}-${mp.score.away}` : isLive ? "🔴" : isFT ? "FT" : "NS"}
+                          </Text>
+                          {(() => {
+                            const tuttu = tahminTuttuMu(mp.status, mp.score, mp.pred?.outcome);
+                            if (tuttu === null) return null;
+                            return (
+                              <View style={{ marginTop: 2, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, backgroundColor: tuttu ? "#14532d" : "#7f1d1d" }}>
+                                <Text style={{ color: tuttu ? "#4ade80" : "#f87171", fontSize: 9, fontWeight: "900" }}>
+                                  {tuttu ? "✓ " + t("predHit") : "✗ " + t("predMiss")}
+                                </Text>
+                              </View>
+                            );
+                          })()}
+                        </View>
+
+                        {/* ⚠️ DÜĞMELER YALNIZCA DÜZENLENEBİLİR SATIRDA.
+                            Eskiden koşulsuz çiziliyordu: bitmiş maçın ✏️'si
+                            tahmin ekranını açıp kilitli diyor, 🗑'si sunucudan
+                            409 alıyordu. "Kapalı kapının düğmesi kapalı
+                            görünmeli" — bu depoda kayıtlı sınıf. */}
+                        {duzenlenebilir && (
+                          <>
+                          {/* butonlar */}
+                          <TouchableOpacity onPress={() => goPredict({ fixtureId: mp.fixtureId, home: mp.home, away: mp.away, league: mp.league, kickoffISO: mp.kickoffISO } as any)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#1d4ed833" }}>
+                            <Text style={{ color: "#60a5fa", fontSize: 11, fontWeight: "700" }}>✏️</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => cancelPred(mp.fixtureId)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#ef444422" }}>
+                            <Text style={{ color: "#f87171", fontSize: 11, fontWeight: "700" }}>🗑</Text>
+                          </TouchableOpacity>
+                          </>
+                        )}
+                      </View>
+
+                      {/* Settle edilmişse puan özeti şeridi */}
+                      {settled && <SettleSummaryStrip points={settled.points} detail={settled.detail} />}
+                    </View>
+                  );
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: Colors.bg }}>
       <FlatList
@@ -1729,6 +1895,8 @@ export default function LiveScreen() {
               item={item}
               mode={mode}
               onPredict={goPredict}
+              /* 0 = sunucu açılış kuralını İLAN ETMEDİ → kapı çizilmez. */
+              acilisSaat={openAheadH ?? 0}
               onRace={goRace}
               onDuel={ozellik.duello ? goDuel : undefined}
               hasPred={hasPred}
@@ -2133,75 +2301,31 @@ export default function LiveScreen() {
                   );
                 })()}
 
-                {suzulmusGuncel.map((mp) => {
-                  const isFT = String(mp.status || "").toUpperCase() === "FT";
-                  const isLive = ["1H","HT","2H","LIVE"].includes(String(mp.status || "").toUpperCase());
-                  const chips = buildPredChips(mp.pred);
-                  const oc = mp.pred?.outcome?.toUpperCase();
-                  const ocColor = oc === "H" ? "#3b82f6" : oc === "D" ? "#f59e0b" : oc === "A" ? "#ef4444" : "#64748b";
-                  const settled = settledMap[String(mp.fixtureId)];
-                  return (
-                    <View
-                      key={mp.fixtureId}
-                      style={{ borderRadius: 10, backgroundColor: "#1e2433", borderWidth: 1, borderColor: isLive ? "#22c55e55" : "#334155", overflow: "hidden" }}
-                    >
-                      {/* tek şerit: maç + tahmin + butonlar */}
-                      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 7, gap: 8 }}>
-                        {/* sol: takımlar + lig */}
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: "#cbd5e1", fontWeight: "600", fontSize: 12 }} numberOfLines={1}>
-                            {mp.home || mp.fixtureId} — {mp.away || ""}
-                          </Text>
-                          <Text style={{ color: "#64748b", fontSize: 10 }}>
-                            {mp.kickoffISO ? new Date(mp.kickoffISO).toLocaleString("tr-TR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" }) : ""}
-                            {mp.league ? "  " + mp.league : ""}
-                          </Text>
-                        </View>
+                {/* ══ OYNANACAK — tahmin hâlâ değiştirilebilir ══════════
+                    ⚠️ AYRIM SUNUCUDAN GELMİYOR, BURADA: `/api/pred/my`
+                    `current` alanı kickoff'tan 26 saat SONRASINA kadar her
+                    şeyi bir arada veriyor — yani yarın oynanacak maç ile
+                    dün bitmiş maç aynı listede. O pencere iyi bir sebeple
+                    var (dünkü maçın puanı görünür kalsın) ve
+                    DEĞİŞTİRİLMEDİ; karışan şey listenin kendisiydi. */}
+                {guncelBolunmus.oynanacak.length > 0 && (
+                  <View style={{ paddingTop: 6 }}>
+                    <Text style={{ color: "#4ade80", fontSize: 11, fontWeight: "800", letterSpacing: 0.6 }}>
+                      {t("myPredsUpcoming", { n: guncelBolunmus.oynanacak.length })}
+                    </Text>
+                  </View>
+                )}
+                {guncelBolunmus.oynanacak.map((mp) => benimTahminSatiri(mp, true))}
 
-                        {/* tahmin rozeti */}
-                        {mp.pred && (oc || mp.pred.home != null) ? (
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                            {oc && <View style={{ backgroundColor: ocColor + "33", borderRadius: 5, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: ocColor + "66" }}>
-                              <Text style={{ color: ocColor, fontWeight: "800", fontSize: 11 }}>{oc}</Text>
-                            </View>}
-                            {mp.pred.home != null && <Text style={{ color: ocColor, fontWeight: "700", fontSize: 11 }}>{mp.pred.home}–{mp.pred.away}</Text>}
-                          </View>
-                        ) : (
-                          <Text style={{ color: "#475569", fontSize: 10, fontStyle: "italic" }}>—</Text>
-                        )}
-
-                        {/* status / skor + sonuç rozeti */}
-                        <View style={{ alignItems: "flex-end", minWidth: 34 }}>
-                          <Text style={{ color: isLive ? "#22c55e" : isFT ? "#e2e8f0" : "#475569", fontSize: 12, fontWeight: "800" }}>
-                            {mp.score ? `${mp.score.home}-${mp.score.away}` : isLive ? "🔴" : isFT ? "FT" : "NS"}
-                          </Text>
-                          {(() => {
-                            const tuttu = tahminTuttuMu(mp.status, mp.score, mp.pred?.outcome);
-                            if (tuttu === null) return null;
-                            return (
-                              <View style={{ marginTop: 2, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, backgroundColor: tuttu ? "#14532d" : "#7f1d1d" }}>
-                                <Text style={{ color: tuttu ? "#4ade80" : "#f87171", fontSize: 9, fontWeight: "900" }}>
-                                  {tuttu ? "✓ " + t("predHit") : "✗ " + t("predMiss")}
-                                </Text>
-                              </View>
-                            );
-                          })()}
-                        </View>
-
-                        {/* butonlar */}
-                        <TouchableOpacity onPress={() => goPredict({ fixtureId: mp.fixtureId, home: mp.home, away: mp.away, league: mp.league, kickoffISO: mp.kickoffISO } as any)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#1d4ed833" }}>
-                          <Text style={{ color: "#60a5fa", fontSize: 11, fontWeight: "700" }}>✏️</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => cancelPred(mp.fixtureId)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#ef444422" }}>
-                          <Text style={{ color: "#f87171", fontSize: 11, fontWeight: "700" }}>🗑</Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      {/* Settle edilmişse puan özeti şeridi */}
-                      {settled && <SettleSummaryStrip points={settled.points} detail={settled.detail} />}
-                    </View>
-                  );
-                })}
+                {/* ══ OYNANAN / SONUÇLANAN ══════════════════════════════ */}
+                {guncelBolunmus.oynanan.length > 0 && (
+                  <View style={{ paddingTop: 10 }}>
+                    <Text style={{ color: Colors.muted, fontSize: 11, fontWeight: "800", letterSpacing: 0.6 }}>
+                      {t("myPredsPlayed", { n: guncelBolunmus.oynanan.length })}
+                    </Text>
+                  </View>
+                )}
+                {guncelBolunmus.oynanan.map((mp) => benimTahminSatiri(mp, false))}
 
                 {/* SKOR TAHMİNLERİM — ayrı defter, ayrı bölüm (bkz. mySkor notu). */}
                 {(mySkor.length > 0 || skorOkunamadi) && (
