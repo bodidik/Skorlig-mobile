@@ -60,10 +60,32 @@ const OUTCOMES = [
   { key: "away", api: "A", color: "#ef4444" },
 ] as const;
 
+/** Kartta sunulan maç sayısı. Uç en çok 10 kabul ediyor; üçü bir ekrana sığıyor. */
+const MAC_SAYISI = 3;
+
 export default function DailyMatchCard({ country, userId, gomulu = false, bosken, onAcil }: Props) {
   useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
-  const [fixture, setFixture] = useState<Fixture | null>(null);
+  /**
+   * BİRKAÇ MAÇ, TEK KART (kullanıcı isteği 2026-09-29).
+   *
+   * *"Test kullanıcılarım tek maç sonuç tahmini kısmını daha net görmek
+   * istiyorlar… haftalık kupon yerine birkaç tek maç sunabiliriz."*
+   *
+   * ⚠️ SUNUCU ZATEN BİRKAÇ MAÇ DÖNÜYORDU: `/api/live/daily-featured`
+   * `limit` (varsayılan 3) ile `fixtures` DİZİSİ veriyor ve ucun kendi notu
+   * "fixture alanı ilk eleman olarak KORUNUYOR çünkü DailyMatchCard onu
+   * okuyor" diyor. Yani kart iki maçı görmeden atıyordu — ilan edilen veri
+   * kullanılmıyordu ("ölü alan"ın tersi: canlı veri, kör tüketici).
+   *
+   * Kartın TEK MAÇLIK iç mantığı (seçim, gönderim, oran, kilit) olduğu gibi
+   * duruyor; yalnızca hangi maçı gösterdiği seçilebilir oldu. Üç maçı üç ayrı
+   * kart olarak çizmek bu 539 satırlık bileşeni üçe bölmek demekti ve her
+   * kopyanın kendi gönderim durumu olurdu.
+   */
+  const [liste, setListe] = useState<Fixture[]>([]);
+  const [aktif, setAktif] = useState(0);
+  const fixture: Fixture | null = liste[aktif] ?? null;
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -109,10 +131,20 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
     let cancelled = false;
     async function load() {
       try {
-        const qs = country ? `?country=${encodeURIComponent(country)}` : "";
-        const r = await apiFetch(`/api/live/daily-featured${qs}`);
+        /* `limit` AÇIKÇA isteniyor: ucun varsayılanı da 3 ama sayıyı burada
+         * söylemek, ekranın kaç maç göstereceğini ekranın kararı yapıyor. */
+        const cq = country ? `&country=${encodeURIComponent(country)}` : "";
+        const r = await apiFetch(`/api/live/daily-featured?limit=${MAC_SAYISI}${cq}`);
         const json = await r.json();
-        if (!cancelled && json.ok && json.fixture) setFixture(json.fixture);
+        if (!cancelled && json.ok) {
+          /* Eski sunucu yalnız `fixture` dönebilir — o zaman tek maçlık
+           * listeye düşülüyor, kart yine çalışıyor. */
+          const gelen: Fixture[] = Array.isArray(json.fixtures) && json.fixtures.length
+            ? json.fixtures
+            : json.fixture ? [json.fixture] : [];
+          setListe(gelen.slice(0, MAC_SAYISI));
+          setAktif(0);
+        }
       } catch {}
       if (!cancelled) setLoading(false);
     }
@@ -158,6 +190,21 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
   }, [fixture?.fixtureId, userId]);
 
   useFocusEffect(useCallback(() => { tahminiOku(); }, [tahminiOku]));
+
+  /**
+   * ⚠️ MAÇ DEĞİŞİNCE MAÇA AİT DURUM SIFIRLANMALI.
+   *
+   * `selected` / `submitted` / `yeniGonderildi` ÖNCEKİ maça aitti; başka maça
+   * geçince "gönderildi" ve seçili şık olduğu gibi kalır ve kullanıcı
+   * oynamadığı maçı oynanmış görürdü. `oranlar` ve tahmin bayrağı zaten
+   * `fixtureId`ye bağlı etkilerden geliyor; bu üçü bellekteydi.
+   */
+  useEffect(() => {
+    setSelected(null);
+    setSubmitted(false);
+    setYeniGonderildi(false);
+    setOranlar(null);
+  }, [fixture?.fixtureId]);
 
   /* ⚠️ SEÇİM ARTIK GÖNDERMİYOR — yalnızca taslak.
    *
@@ -287,6 +334,31 @@ export default function DailyMatchCard({ country, userId, gomulu = false, bosken
         <Text style={st.vs}>vs</Text>
         <Text style={st.teamName} numberOfLines={2}>{fixture.away}</Text>
       </View>
+
+      {/* ══ MAÇ SEÇİCİ — birkaç tek maç (kullanıcı isteği 2026-09-29) ══════
+          Tek maç varsa şerit HİÇ çizilmiyor: tek seçenekli bir seçici,
+          "ekranda duran ama hiçbir şeyi değiştirmeyen kontrol" olurdu. */}
+      {liste.length > 1 && (
+        <View style={s.secici} accessibilityRole="tablist">
+          {liste.map((f, i) => {
+            const bu = i === aktif;
+            const ad = `${(f.home || "?").slice(0, 3).toUpperCase()}–${(f.away || "?").slice(0, 3).toUpperCase()}`;
+            return (
+              <TouchableOpacity
+                key={f.fixtureId}
+                onPress={() => setAktif(i)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: bu }}
+                accessibilityLabel={`${f.home} – ${f.away}`}
+                hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                style={[s.seciciOge, bu && s.seciciOgeAktif]}
+              >
+                <Text style={[s.seciciYazi, bu && s.seciciYaziAktif]} numberOfLines={1}>{ad}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
       {/* Sonuç butonları */}
       {!submitted ? (
@@ -517,6 +589,37 @@ const s = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
+  },
+  /* Maç seçici şeridi. Dokunma hedefi 44px'e yakın tutuluyor (kayıtlı taban
+   * ≥24, tercihen 44): 10 dikey dolgu + 13 yazı + kenarlık ≈ 36, hitSlop ile
+   * fiilen 48. Zemin DÜZ renk — saydam zeminde kontrast ölçümü yanıltıyor
+   * (bkz. lib/oyunMerkezi.ts başlığı). */
+  secici: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  seciciOge: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: "#16202e",
+    borderWidth: 1,
+    borderColor: "#24303f",
+  },
+  seciciOgeAktif: {
+    backgroundColor: "#1f3a2a",
+    borderColor: "#4ade80",
+  },
+  seciciYazi: {
+    color: "#94a3b8",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  seciciYaziAktif: {
+    color: "#4ade80",
   },
   countdownText: {
     color: "#22c55e",

@@ -45,7 +45,17 @@ export type ModAnahtari = "tek" | "kupon" | "skor" | "mini" | "gs1987" | "duello
  * `OyunMerkezi.tsx`te JSX yazım sırasıydı ve bu dizi yalnız "diğer oyunlar"ı
  * sıralıyordu — iki gerçeklik. Dizi değişip ekran değişmeyebilirdi.
  */
-export const MOD_SIRASI: readonly ModAnahtari[] = ["kupon", "skor", "tek", "mini", "gs1987", "duello", "havuz"];
+/* ⚠️ KUPON ARKAYA ALINDI (kullanıcı kararı 2026-09-29, test kullanıcılarının
+ * geri bildirimiyle): *"test kullanıcılarım TEK MAÇ sonuç tahmini kısmını daha
+ * net görmek istiyorlar… haftalık kupon yerine birkaç tek maç sunabiliriz.
+ * Skor tahminlerinin yeri güzel. Haftalık kupon belki bunlardan sonra
+ * gösterilebilir."*
+ *
+ * Üç karar birden: skor YERİNDE, tek maç yukarı, kupon ikisinin ARKASINA.
+ * Kupon kaldırılmadı — haftalık oyun duruyor, yalnız ilk bakışta karşılayan
+ * şey tek maç oldu. Tek maç kartı aynı turda BİRKAÇ maç sunmaya başladı
+ * (bkz. components/DailyMatchCard.tsx MAC_SAYISI). */
+export const MOD_SIRASI: readonly ModAnahtari[] = ["skor", "tek", "kupon", "mini", "gs1987", "duello", "havuz"];
 
 /** Mod vurgu renkleri — yalnız ikon kutusu, küçük etiket ve dolu düğmede. */
 export const MOD_RENGI: Record<ModAnahtari, string> = {

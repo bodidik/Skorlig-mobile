@@ -808,7 +808,12 @@ export default function LiveScreen() {
    * sunucudan geldiği gibi kalır (lib/fixture-priority.cjs tek kaynak).
    * Öteki iki seçenek yalnızca GÖSTERİM sırasını değiştirir, eleme yapmaz.
    */
-  const [siralama, setSiralama] = useState<"onerilen" | "tarih" | "lig">("onerilen");
+  const [siralama, setSiralama] = useState<"onerilen" | "tarih" | "lig" | "tahmin">("onerilen");
+
+  /** Maç başına İNSAN tahmin sayısı — `siralama === "tahmin"` iken doluyor.
+   *  Dolduran etki aşağıda (`/api/pred/counts`); burada duruyor çünkü onu
+   *  okuyan `gorunenListe` bu satırın hemen altında. */
+  const [tahminSayilari, setTahminSayilari] = useState<Record<string, number>>({});
 
   const gorunenListe = useMemo(() => {
     if (siralama === "onerilen") return items;
@@ -817,7 +822,17 @@ export default function LiveScreen() {
       const t2 = Date.parse(String(x.kickoffISO || ""));
       return Number.isFinite(t2) ? t2 : Number.MAX_SAFE_INTEGER;
     };
-    if (siralama === "tarih") {
+    if (siralama === "tahmin") {
+      /* ⚠️ EŞİTLİK SAATE DÜŞÜYOR: sayılar gelmediğinde (ağ hatası) ya da
+       * hepsi 0 olduğunda liste RASTGELE görünmemeli — o durumda bu sıra
+       * fiilen "tarihe göre" olur, yani bilinen bir düzen. */
+      kopya.sort((a, b) => {
+        const sa = tahminSayilari[String(a.fixtureId || "")] ?? 0;
+        const sb = tahminSayilari[String(b.fixtureId || "")] ?? 0;
+        if (sa !== sb) return sb - sa;       // çok tahmin alan önce
+        return ko(a) - ko(b);
+      });
+    } else if (siralama === "tarih") {
       kopya.sort((a, b) => ko(a) - ko(b));
     } else {
       // Lige göre: aynı ülkenin ligleri bir arada, lig içinde saate göre.
@@ -829,7 +844,7 @@ export default function LiveScreen() {
       });
     }
     return kopya;
-  }, [items, siralama]);
+  }, [items, siralama, tahminSayilari]);
 
   /* ARAMA — takım adına göre yerel süzme.
    *
@@ -853,9 +868,36 @@ export default function LiveScreen() {
   );
   /* "kisa" durumunda listeyi BOŞALTMIYORUZ: kullanıcı iki harf yazmışken
    * maçların kaybolması, aradığı şeyin olmadığı izlenimi verir. */
-  const suzulmusListe = aramaSonucu.durum === "sonuc" || aramaSonucu.durum === "bulunamadi"
+  const aramaliListe = aramaSonucu.durum === "sonuc" || aramaSonucu.durum === "bulunamadi"
     ? aramaSonucu.items
     : gorunenListe;
+
+  /**
+   * "TAHMİN ETTİKLERİM" SÜZGECİ (kullanıcı isteği 2026-09-29).
+   *
+   * *"Kişi canlı skorlarda 'tahmin yaptığım maçlar' filtrelemesine sahip
+   * olsun."* — kullanıcının kendi önerdiği ikinci seçenek; "en çok tahmin
+   * alan önce" sıralamasıyla birlikte ikisi de kuruldu.
+   *
+   * ⚠️ VERİ ZATEN ELDE: `predFlags` bu ekrandaki "tahmin ettin" rozeti için
+   * çoktan çekiliyor (`/api/pred/flags`). Yeni ağ isteği YOK.
+   *
+   * ⚠️ SÜZGEÇ ARAMANIN ÜSTÜNE BİNİYOR, yerine geçmiyor: ikisi birlikte
+   * çalışıyor ("real" + yalnız tahmin ettiklerim).
+   *
+   * ⚠️ BAYRAKLAR YÜKLENMEDEN SÜZÜLMÜYOR: `predLoading` sırasında hepsi
+   * `false` görünür ve liste bir an BOŞALIRDI — "tahminlerim kayboldu"
+   * sanısı (bu deponun kayıtlı "yükleme bitmeden karar verme" sınıfı).
+   */
+  /* Tahmin bayrakları — hem satır rozeti hem aşağıdaki süzgeç okuyor;
+   * dolduran etki (`/api/pred/flags`) daha aşağıda. */
+  const [predFlags, setPredFlags] = useState<Record<string, boolean>>({});
+  const [predLoading, setPredLoading] = useState(false);
+  const [yalnizTahminliler, setYalnizTahminliler] = useState(false);
+  const suzulmusListe = useMemo(() => {
+    if (!yalnizTahminliler || predLoading) return aramaliListe;
+    return aramaliListe.filter((fx) => predFlags[String(fx.fixtureId || "").trim()] === true);
+  }, [aramaliListe, yalnizTahminliler, predFlags, predLoading]);
 
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -875,8 +917,6 @@ export default function LiveScreen() {
    * o zaman arayüz kapı çizmez (bkz. PREDICT_OPEN_AHEAD_HOURS notu). */
   const [openAheadH, setOpenAheadH] = useState<number | null>(null);
 
-  const [predFlags, setPredFlags] = useState<Record<string, boolean>>({});
-  const [predLoading, setPredLoading] = useState(false);
 
   const [myPreds, setMyPreds] = useState<{ current: MyPredItem[]; old: MyPredItem[] }>({ current: [], old: [] });
   // fixtureId -> settle sonucu (puan + kategori kırılımı)
@@ -1473,6 +1513,46 @@ export default function LiveScreen() {
     loadFlags();
   }, [mode, items, userId]);
 
+  /**
+   * MAÇ BAŞINA TAHMİN SAYISI — "en çok tahmin alan önce" sıralaması için.
+   *
+   * KULLANICI İSTEĞİ (2026-09-29): *"en çok tahmin alan maçlar canlıda önce
+   * gösterilsin, tahmin almayan maçlar aşağılara atılsın."*
+   *
+   * ⚠️ SAYI İSTEMCİDE ÜRETİLEMEZ: `/pred/flags` yalnız KENDİ tahminlerini
+   * biliyor. Yeni uç `/api/pred/counts` maç başına insan/bot sayısını tek
+   * istekte veriyor.
+   *
+   * ⚠️ İNSAN SAYISI KULLANILIYOR, TOPLAM DEĞİL: bot kadrosu odaları doldurmak
+   * için var ve insanları kat kat aşıyor; toplamla sıralamak "en çok bot
+   * atanan maç" sıralaması olurdu.
+   *
+   * ⚠️ YALNIZCA O SIRALAMA SEÇİLİYKEN İSTENİYOR: her liste yüklemesinde
+   * fazladan bir ağ isteği, kullanılmayan bir sıra için bedel olurdu.
+   */
+  useEffect(() => {
+    if (siralama !== "tahmin") return;
+    const kimlikler = items.map((x) => String(x.fixtureId || "").trim()).filter(Boolean);
+    if (!kimlikler.length) { setTahminSayilari({}); return; }
+    let iptal = false;
+    (async () => {
+      try {
+        const r = await apiFetch(`/api/pred/counts?fixtureIds=${encodeURIComponent(kimlikler.join(","))}`);
+        const j = await r.json();
+        if (iptal || !j?.ok || !j.sayim) return;
+        const harita: Record<string, number> = {};
+        for (const [fid, s] of Object.entries(j.sayim as Record<string, any>)) {
+          harita[fid] = Number(s?.insan ?? 0);
+        }
+        setTahminSayilari(harita);
+      } catch {
+        /* Sayı gelmezse sıralama TARİHE düşer (aşağıda), liste boşalmaz. */
+        if (!iptal) setTahminSayilari({});
+      }
+    })();
+    return () => { iptal = true; };
+  }, [siralama, items]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await syncServerTime();
@@ -1824,15 +1904,49 @@ export default function LiveScreen() {
                             görünmeli" — bu depoda kayıtlı sınıf. */}
                         {duzenlenebilir && (
                           <>
-                          {/* butonlar */}
-                          <TouchableOpacity onPress={() => goPredict({ fixtureId: mp.fixtureId, home: mp.home, away: mp.away, league: mp.league, kickoffISO: mp.kickoffISO } as any)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#1d4ed833" }}>
+                          {/* butonlar
+                              ⚠️ ERİŞİLEBİLİR AD EKLENDİ: ikisi de YALNIZCA
+                              glif basıyordu (✏️ / 🗑) ve ekran okuyucu bunları
+                              adsız düğme olarak duyuruyordu — deponun kayıtlı
+                              "adı yalnızca glif olan kontrol" sınıfı. */}
+                          <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel={t("predictBtn")}
+                            onPress={() => goPredict({ fixtureId: mp.fixtureId, home: mp.home, away: mp.away, league: mp.league, kickoffISO: mp.kickoffISO } as any)}
+                            style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#1d4ed833" }}
+                          >
                             <Text style={{ color: "#60a5fa", fontSize: 11, fontWeight: "700" }}>✏️</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity onPress={() => cancelPred(mp.fixtureId)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#ef444422" }}>
+                          <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel={t("cancelPredA11y")}
+                            onPress={() => cancelPred(mp.fixtureId)}
+                            style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#ef444422" }}
+                          >
                             <Text style={{ color: "#f87171", fontSize: 11, fontWeight: "700" }}>🗑</Text>
                           </TouchableOpacity>
                           </>
                         )}
+
+                        {/* ══ YARIŞ — HER SATIRDA (kullanıcı isteği 2026-09-29)
+                            *"Bu tahminlerim ekranından tahmine ve yarışa kolay
+                            gidebilmeli… özellikle yarışa gidiş kolay olmalı."*
+
+                            ÖLÇÜLDÜ: yarışa giden tek yol Maçlar listesindeki
+                            maç kartıydı; Benimkiler satırında hiç yoktu, yani
+                            kullanıcı tahminini gördüğü yerden yarışı
+                            göremiyordu. Düğme oynanan satırda da duruyor —
+                            yarış ekranı bitmiş maçta da anlamlı (sonuç ve
+                            sıralama orada). ✏️/🗑'nin tersine kapalı kapı
+                            değil. */}
+                        <TouchableOpacity
+                          accessibilityRole="button"
+                          accessibilityLabel={t("raceBtn")}
+                          onPress={() => goRace({ fixtureId: mp.fixtureId, home: mp.home, away: mp.away, league: mp.league, kickoffISO: mp.kickoffISO } as any)}
+                          style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#f59e0b22", borderWidth: 1, borderColor: "#f59e0b55" }}
+                        >
+                          <Text style={{ color: "#f59e0b", fontSize: 11, fontWeight: "800" }}>🏁</Text>
+                        </TouchableOpacity>
                       </View>
 
                       {/* Settle edilmişse puan özeti şeridi */}
@@ -2063,7 +2177,11 @@ export default function LiveScreen() {
                   { k: "onerilen", l: t("sortSuggested") },
                   { k: "tarih", l: t("sortByDate") },
                   { k: "lig", l: t("sortByLeague") },
+                  { k: "tahmin", l: t("sortByPreds") },
                 ] as const).map((s) => {
+                  /* Not: "tahmin ettiklerim" bir SÜZGEÇ, sıra değil — çipi
+                     aşağıda ayrı duruyor; ikisini aynı satıra koymak
+                     "eleme mi sıralama mı" sorusunu kullanıcıya sordururdu. */
                   const secili = siralama === s.k;
                   return (
                     <TouchableOpacity
@@ -2086,6 +2204,38 @@ export default function LiveScreen() {
                 })}
               </View>
             )}
+
+            {/* ═══ SÜZGEÇ: YALNIZ TAHMİN ETTİKLERİM ═══════════════════════
+                Kullanıcı isteği 2026-09-29. Sıralama çiplerinin ALTINDA ve
+                ayrı duruyor: bu ELEME yapıyor, ötekiler yalnız sıra
+                değiştiriyor. Çip ancak tahmin edilmiş maç VARSA çiziliyor —
+                sonucu boş liste olacak bir süzgeç sunmak, kullanıcıyı
+                "hiç maçım yok mu?" sanısına düşürürdü. */}
+            {(mode === "open" || mode === "schedule") && !predLoading &&
+              Object.values(predFlags).some(Boolean) && (
+              <View style={{ flexDirection: "row", marginBottom: 10 }}>
+                <TouchableOpacity
+                  onPress={() => setYalnizTahminliler((v) => !v)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: yalnizTahminliler }}
+                  accessibilityLabel={t("onlyMyPreds")}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  style={{
+                    flexDirection: "row", alignItems: "center", gap: 6,
+                    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: yalnizTahminliler ? "#4ade80" : Colors.card,
+                    backgroundColor: yalnizTahminliler ? "#14532d55" : Colors.card,
+                  }}
+                >
+                  <Text style={{ fontSize: 11 }} accessibilityElementsHidden>📋</Text>
+                  <Text style={{ color: yalnizTahminliler ? "#4ade80" : Colors.mutedOnCard, fontSize: 11, fontWeight: yalnizTahminliler ? "800" : "600" }}>
+                    {t("onlyMyPreds")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* ===== KASA & PUAN ÇUBUĞU ===== */}
             {(lcBalance !== null || userPoints !== null) && (
               <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>

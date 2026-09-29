@@ -180,7 +180,7 @@ export default function MiniTournamentsScreen() {
       </View>
 
       {/* Turnuvalarım */}
-      <Text style={{ fontWeight: "700", marginTop: 4 }}>{t("myTours")}</Text>
+      <Text style={{ color: Colors.slate900, fontWeight: "700", marginTop: 4 }}>{t("myTours")}</Text>
       {loading && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <ActivityIndicator size="small" />

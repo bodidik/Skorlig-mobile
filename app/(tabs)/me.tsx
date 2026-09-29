@@ -1613,7 +1613,7 @@ export default function Me() {
             gap: 8,
           }}
         >
-          <Text style={{ fontWeight: "700" }}>{t("myWallet")}</Text>
+          <Text style={{ color: Colors.slate900, fontWeight: "700" }}>{t("myWallet")}</Text>
 
           {walletLoading && (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
@@ -1863,7 +1863,7 @@ export default function Me() {
             borderWidth: 1, borderColor: "#22c55e44",
           }}
         >
-          <Text style={{ fontWeight: "800", fontSize: 14 }}>📋 {t("myBets")}</Text>
+          <Text style={{ color: Colors.slate900, fontWeight: "800", fontSize: 14 }}>📋 {t("myBets")}</Text>
           <Text style={{ color: "#4ade80", fontWeight: "700", fontSize: 13 }}>
             {predCount !== null && predCount > 0 ? `${predCount} · ` : ""}→
           </Text>
@@ -1881,7 +1881,7 @@ export default function Me() {
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={{ fontWeight: "700" }}>{t("teamCountry")}</Text>
+            <Text style={{ color: Colors.slate900, fontWeight: "700" }}>{t("teamCountry")}</Text>
             {/* Kayıtlı seçim varsa seçici kapalı durur; bu düğme açıp kapatır */}
             {!!(profile?.mainTeam || profile?.country) && (
               <TouchableOpacity
@@ -2110,7 +2110,7 @@ export default function Me() {
         {/* ── Bildirimler ── */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("notifications")}</Text>
+            <Text style={{ color: Colors.slate900, fontWeight: "800", fontSize: 14 }}>{t("notifications")}</Text>
             {pushLoading && <ActivityIndicator size="small" color={Colors.accent} />}
           </View>
 
@@ -2194,7 +2194,7 @@ export default function Me() {
 
         {/* ── Ses & Titreşim (yerel tercih — cihazda kalır) ── */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
-          <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("feelPref")}</Text>
+          <Text style={{ color: Colors.slate900, fontWeight: "800", fontSize: 14 }}>{t("feelPref")}</Text>
           <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("feelPrefHelp")}</Text>
           {([
             { key: "ses" as const, icon: "🔊", label: t("feelSound"), desc: t("feelSoundD") },
@@ -2245,7 +2245,7 @@ export default function Me() {
             yapmış kullanıcının profilinde kalıcı yer işgal ediyordu. */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("langPref")}</Text>
+            <Text style={{ color: Colors.slate900, fontWeight: "800", fontSize: 14 }}>{t("langPref")}</Text>
             {!!preferredLang && (
               <TouchableOpacity onPress={() => setDilAcik(v => !v)} style={{ paddingHorizontal: 10, paddingVertical: 4 }}>
                 <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.accent }}>
@@ -2307,7 +2307,7 @@ export default function Me() {
             aksi halde profilin yarısını kaplıyordu. */}
         <View style={{ backgroundColor: "#0f172a", borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 10 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={{ fontWeight: "800", fontSize: 14 }}>{t("myLeagues")}</Text>
+            <Text style={{ color: Colors.slate900, fontWeight: "800", fontSize: 14 }}>{t("myLeagues")}</Text>
             {preferredLeagues.length > 0 && (
               <TouchableOpacity onPress={() => setLigAcik(v => !v)} style={{ paddingHorizontal: 10, paddingVertical: 4 }}>
                 <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.accent }}>
@@ -2411,7 +2411,7 @@ export default function Me() {
             gap: 8,
           }}
         >
-          <Text style={{ fontWeight: "700" }}>{t("myGroups")}</Text>
+          <Text style={{ color: Colors.slate900, fontWeight: "700" }}>{t("myGroups")}</Text>
           {groups.length === 0 ? (
             <Text style={{ color: Colors.muted }}>{t("noGroups")}</Text>
           ) : (
@@ -2433,7 +2433,7 @@ export default function Me() {
                   marginBottom: 6,
                 }}
               >
-                <Text style={{ fontWeight: "600" }}>{g.name}</Text>
+                <Text style={{ color: Colors.slate900, fontWeight: "600" }}>{g.name}</Text>
                 <Text style={{ color: Colors.muted, fontSize: 12 }}>
                   {t("memberCount", { n: Array.isArray(g.members) ? g.members.length : (g.size || 0) })}
                 </Text>
@@ -2461,7 +2461,7 @@ export default function Me() {
             gap: 8,
           }}
         >
-          <Text style={{ fontWeight: "700" }}>{t("friendLeague")}</Text>
+          <Text style={{ color: Colors.slate900, fontWeight: "700" }}>{t("friendLeague")}</Text>
           <Text style={{ color: Colors.muted, fontSize: 12 }}>
             {t("friendLeagueHelp")}
           </Text>
@@ -2598,7 +2598,7 @@ export default function Me() {
             gap: 8,
           }}
         >
-          <Text style={{ fontWeight: "700" }}>{t("otherTools")}</Text>
+          <Text style={{ color: Colors.slate900, fontWeight: "700" }}>{t("otherTools")}</Text>
 
           {/* Kazanılan turnuvalar vitrini */}
           {miniWins.length > 0 && (

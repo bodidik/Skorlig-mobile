@@ -308,7 +308,7 @@ export default function TrLeagueScreen() {
               )}
 
               {/* Maçlar */}
-              <Text style={{ fontWeight: "700", marginTop: 8 }}>{t("thisWeekMatches")}</Text>
+              <Text style={{ color: Colors.slate900, fontWeight: "700", marginTop: 8 }}>{t("thisWeekMatches")}</Text>
               {(data.fixtures || []).map((f) => {
                 const ko = f.kickoffISO ? new Date(f.kickoffISO) : null;
                 const upcoming = ko && ko.getTime() > Date.now();

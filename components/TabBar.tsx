@@ -3,9 +3,14 @@ import { View, Text, Pressable, Animated, StyleSheet } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import Colors from "../constants/colors";
 import { titret } from "../lib/hisler";
 import { sekmeGizliMi } from "../lib/ozellikler";
+/* ⚠️ `useLang` ŞART: `t()` basan her ekran dile abone olmalı, yoksa dil
+ * değişince etiket eski dilde kalır (nöbetçi: api/tests/dil-degisimi). Bu
+ * dosya `t()` kullanmaya 2026-09-30'da başladı ve abonelik atlanmıştı. */
+import { t, useLang } from "../lib/i18n";
 
 /**
  * ÖZEL ALT SEKME ÇUBUĞU.
@@ -26,6 +31,9 @@ const IKONLAR: Record<string, { aktif: any; pasif: any }> = {
   stats:   { aktif: "podium",        pasif: "podium-outline" },
   me:      { aktif: "person-circle", pasif: "person-circle-outline" },
   kings:   { aktif: "trophy",        pasif: "trophy-outline" },
+  /* Rota değil — `live` sekmesinin "Benimkiler" kipine giden kısayol
+   * (bkz. TabBar gövdesindeki `tahminlerimeGit`). */
+  tahminlerim: { aktif: "clipboard", pasif: "clipboard-outline" },
 };
 
 function Sekme({
@@ -88,7 +96,31 @@ function Sekme({
 }
 
 export default function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  useLang(); // dil değişince sekme etiketleri yenilensin
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+
+  /**
+   * TAHMİNLERİM — HER EKRANDAN TEK DOKUNUŞ (kullanıcı isteği 2026-09-29).
+   *
+   * *"Oynanmış tahminlere daha çabuk ulaşabilmeli kişi; menüler içinde aramak
+   * yerine her an kuponlarına dönebilmeli."*
+   *
+   * ÖLÇÜLDÜ — eskiden iki yol vardı ve ikisi de en az iki dokunuş:
+   *   • Maçlar sekmesi → üstteki mod şeridinden "Benimkiler",
+   *   • Profil → "📋 Benimkiler" satırı.
+   * Yani kullanıcı hangi sekmedeyse önce oradan ÇIKMAK zorundaydı.
+   *
+   * ⚠️ AYRI BİR ROTA DEĞİL, bilerek: Benimkiler `live` sekmesinin bir KİPİ
+   * (`?tab=mine`). Yeni bir sekme dosyası açmak aynı listeyi iki yerde
+   * tutmak olurdu (deponun kayıtlı "iki gerçeklik" sınıfı). Bu düğme o kipe
+   * gidiyor, `ts` damgası sekme AÇIKKEN de kipin değişmesini sağlıyor —
+   * damga olmadan aynı adrese gitmek hiçbir şey yapmıyordu.
+   */
+  const tahminlerimeGit = () => {
+    titret("hafif");
+    router.push({ pathname: "/(tabs)/live", params: { tab: "mine", ts: String(Date.now()) } } as any);
+  };
 
   return (
     <View style={[s.cubuk, { paddingBottom: Math.max(insets.bottom, 8) }]}>
@@ -115,6 +147,11 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
           <Sekme key={route.key} odakta={odakta} etiket={etiket} rota={route.name} onPress={bas} />
         );
       })}
+
+      {/* Tahminlerim — rota değil, `live` sekmesinin "mine" kipine kısayol.
+          `odakta` HİÇ true olmuyor: bu düğmenin kendi rotası yok, altın hapı
+          göstermek "buradasın" demek olurdu ve yanlış olurdu. */}
+      <Sekme odakta={false} etiket={t("myBets")} rota="tahminlerim" onPress={tahminlerimeGit} />
     </View>
   );
 }

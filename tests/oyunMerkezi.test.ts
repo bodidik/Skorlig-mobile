@@ -249,8 +249,13 @@ describe("SIRA", () => {
     assert.deepEqual(MOD_SIRASI.slice(-2), ["duello", "havuz"]);
     /* ⚠️ SKOR, TEK'İN ÜSTÜNDE (kullanıcı kararı 2026-09-20: "skor tahminini
      * öne çıkaralım, maç sonucu o kadar dikkat çekmiyor"). Sıra bir ürün
-     * kararı; kazara geri dönmesin diye tam dizi olarak yazılı. */
-    assert.deepEqual(MOD_SIRASI.slice(0, 3), ["kupon", "skor", "tek"]);
+     * kararı; kazara geri dönmesin diye tam dizi olarak yazılı.
+     *
+     * ⚠️ KUPON ARKAYA ALINDI (2026-09-29, test kullanıcılarının geri
+     * bildirimi): "tek maç sonuç tahminini daha net görmek istiyorlar…
+     * haftalık kupon belki bunlardan sonra gösterilebilir." Kupon SİLİNMEDİ,
+     * üçüncü sıraya indi; skorun yeri korundu. */
+    assert.deepEqual(MOD_SIRASI.slice(0, 3), ["skor", "tek", "kupon"]);
   });
 
   test("ANA KART SIRASI MOD_SIRASI'ndan türüyor — JSX'ten DEĞİL", () => {

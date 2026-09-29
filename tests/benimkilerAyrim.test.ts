@@ -37,8 +37,13 @@ describe("iki bölüm", () => {
     assert.ok(blok.length > 1000, `blok şüpheli kısa: ${blok.length}`);
     const kosul = blok.indexOf("{duzenlenebilir && (");
     assert.ok(kosul > 0, "düğmeler koşula bağlı değil");
-    assert.ok(blok.indexOf("cancelPred", kosul) > kosul, "🗑 koşulun DIŞINDA");
-    assert.equal(blok.split("cancelPred").length - 1, 1, "🗑 birden fazla yerde");
+    /* ⚠️ ÇAPA BENZERSİZ OLMALI — bu iddia bir kez yanlış düştü: 29 Eylül'de
+     * eklenen erişilebilirlik anahtarı `cancelPredA11y`, `cancelPred` ALT
+     * DİZESİNİ taşıyor ve sayım 1 yerine 2 çıktı. Ölçülen şey SİLME
+     * EYLEMİnin tek olması; çapa artık çağrının kendisi. */
+    const EYLEM = "cancelPred(mp.fixtureId)";
+    assert.ok(blok.indexOf(EYLEM, kosul) > kosul, "🗑 koşulun DIŞINDA");
+    assert.equal(blok.split(EYLEM).length - 1, 1, "🗑 birden fazla yerde");
   });
 
   test("ayrım ölçütü: durum NS + kilit anı sunucudan", () => {

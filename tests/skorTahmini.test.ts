@@ -141,7 +141,10 @@ describe("ana ekran yerleşimi", () => {
       "ana kartlar MOD_SIRASI'ndan cizilmiyor — sira olculemez");
 
     const sira = [...MOD_SIRASI];
-    assert.ok(sira.indexOf("skor") > 0, "skor sirada yok");
+    /* ⚠️ `> 0` DEĞİL `>= 0`: kupon 2026-09-29'da arkaya alınınca skor İLK
+     * sıraya geçti ve "sırada var mı" iddiası indeks 0'ı yokluk saydı.
+     * Ölçüt "listede mi" diye soruyor, "başta değil mi" diye değil. */
+    assert.ok(sira.indexOf("skor") >= 0, "skor sirada yok");
     assert.ok(sira.indexOf("skor") < sira.indexOf("tek"),
       "Skor Tahmini Tek Mac'tan SONRA — urun karari geri donmus");
 

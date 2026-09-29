@@ -18,6 +18,9 @@ import BackBar from "../components/BackBar";
 import Colors, { on } from "../constants/colors";
 import { usePolling } from "../hooks/usePolling";
 import GolAni from "../components/GolAni";
+import AramaKutusu from "../components/AramaKutusu";
+/* Ortak süzgeç: Türkçe normalleştirme tek yerde (bkz. lib/aramaSuzgeci). */
+import { suz, oneriler } from "../lib/aramaSuzgeci";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -545,6 +548,49 @@ export default function LiveScoresScreen() {
 
   const totalLive = useMemo(() => allLeagues.reduce((s, l) => s + liveCount(l), 0), [allLeagues]);
 
+  /**
+   * ARAMA — "real" yazınca Real Madrid maçı süzülsün (kullanıcı isteği
+   * 2026-09-29: *"her listede bir arama bulma ekranı olsun… rea yazınca
+   * içeren seçenekler filtrelenmeye başlasın"*).
+   *
+   * ⚠️ BU EKRANDA HİÇ ARAMA YOKTU — ölçüldü: `AramaKutusu` sayısı 0 (canlı
+   * sekmesinde 2, sıralamada 1, krallarda 1). Ülke çipleri vardı ama onlar
+   * TAKIM aramıyor; 20+ ülke ve yüzlerce maç arasında tek maçı bulmak
+   * kaydırmaya kalıyordu.
+   *
+   * ⚠️ SÜZGEÇ MAÇ DÜZEYİNDE, LİG DÜZEYİNDE DEĞİL: liste lige göre gruplu, o
+   * yüzden eşleşen maçlar kendi liglerinde kalıyor ve maçı kalmayan lig
+   * başlığı düşüyor. Lig düzeyinde süzmek, "Real" arayınca La Liga'nın
+   * TAMAMINI getirirdi.
+   *
+   * ⚠️ ORTAK SÜZGEÇ (`lib/aramaSuzgeci`) — kendi karşılaştırmasını yazmak
+   * Türkçe normalleştirmenin (İ/ı, ş/s) ikinci bir kopyası olurdu.
+   */
+  const [arama, setArama] = useState("");
+  const macAnahtari = (m: Match, l: League) =>
+    `${l.id}|${m.homeTeam}|${m.awayTeam}|${m.startTime || m.matchDate || ""}`;
+  const tumMaclar = useMemo(
+    () => displayLeagues.flatMap((l) => l.matches.map((m) => ({ m, l }))),
+    [displayLeagues]
+  );
+  const aramaSonucu = useMemo(
+    () => suz(tumMaclar, arama, ({ m, l }) => [m.homeTeam, m.awayTeam, l.name, ulkeAdi(l.country)]),
+    [tumMaclar, arama]
+  );
+  const aramaOnerileri = useMemo(
+    () => oneriler(tumMaclar, arama, ({ m }) => [m.homeTeam, m.awayTeam]),
+    [tumMaclar, arama]
+  );
+  const gorunenLigler = useMemo(() => {
+    /* "kisa" (iki harften az) durumunda liste BOŞALTILMIYOR — aynı karar
+     * live.tsx ve admin panelinde de yazılı. */
+    if (aramaSonucu.durum !== "sonuc" && aramaSonucu.durum !== "bulunamadi") return displayLeagues;
+    const kabul = new Set(aramaSonucu.items.map(({ m, l }) => macAnahtari(m, l)));
+    return displayLeagues
+      .map((l) => ({ ...l, matches: l.matches.filter((m) => kabul.has(macAnahtari(m, l))) }))
+      .filter((l) => l.matches.length > 0);
+  }, [displayLeagues, aramaSonucu]);
+
   // En sıcak canlı maç (promo için)
   const hotMatch = useMemo(() => {
     for (const l of displayLeagues) {
@@ -700,6 +746,24 @@ export default function LiveScoresScreen() {
           </View>
         )}
 
+        {/* Arama — maç adıyla süzme (kullanıcı isteği 2026-09-29).
+            Tek maçlık listede kutu çizilmiyor: seçeneği olmayan bir kontrol
+            "hiçbir şeyi değiştirmeyen kontrol" olurdu. */}
+        {tumMaclar.length > 1 && (
+          <View style={{ paddingHorizontal: 12, paddingBottom: 8 }}>
+            <AramaKutusu
+              deger={arama}
+              onDegisti={setArama}
+              durum={aramaSonucu.durum}
+              sayi={aramaSonucu.sayi}
+              oneriler={aramaOnerileri}
+              onOneri={setArama}
+              placeholder={t("searchTeams")}
+              etiket={t("searchTeams")}
+            />
+          </View>
+        )}
+
         {/* İçerik */}
         {loading && !refreshing ? (
           <View style={{ paddingVertical: 60, alignItems: "center" }}>
@@ -717,7 +781,7 @@ export default function LiveScoresScreen() {
               <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>{t("retry")}</Text>
             </TouchableOpacity>
           </View>
-        ) : displayLeagues.length === 0 ? (
+        ) : gorunenLigler.length === 0 ? (
           <View style={{ paddingVertical: 60, alignItems: "center" }}>
             <Text style={{ fontSize: 36, marginBottom: 10 }}>⚽</Text>
             <Text style={{ color: "#334155", fontSize: 14, fontWeight: "600" }}>{t("noLiveToday")}</Text>
@@ -732,10 +796,10 @@ export default function LiveScoresScreen() {
             {/* Üst promo */}
             <PromoCard hotMatch={hotMatch} onTap={() => goPredict(hotMatch ?? undefined)} />
 
-            {displayLeagues.map((league, idx) => (
+            {gorunenLigler.map((league, idx) => (
               <View key={league.id}>
                 {/* Dünyadan ayracı */}
-                {splitAt > 0 && idx === splitAt && (
+                {!arama && splitAt > 0 && idx === splitAt && (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginVertical: 10 }}>
                     <View style={{ flex: 1, height: 0.5, backgroundColor: "#1e293b" }} />
                     <Text style={{ color: "#334155", fontSize: 10, fontWeight: "700" }}>{t("fromWorld")}</Text>
@@ -746,7 +810,7 @@ export default function LiveScoresScreen() {
                 <LeagueSection league={league} onPredict={(m) => goPredict(m)} resolvingKey={resolvingKey} />
 
                 {/* Her 5 ligde bir araya promo */}
-                {(idx + 1) % 5 === 0 && idx < displayLeagues.length - 1 && (
+                {(idx + 1) % 5 === 0 && idx < gorunenLigler.length - 1 && (
                   <TouchableOpacity
                     onPress={() => goPredict()}
                     activeOpacity={0.8}

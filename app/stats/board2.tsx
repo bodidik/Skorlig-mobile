@@ -132,7 +132,7 @@ export default function Board2Screen() {
               <Text style={{ width: 26, textAlign: "center" }}>
                 {x.flag || ""}
               </Text>
-              <Text style={{ flex: 1 }}>{gorunenAd(x)}</Text>
+              <Text style={{ color: Colors.slate900, flex: 1 }}>{gorunenAd(x)}</Text>
               <Text style={{ fontWeight: "800", color: "#e2e8f0" }}>{puanYaz(x.points)}</Text>
             </View>
           ))

@@ -9,8 +9,12 @@ import { t, useLang } from "../lib/i18n";
 import { getApiBase } from "../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../lib/apiFetch";
 
-import { withAdminHeaders } from "../lib/adminToken";
+import { withAdminHeaders, hasAdminToken } from "../lib/adminToken";
 import BackBar from "../components/BackBar";
+/* Arama ortak bileşen ve ortak süzgeç — kendi kopyasını yazmak, Türkçe
+ * normalleştirmenin (İ/ı, ş/s) iki ayrı yerde ayrışması demekti. */
+import AramaKutusu from "../components/AramaKutusu";
+import { suz, oneriler } from "../lib/aramaSuzgeci";
 
 // ─── Types ───────────────────────────────────────────────
 type Fx = {
@@ -63,12 +67,53 @@ const STATUS_ORDER: Record<string, number> = {
   LIVE: 0, "1H": 0, "2H": 0, HT: 1, NS: 2, FT: 3, AET: 3, PEN: 3,
 };
 
+/* Panelin istediği pencere — gerekçesi `loadFixtures` içinde (3,47 MB ölçümü). */
+const GERI_SAAT = 36;   // dün akşamın maçı da düzeltilebilsin
+const ILERI_SAAT = 168; // önümüzdeki hafta
+const AZAMI_SATIR = 400;
+
 // ─── Ana bileşen ─────────────────────────────────────────
 export default function AdminLiveScreen() {
   useLang(); // dil değişince ekran yeniden çizilsin
   const [fixtures, setFixtures] = useState<Fx[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  /**
+   * ⚠️ BU EKRAN JETON YOKLUĞUNU HİÇ SÖYLEMİYORDU.
+   *
+   * Jeton cihazda elle giriliyor (Profil → yönetici jetonu, `lib/adminToken`)
+   * ve UYGULAMA YENİDEN KURULUNCA GİDİYOR. Jeton yokken:
+   *   • `/api/admin/fixtures` 401 döner, `loadFixtures` `!ok` dalında sessizce
+   *     BOŞ liste yazıyordu — ekran çalışıyor gibi görünüp hiçbir şey yapmıyor,
+   *   • maça dokunmak `selectFx`i çağırıyor, o da `catch {}` ile hatayı yutup
+   *     formu boş açıyordu.
+   * Kardeş ekranlar (`admin-add`, `admin/index`) jetonu ZATEN sınıyordu; bu
+   * ekran atlanmıştı. Deponun kayıtlı "sessiz boşluk" sınıfı.
+   */
+  const [jetonVar, setJetonVar] = useState<boolean | null>(null);
+  /** Sunucunun REDDETME sebebi — ekranda görünür (sessizce yutulmaz). */
+  const [listeHatasi, setListeHatasi] = useState<string | null>(null);
+  /** Pencere dışında maç var mı — "15138 maçtan 400'ü" bilgisi. */
+  const [kapsam, setKapsam] = useState<{ gosterilen: number; toplam: number } | null>(null);
+
+  /**
+   * ARAMA (kullanıcı isteği 2026-09-29: "admin skor girme ekranına da arama").
+   *
+   * ⚠️ YEREL SÜZME BURADA DOĞRU, ÇÜNKÜ LİSTE PENCERENİN TAMAMI: panel
+   * `backH/fwdH/limit` ile 400 satıra kadar indiriyor ve hepsi bellekte —
+   * "yüklü listede yok ama sunucuda var" durumu yalnız pencere dışında olur,
+   * onu da üstteki kapsam satırı söylüyor.
+   */
+  const [arama, setArama] = useState("");
+  const aramaAlanlari = (fx: Fx) => [fx.home, fx.away, fx.league, fx.fixtureId];
+  const aramaSonucu = suz(fixtures, arama, aramaAlanlari);
+  const aramaOnerileri = oneriler(fixtures, arama, (fx) => [fx.home, fx.away]);
+  /* "kisa" durumunda liste BOŞALTILMIYOR: iki harf yazılmışken maçların
+   * kaybolması, aradığı maçın olmadığı izlenimi verir (aynı karar live.tsx'te). */
+  const gorunenFikstur =
+    aramaSonucu.durum === "sonuc" || aramaSonucu.durum === "bulunamadi"
+      ? aramaSonucu.items
+      : fixtures;
 
   const [selected, setSelected] = useState<Fx | null>(null);
 
@@ -89,8 +134,34 @@ export default function AdminLiveScreen() {
   // ── Maç listesini yükle ───────────────────────────────
   const loadFixtures = useCallback(async () => {
     try {
-      const r = await apiFetch("/api/admin/fixtures").then(x => x.json());
-      const list: Fx[] = r?.ok && Array.isArray(r.fixtures) ? r.fixtures : [];
+      /**
+       * ⚠️ PENCERE İSTENİYOR — ESKİDEN BÜTÜN DEPO İNİYORDU.
+       *
+       * ÖLÇÜLDÜ (canlı): parametresiz istek **15.138 maç · 3,47 MB**.
+       * `lib/apiFetch` GET'e 15 sn zaman aşımı koyuyor; hücresel bağlantıda
+       * bu yük aşıyor ve liste hiç gelmiyordu ("canlı maça basıyorum ama iş
+       * görmüyor"). Panelin kendisi zaten "şu ana en yakın" sıralıyor, yani
+       * pencere onun kullanımıyla aynı şeyi söylüyor.
+       *
+       * Dün + önümüzdeki hafta: canlı skor girilecek maç bu aralıkta.
+       * Sunucu `toplam` alanıyla tam sayıyı da söylüyor.
+       */
+      const r = await apiFetch(`/api/admin/fixtures?backH=${GERI_SAAT}&fwdH=${ILERI_SAAT}&limit=${AZAMI_SATIR}`).then(x => x.json());
+      /* Sunucu reddederse SEBEBİNİ söyle; eskiden boş listeye düşülüyordu. */
+      if (!r?.ok) {
+        setListeHatasi(String(r?.error || "FIXTURES_FAILED"));
+        setFixtures([]);
+        return;
+      }
+      setListeHatasi(null);
+      /* Kaç maçtan kaçı: pencere dışında maç olduğunu SÖYLEMEK gerekiyor,
+       * yoksa panel elindeki listeyi deponun tamamı sanır. */
+      setKapsam(
+        typeof r.toplam === "number" && typeof r.count === "number" && r.toplam > r.count
+          ? { gosterilen: r.count, toplam: r.toplam }
+          : null
+      );
+      const list: Fx[] = Array.isArray(r.fixtures) ? r.fixtures : [];
       const nowMs = Date.now();
       // Sırala: canlı → HT → NS → FT, her grup içinde "şu ana en yakın" önce
       list.sort((a, b) => {
@@ -108,8 +179,14 @@ export default function AdminLiveScreen() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    loadFixtures().finally(() => setLoading(false));
+    /* Jeton yoksa liste isteği atılmıyor: 401'i sayıp sonra açıklamak yerine
+     * ekran baştan "jeton gerekiyor" diyor. */
+    hasAdminToken().then((v) => {
+      setJetonVar(v);
+      if (!v) return;
+      setLoading(true);
+      loadFixtures().finally(() => setLoading(false));
+    });
   }, [loadFixtures]);
 
   const onRefresh = useCallback(async () => {
@@ -146,8 +223,11 @@ export default function AdminLiveScreen() {
         setRedHome(false); setRedAway(false); setPenaltyAny(false);
       }
       setNote("");
-    } catch {
-      // sunucu hatası — form boş başlasın
+      /* ⚠️ `!ok` DALI EKSİKTİ: 401/403'te `r.state` yok, form boş açılıyor ve
+       * kullanıcı maçın gerçekten seçildiğini sanıyordu. */
+      if (!r?.ok) setListeHatasi(String(r?.error || "STATE_READ_FAILED"));
+    } catch (e: any) {
+      setListeHatasi(String(e?.message || e));
     }
   }, []);
 
@@ -585,10 +665,56 @@ export default function AdminLiveScreen() {
         <Text style={{ fontSize: 11, color: "#475569" }}>
           {t("tapMatchHelp")}
         </Text>
+        {kapsam && (
+          <Text style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>
+            {t("adminFixtureWindow", { n: kapsam.gosterilen, t: kapsam.toplam, g: GERI_SAAT, i: ILERI_SAAT })}
+          </Text>
+        )}
       </View>
 
+      {/* ⚠️ JETON YOK: eskiden bu durumda ekran çalışıyor gibi görünüyor ve
+          hiçbir şey yapmıyordu (boş liste, boş form, sessiz 401). */}
+      {jetonVar === false && (
+        <View
+          accessibilityRole="alert"
+          style={{ marginHorizontal: 12, marginBottom: 8, padding: 12, borderRadius: 10, backgroundColor: "#1a0606", borderWidth: 1, borderColor: "#ef4444" }}
+        >
+          <Text style={{ color: "#fca5a5", fontWeight: "800", fontSize: 13 }}>{t("adminTokenMissingTtl")}</Text>
+          <Text style={{ color: "#f87171", fontSize: 11, marginTop: 4, lineHeight: 16 }}>
+            {t("adminTokenMissingBody")}
+          </Text>
+        </View>
+      )}
+
+      {/* Sunucunun reddetme sebebi — sessizce yutulmuyor. */}
+      {jetonVar !== false && listeHatasi && (
+        <View
+          accessibilityRole="alert"
+          style={{ marginHorizontal: 12, marginBottom: 8, padding: 10, borderRadius: 10, backgroundColor: "#1a1600", borderWidth: 1, borderColor: "#ca8a04" }}
+        >
+          <Text style={{ color: "#fcd34d", fontSize: 11 }}>{listeHatasi}</Text>
+        </View>
+      )}
+
+      {/* Arama — maç sayısı 1'den fazlaysa. Tek maçlık listede kutu
+          "hiçbir şeyi değiştirmeyen kontrol" olurdu. */}
+      {fixtures.length > 1 && (
+        <View style={{ paddingHorizontal: 12, paddingBottom: 6 }}>
+          <AramaKutusu
+            deger={arama}
+            onDegisti={setArama}
+            durum={aramaSonucu.durum}
+            sayi={aramaSonucu.sayi}
+            oneriler={aramaOnerileri}
+            onOneri={setArama}
+            placeholder={t("searchTeams")}
+            etiket={t("searchTeams")}
+          />
+        </View>
+      )}
+
       <FlatList
-        data={fixtures}
+        data={gorunenFikstur}
         keyExtractor={fx => String(fx.fixtureId)}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#475569" />}
         contentContainerStyle={{ padding: 12, paddingTop: 4, paddingBottom: 40 }}
