@@ -124,7 +124,7 @@ export function useRuntimeConfig(): RuntimeConfigState {
        * sunucu yaniti gelmediginde kullanilan yedek. Gercek deger her zaman
        * /api/config yanitindan okunur; bu sabiti ekranda TEK KAYNAK gibi
        * kullanma. Nobetci: api/tests/config-acilis-bakiyesi.test.cjs */
-      startBalance: 30,
+      startBalance: 300,
       useProbabilityEngine: false,
       K_outcome: 3,
       epsilon: 0.05,

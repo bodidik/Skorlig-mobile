@@ -20,6 +20,7 @@ import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { useAuth } from "../../contexts/AuthContext";
 import { useUserId } from "../../lib/useUserId";
+import LcSikke from "../../components/LcSikke";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -321,7 +322,7 @@ export default function ProfileUserScreen() {
               borderWidth: 1, borderColor: "#fde047",
               flexDirection: "row", alignItems: "center", gap: 10,
             }}>
-              <Text style={{ fontSize: 28 }}>🪙</Text>
+              <LcSikke boyut={38} />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: "900", fontSize: 22, color: "#92400e" }}>{lcYaz(lcBalance)} LC</Text>
                 <Text style={{ fontSize: 11, color: "#78350f" }}>LiveCoin bakiyesi</Text>

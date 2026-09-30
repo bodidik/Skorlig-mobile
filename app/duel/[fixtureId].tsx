@@ -14,6 +14,7 @@ import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
 import Konfeti from "../../components/Konfeti";
 import { lcYaz } from "../../lib/lcBicim";
+import LcSikke from "../../components/LcSikke";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -730,9 +731,9 @@ function DuelIcerik() {
               flexDirection: "row", alignItems: "center", justifyContent: "center",
               paddingBottom: 12, gap: 5,
             }}>
-              <Text style={{ color: "#fbbf24", fontSize: 12 }}>🪙</Text>
+              <LcSikke boyut={16} />
               <Text style={{ color: "#fbbf24", fontWeight: "700", fontSize: 12 }}>
-                {t("yourBalance", { n: lcBalance })}
+                {t("yourBalance", { n: lcYaz(lcBalance) })}
               </Text>
             </View>
           )}

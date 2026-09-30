@@ -9,6 +9,7 @@ import { t, useLang } from "../lib/i18n";
 import { isFirstRun } from "../lib/firstRun";
 import { getPendingNickname } from "../lib/pendingNickname";
 import { adOner, gonderilebilirMi } from "../lib/takmaAd";
+import { ilkUyeBildir } from "../lib/ilkUye";
 
 /**
  * Adı olmayan MEVCUT kullanıcılar için geri doldurma.
@@ -105,6 +106,7 @@ export default function NicknameBackfillPrompt() {
 
       if (res.ok && data?.ok) {
         setVisible(false);
+        ilkUyeBildir(data);
         return;
       }
 

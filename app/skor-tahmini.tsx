@@ -34,6 +34,8 @@ const RENK = MOD_RENGI.skor;
 type Kural = {
   tamSkor: number; taban: number; mesafeCezasi: number; sonucBonusu: number; enDusuk: number;
   oduller: { enAzPuan: number; bedelKati: number }[];
+  /* Paylaşılan havuz (2026-09-30) — eski sunucu göndermez, blok çizilmez. */
+  havuz?: { tamPuan: number; teselliPuan: number; tamOran: number; teselliOran: number };
   ornek: { gercek: { home: number; away: number }; satirlar: { home: number; away: number; puan: number }[] };
 };
 type TabloSatiri = { sira: number; userId: string; userIdLower: string; displayName?: string | null; puan: number; tamSkor: number; mac: number };
@@ -136,6 +138,13 @@ function Icerik() {
           {bedel > 0 && (
             <>
               <Text style={s.altBaslik}>{t("skorRewardsTitle")}</Text>
+              {kural.havuz && (
+                <>
+                  <Text style={s.kural}>• {t("skorHavuzTam", { p: kural.havuz.tamPuan, o: Math.round(kural.havuz.tamOran * 100) })}</Text>
+                  <Text style={s.kural}>• {t("skorHavuzTeselli", { p: kural.havuz.teselliPuan, o: Math.round(kural.havuz.teselliOran * 100) })}</Text>
+                  <Text style={s.kural}>• {t("skorHavuzIade", { o: Math.round(kural.havuz.tamOran * 100) })}</Text>
+                </>
+              )}
               {kural.oduller.map((o) => (
                 <Text key={o.enAzPuan} style={s.kural}>
                   • {t("skorRewardRow", { p: o.enAzPuan, n: Math.round(bedel * o.bedelKati * 100) / 100 })}

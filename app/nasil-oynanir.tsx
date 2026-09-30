@@ -41,7 +41,7 @@ type Kurallar = {
   lansman: { aktif: boolean; bitis?: string; normalBedel?: number };
   acilisBakiyesi: number;
   kilitDk: number;
-  gunluk: { taban: number; regenTavan: number; regenSaat: number; regenMiktar: number };
+  gunluk: { taban: number; giris?: number; regenTavan: number; regenSaat: number; regenMiktar: number };
   puanlama: Record<string, number>;
   odulMerdiveni: { tabanEnAz: number; lc: number; sifirHaric?: boolean }[];
   seri: { esik: number; bonus: number; etiket: string }[];
@@ -141,14 +141,18 @@ export default function NasilOynanir() {
 
         <Bolum baslik={t("howLcTitle")}>
           <Text style={s.p}>{t("howLcStart", { n: sayi(k?.acilisBakiyesi) })}</Text>
-          <Text style={s.p}>{t("howLcDaily", { n: sayi(k?.gunluk?.taban) })}</Text>
-          <Text style={s.p}>
-            {t("howLcRegen", {
-              miktar: sayi(k?.gunluk?.regenMiktar),
-              saat: sayi(k?.gunluk?.regenSaat),
-              tavan: sayi(k?.gunluk?.regenTavan),
-            })}
-          </Text>
+          <Text style={s.p}>{t("howLcDaily", { n: sayi(k?.gunluk?.taban), g: sayi(k?.gunluk?.giris) })}</Text>
+          {/* Birikim 2026-09-30'dan beri varsayılanda KAPALI (tavan 0) — kapalı
+              musluğu anlatmak yanlış bilgi olurdu. */}
+          {Number(k?.gunluk?.regenTavan) > 0 && (
+            <Text style={s.p}>
+              {t("howLcRegen", {
+                miktar: sayi(k?.gunluk?.regenMiktar),
+                saat: sayi(k?.gunluk?.regenSaat),
+                tavan: sayi(k?.gunluk?.regenTavan),
+              })}
+            </Text>
+          )}
         </Bolum>
 
         <Bolum baslik={t("howStreakTitle")}>

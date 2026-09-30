@@ -42,6 +42,7 @@ import { useOzellikler } from "../../hooks/useOzellikler";
 import { fiksturSaatEtiketi } from "../../lib/macSaati";
 import { ulkeAdi, ligEtiketi, ligSiraAnahtari } from "../../lib/ulkeler";
 import { lcYaz } from "../../lib/lcBicim";
+import LcSikke from "../../components/LcSikke";
 const t2 = t; // turnuva map(t) golgelemesi icin takma ad
 
 type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
@@ -2253,7 +2254,7 @@ export default function LiveScreen() {
               <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
                 {lcBalance !== null && (
                   <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0f2027", borderRadius: 10, borderWidth: 1, borderColor: "#f59e0b55", paddingHorizontal: 12, paddingVertical: 8 }}>
-                    <Text style={{ fontSize: 16 }}>💰</Text>
+                    <LcSikke boyut={24} />
                     <View>
                       <Text style={{ color: "#f59e0b", fontWeight: "900", fontSize: 16 }}>{lcYaz(lcBalance)} LC</Text>
                       <Text style={{ color: "#78716c", fontSize: 9 }}>KASA</Text>

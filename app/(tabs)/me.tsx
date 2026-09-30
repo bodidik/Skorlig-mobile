@@ -30,6 +30,8 @@ import { sortCountries } from "../../lib/countrySort";
 import { useHisler, hisAyarla, golSesiCal, titret } from "../../lib/hisler";
 import { gorunenAd } from "../../lib/gorunenAd";
 import { kisiAra, kimlikGibiMi, EN_AZ_HARF, type AramaKisi } from "../../lib/friendSearch";
+import LcSikke from "../../components/LcSikke";
+import { ilkUyeBildir } from "../../lib/ilkUye";
 
 /* Dil listesi render dışında: kapalı görünümdeki rozet de bu tablodan
  * etiket okuyor, iki yerde ayrı liste tutmak ayrışma demekti. */
@@ -695,7 +697,7 @@ export default function Me() {
       }).then((x) => x.json());
       if (r?.ok) {
         setProfile((prev) => (prev ? { ...prev, nickname: r.nickname } : prev));
-        Alert.alert("SkorLig", t("nickSaved"));
+        if (!ilkUyeBildir(r)) Alert.alert("SkorLig", t("nickSaved"));
       } else {
         const msg =
           r?.error === "NICKNAME_TAKEN" ? t("nickTaken")
@@ -1578,7 +1580,7 @@ export default function Me() {
                 borderWidth: 1, borderColor: "#fde047",
                 flexDirection: "row", alignItems: "center", gap: 10,
               }}>
-                <Text style={{ fontSize: 32 }}>🪙</Text>
+                <LcSikke boyut={44} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 32, fontWeight: "900", color: "#92400e", lineHeight: 36 }}>
                     {lcYaz(wallet.user?.balance)}

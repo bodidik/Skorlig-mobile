@@ -17,6 +17,7 @@ import { FALLBACK_COUNTRIES, type CountryOpt } from "../lib/countriesFallback";
 import { t, useLang } from "../lib/i18n";
 import { useOzellikler } from "../hooks/useOzellikler";
 import { ulkeAdi } from "../lib/ulkeler";
+import { ilkUyeBildir } from "../lib/ilkUye";
 
 /** `/api/stats/teams` yanıt şeması. */
 type TeamOpt = { team: string; flag: string };
@@ -303,7 +304,11 @@ export default function WelcomeScreen() {
         body: JSON.stringify({ nickname: ad }),
       });
       const data = await res.json().catch(() => null);
-      if (res.ok && data?.ok) return "TAMAM";
+      if (res.ok && data?.ok) {
+        /* İlk üye hediyesi yattıysa söyle (bkz. lib/ilkUye.ts). */
+        ilkUyeBildir(data);
+        return "TAMAM";
+      }
 
       const kod = String(data?.error || "");
       if (kod === "NICKNAME_TAKEN")    { setNickHata(t("nickTaken"));    return "RET"; }

@@ -106,6 +106,7 @@ function describeKind(tx: LedgerItem) {
   if (kind === "reward") {
     if (reason === "daily") return t("txDaily");
     if (reason === "match_reward") return t("txMatchReward");
+    if (reason === "ilk_uye_bonus") return t("txIlkUye");
     return t("txReward");
   }
   if (kind === "spend") {
