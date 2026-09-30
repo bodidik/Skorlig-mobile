@@ -656,7 +656,7 @@ function ProfileContent({ profile, blocked, onClose, onToggleBlock }: {
       </View>
 
       <View style={{ flexDirection: "row", gap: 8 }}>
-        <StatBox label={t("statTotalPts")} value={String(profile.totalPoints)} color="#a3e635" />
+        <StatBox label={t("statTotalPts")} value={puanYaz(profile.totalPoints)} color="#a3e635" />
         <StatBox label={t("statMatch")} value={String(profile.matches)} color="#60a5fa" />
         <StatBox label={t("statPred")} value={String(profile.predCount)} color="#f59e0b" />
       </View>
@@ -674,7 +674,7 @@ function ProfileContent({ profile, blocked, onClose, onToggleBlock }: {
         )}
         <DetailRow icon="📅" label={t("membershipAge")} value={timeAgo(profile.joinedAt)} />
         {profile.totalPenalty > 0 && (
-          <DetailRow icon="⚠️" label={t("penaltyLbl")} value={`-${profile.totalPenalty}p`} />
+          <DetailRow icon="⚠️" label={t("penaltyLbl")} value={`-${puanYaz(profile.totalPenalty)}p`} />
         )}
       </View>
 

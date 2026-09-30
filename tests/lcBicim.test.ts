@@ -30,7 +30,14 @@ describe("lcYaz — cüzdan tutarı", () => {
      * doğru görmeli. */
     assert.equal(lcYaz(1.9), "1.9", "gercek kesirli tutar yutuldu");
     assert.equal(lcYaz(5.7), "5.7");
-    assert.equal(lcYaz(0.05), "0.05");
+    assert.equal(lcYaz(0.1), "0.1");
+  });
+
+  test("TEK ondalık hane (kullanıcı kararı 2026-09-30)", () => {
+    assert.equal(lcYaz(12.36), "12.4", "iki ondalik basiliyor");
+    assert.equal(lcYaz(3.84), "3.8");
+    assert.equal(puanYaz(47.25001), "47.3");
+    assert.equal(puanYaz(-2.66), "-2.7");
   });
 
   test("gereksiz sıfır yazılmıyor", () => {
@@ -57,8 +64,8 @@ describe("puanYaz — puan gösterimi", () => {
   test("üretimde ölçülen kirli değerler temizleniyor", () => {
     /* data/leaderboard.json'dan alınan gerçek satırlar. */
     assert.equal(puanYaz(5.717648576819556e-17), "0");
-    assert.equal(puanYaz(-1.4420000000000002), "-1.44");
-    assert.equal(puanYaz(0.9270000000000002), "0.93");
+    assert.equal(puanYaz(-1.4420000000000002), "-1.4");
+    assert.equal(puanYaz(0.9270000000000002), "0.9");
   });
 
   test("NEGATİF puan korunuyor (ceza görünür olmalı)", () => {

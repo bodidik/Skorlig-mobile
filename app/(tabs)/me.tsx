@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { hataMesaji } from "../../lib/hataMesaji";
-import { lcYaz } from "../../lib/lcBicim";
+import { lcYaz, puanYaz } from "../../lib/lcBicim";
 import { t, useLang } from "../../lib/i18n";
 import { useOzellikler } from "../../hooks/useOzellikler";
 import { ulkeAdi } from "../../lib/ulkeler";
@@ -1380,7 +1380,7 @@ export default function Me() {
 
               {totalsRow && (
                 <Text style={{ color: "#475569", fontSize: 11 }}>
-                  {t("totalPenalty", { n: totalsRow.totalPenalty })}
+                  {t("totalPenalty", { n: puanYaz(totalsRow.totalPenalty) })}
                 </Text>
               )}
 
@@ -1401,58 +1401,6 @@ export default function Me() {
                     {t("profileHistory")}
                   </Text>
                 </TouchableOpacity>
-              </View>
-            </View>
-          );
-        })()}
-
-        {/* Başarımlar */}
-        {(() => {
-          const achCtx: AchCtx = {
-            matches: totalsRow?.matches ?? 0,
-            totalPoints: Number(totalPoints ?? 0),
-            totalEarned: wallet?.user?.totalEarned ?? 0,
-            bestSeries: streakData?.bestSeries ?? 0,
-            seriesCount: streakData?.seriesCount ?? 0,
-            activeSeries: streakData?.activeSeries ?? false,
-          };
-          const unlocked = getUnlocked(achCtx);
-          const locked = ACHIEVEMENTS.filter(a => !a.check(achCtx));
-          if (ACHIEVEMENTS.length === 0) return null;
-          return (
-            <View style={{
-              padding: 14, backgroundColor: "#0f172a", borderRadius: 14,
-              borderWidth: 1, borderColor: Colors.border, gap: 10,
-            }}>
-              <Text style={{ fontWeight: "800", fontSize: 15, color: "#e2e8f0" }}>
-                {t("achievements")} ({unlocked.length}/{ACHIEVEMENTS.length})
-              </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {unlocked.map(a => (
-                  <View key={a.key} style={{
-                    flexDirection: "row", alignItems: "center", gap: 6,
-                    // Kazanılan rozet gri çip değil, madalya gibi görünmeli:
-                    // altın tonlu zemin + parlayan çerçeve.
-                    backgroundColor: "#f59e0b1a", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
-                    borderWidth: 1, borderColor: "#f59e0b66",
-                  }}>
-                    <Text style={{ fontSize: 22 }}>{a.emoji}</Text>
-                    <View>
-                      <Text style={{ color: "#fbbf24", fontWeight: "800", fontSize: 12 }}>{a.label}</Text>
-                      <Text style={{ color: "#94a3b8", fontSize: 9 }}>{a.desc}</Text>
-                    </View>
-                  </View>
-                ))}
-                {locked.map(a => (
-                  <View key={a.key} style={{
-                    flexDirection: "row", alignItems: "center", gap: 6,
-                    backgroundColor: "#0f172a", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
-                    borderWidth: 1, borderColor: "#1e293b", opacity: 0.4,
-                  }}>
-                    <Text style={{ fontSize: 18 }}>🔒</Text>
-                    <Text style={{ color: "#475569", fontWeight: "600", fontSize: 12 }}>{a.label}</Text>
-                  </View>
-                ))}
               </View>
             </View>
           );
@@ -2055,6 +2003,62 @@ export default function Me() {
           )}
           </>)}
         </View>
+
+        {/* Başarımlar
+            ⚠️ AŞAĞI ALINDI (kullanıcı kararı 2026-09-30: "profilde başarılarım
+            kısmını aşağıya atalım"). Rütbe kartının hemen altında cüzdanı,
+            tahminleri ve takım seçimini itiyordu; oyunla ilgili bloklardan
+            sonra, ayarlardan önce duruyor. */}
+        {(() => {
+          const achCtx: AchCtx = {
+            matches: totalsRow?.matches ?? 0,
+            totalPoints: Number(totalPoints ?? 0),
+            totalEarned: wallet?.user?.totalEarned ?? 0,
+            bestSeries: streakData?.bestSeries ?? 0,
+            seriesCount: streakData?.seriesCount ?? 0,
+            activeSeries: streakData?.activeSeries ?? false,
+          };
+          const unlocked = getUnlocked(achCtx);
+          const locked = ACHIEVEMENTS.filter(a => !a.check(achCtx));
+          if (ACHIEVEMENTS.length === 0) return null;
+          return (
+            <View style={{
+              padding: 14, backgroundColor: "#0f172a", borderRadius: 14,
+              borderWidth: 1, borderColor: Colors.border, gap: 10,
+            }}>
+              <Text style={{ fontWeight: "800", fontSize: 15, color: "#e2e8f0" }}>
+                {t("achievements")} ({unlocked.length}/{ACHIEVEMENTS.length})
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {unlocked.map(a => (
+                  <View key={a.key} style={{
+                    flexDirection: "row", alignItems: "center", gap: 6,
+                    // Kazanılan rozet gri çip değil, madalya gibi görünmeli:
+                    // altın tonlu zemin + parlayan çerçeve.
+                    backgroundColor: "#f59e0b1a", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
+                    borderWidth: 1, borderColor: "#f59e0b66",
+                  }}>
+                    <Text style={{ fontSize: 22 }}>{a.emoji}</Text>
+                    <View>
+                      <Text style={{ color: "#fbbf24", fontWeight: "800", fontSize: 12 }}>{a.label}</Text>
+                      <Text style={{ color: "#94a3b8", fontSize: 9 }}>{a.desc}</Text>
+                    </View>
+                  </View>
+                ))}
+                {locked.map(a => (
+                  <View key={a.key} style={{
+                    flexDirection: "row", alignItems: "center", gap: 6,
+                    backgroundColor: "#0f172a", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
+                    borderWidth: 1, borderColor: "#1e293b", opacity: 0.4,
+                  }}>
+                    <Text style={{ fontSize: 18 }}>🔒</Text>
+                    <Text style={{ color: "#475569", fontWeight: "600", fontSize: 12 }}>{a.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          );
+        })()}
 
         {/* ── Nasıl oynanır ──
          * ⚠️ KALICI KAPI. Giriş slaytları `isFirstRun()` ile ömürde BİR kez

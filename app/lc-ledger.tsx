@@ -295,7 +295,7 @@ export default function LcLedgerScreen() {
                 </Text>
                 <Text style={{ marginTop: 2, fontWeight: "700", fontSize: 14, color }}>
                   {sign}
-                  {tx.amount} LC
+                  {lcYaz(tx.amount)} LC
                 </Text>
               </View>
             );

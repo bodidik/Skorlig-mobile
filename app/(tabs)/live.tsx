@@ -41,6 +41,7 @@ import { puanIsaretli } from "../../lib/skorTahmini";
 import { useOzellikler } from "../../hooks/useOzellikler";
 import { fiksturSaatEtiketi } from "../../lib/macSaati";
 import { ulkeAdi, ligEtiketi, ligSiraAnahtari } from "../../lib/ulkeler";
+import { lcYaz } from "../../lib/lcBicim";
 const t2 = t; // turnuva map(t) golgelemesi icin takma ad
 
 type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
@@ -771,6 +772,13 @@ export default function LiveScreen() {
   const userId = useUserId(qUserId);
   const adminMode = useMemo(() => String(qAdmin || "").trim() === "1", [qAdmin]);
   const flatListRef = useRef<any>(null);
+  /* Maç listesinin başladığı yer (başlık bileşeni içindeki y). "Tüm maçlar"
+   * bağlantısı buraya kaydırıyor — bkz. OyunMerkezi `onTumMaclar`. */
+  const listeBasiY = useRef(0);
+  const listeyeKaydir = useCallback(() => {
+    /* 16: FlatList `contentContainerStyle` üst dolgusu. */
+    flatListRef.current?.scrollToOffset({ offset: Math.max(0, 16 + listeBasiY.current - 8), animated: true });
+  }, []);
 
   useEffect(() => {
     syncServerTime();
@@ -2084,6 +2092,7 @@ export default function LiveScreen() {
               tam={mode === "schedule" || mode === "open"}
               country={userCountry}
               userId={userId}
+              onTumMaclar={listeyeKaydir}
             />
 
             {/* ===== KRALLAR — SEZONUN İLK 5'İ =====
@@ -2142,6 +2151,9 @@ export default function LiveScreen() {
             {mode === "open" && (
               <QuickPlaySection country={userCountry} userId={userId} />
             )}
+
+            {/* Liste başı işareti — "Tüm maçlar" buraya kaydırır. */}
+            <View onLayout={(e) => { listeBasiY.current = e.nativeEvent.layout.y; }} />
 
             {/* ===== ARAMA =====
                 ⚠️ NEDEN SIRALAMA SEÇİCİNİN ÜSTÜNDE: ikisi aynı işin iki
@@ -2243,7 +2255,7 @@ export default function LiveScreen() {
                   <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0f2027", borderRadius: 10, borderWidth: 1, borderColor: "#f59e0b55", paddingHorizontal: 12, paddingVertical: 8 }}>
                     <Text style={{ fontSize: 16 }}>💰</Text>
                     <View>
-                      <Text style={{ color: "#f59e0b", fontWeight: "900", fontSize: 16 }}>{lcBalance} LC</Text>
+                      <Text style={{ color: "#f59e0b", fontWeight: "900", fontSize: 16 }}>{lcYaz(lcBalance)} LC</Text>
                       <Text style={{ color: "#78716c", fontSize: 9 }}>KASA</Text>
                     </View>
                   </View>

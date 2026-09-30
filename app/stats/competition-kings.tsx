@@ -13,6 +13,7 @@ import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { t, useLang } from "../../lib/i18n";
 import { gorunenAd } from "../../lib/gorunenAd";
+import { puanYaz } from "../../lib/lcBicim";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -421,7 +422,7 @@ export default function CompetitionKingsScreen() {
                   </Text>
                 </View>
                 <Text style={{ color: "#7dd3fc", fontWeight: "700", fontSize: 14 }}>
-                  {r.totalPoints} puan
+                  {puanYaz(r.totalPoints)} puan
                 </Text>
               </View>
             );

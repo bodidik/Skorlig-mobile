@@ -11,6 +11,7 @@ import { useUserId } from "../../lib/useUserId";
 import { t, useLang } from "../../lib/i18n";
 import { useOzellikler } from "../../hooks/useOzellikler";
 import OzellikKapali from "../../components/OzellikKapali";
+import { lcYaz } from "../../lib/lcBicim";
 
 /**
  * MAÇ HAVUZU EKRANI (bkz. api/lib/pool-store.cjs, docs/ekonomi-tasarim.md §4).
@@ -187,7 +188,7 @@ function PoolIcerik() {
           * tablosunda, mini profilde ve tahmin ekranındaki bakiyede de çıktı.
           */}
         <Text style={{ color: Colors.accent, fontSize: 26, fontWeight: "800" }}>
-          {pool ? `${pool.pool ?? 0} LC` : "— LC"}
+          {pool ? `${lcYaz(pool.pool ?? 0)} LC` : "— LC"}
         </Text>
         <Text style={{ color: Colors.muted, fontSize: 13 }}>
           {pool

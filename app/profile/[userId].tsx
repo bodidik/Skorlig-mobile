@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { hataMesaji } from "../../lib/hataMesaji";
 import { t, useLang } from "../../lib/i18n";
-import { puanYaz } from "../../lib/lcBicim";
+import { puanYaz, lcYaz } from "../../lib/lcBicim";
 import { bestStreak, currentStreak, sonTahminler, winRate } from "../../lib/tahminGecmisi";
 import { ulkeAdi } from "../../lib/ulkeler";
 import {
@@ -323,7 +323,7 @@ export default function ProfileUserScreen() {
             }}>
               <Text style={{ fontSize: 28 }}>🪙</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: "900", fontSize: 22, color: "#92400e" }}>{lcBalance} LC</Text>
+                <Text style={{ fontWeight: "900", fontSize: 22, color: "#92400e" }}>{lcYaz(lcBalance)} LC</Text>
                 <Text style={{ fontSize: 11, color: "#78350f" }}>LiveCoin bakiyesi</Text>
               </View>
               <TouchableOpacity

@@ -23,6 +23,7 @@ import { t, useLang } from "../../lib/i18n";
 import { ulkeAdi } from "../../lib/ulkeler";
 import { gorunenAd } from "../../lib/gorunenAd";
 import { onAyarlar, profilEtiketi } from "../../lib/runtimeStage";
+import { puanYaz } from "../../lib/lcBicim";
 
 const DEFAULT_COMPETITION_ID = process.env.EXPO_PUBLIC_DEFAULT_COMPETITION_ID || "";
 
@@ -1251,7 +1252,7 @@ export default function StatsScreen() {
                                 )}
                               </View>
                               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
-                                {t("rowStats", { m: r.matches, p: r.totalPoints, c: r.totalPenalty })}
+                                {t("rowStats", { m: r.matches, p: puanYaz(r.totalPoints), c: puanYaz(r.totalPenalty) })}
                               </Text>
                               {/* Nitelik eşiği: eşiğin altındaki oyuncunun rating'i havuz
                                   ortalamasını aşamaz (tek şanslı maç zirveye çıkmasın).
@@ -1290,7 +1291,7 @@ export default function StatsScreen() {
                               return (
                                 <View style={{ alignItems: "flex-end" }}>
                                   <Text style={{ color: artida ? "#a3e635" : "#f87171", fontWeight: "700", fontSize: 15 }}>
-                                    {gosterilen != null ? gosterilen.toFixed(1) : r.totalPoints}
+                                    {gosterilen != null ? gosterilen.toFixed(1) : puanYaz(r.totalPoints)}
                                   </Text>
                                   <Text style={{ color: Colors.muted, fontSize: 9 }}>
                                     {gosterilen == null ? t("points") : gecici ? t("provisionalAvg") : t("matchAvg")}

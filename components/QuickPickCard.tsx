@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import hataMesaji from "../lib/hataMesaji";
 import { apiFetch } from "../lib/apiFetch";
+import { lcYaz } from "../lib/lcBicim";
 
 type Odds = { home: number; draw: number; away: number };
 type Rewards = { home: number; draw: number; away: number };
@@ -257,7 +258,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
                         {odd.toFixed(2)}
                       </Text>
                       <Text style={[s.rewardText, isSelected && { color: "#fbbf24" }]}>
-                        +{reward} LC
+                        +{lcYaz(reward)} LC
                       </Text>
                     </>
                 }
@@ -283,7 +284,7 @@ export default function QuickPickCard({ fixture, onPredicted, compact }: Props) 
               )}
             </View>
             <Animated.Text style={[s.lcBadge, { opacity: lcOpacity, transform: [{ translateY: lcY }] }]}>
-              +{earnedLC} LC
+              +{lcYaz(earnedLC)} LC
             </Animated.Text>
             {!busy && (
               <TouchableOpacity onPress={handleGeriAl} style={s.geriAlBtn}>

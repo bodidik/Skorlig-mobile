@@ -303,7 +303,7 @@ export default function TrLeagueScreen() {
 
               {data.myRank && (
                 <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 2 }}>
-                  {t("yourRankRow", { r: data.myRank.rank, p: data.myRank.points })}
+                  {t("yourRankRow", { r: data.myRank.rank, p: puanYaz(data.myRank.points) })}
                 </Text>
               )}
 

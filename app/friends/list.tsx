@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { puanYaz } from "../../lib/lcBicim";
 
 /**
  * Paylasilan apiFetch'e delege eder.
@@ -442,7 +443,7 @@ export default function FriendsListScreen() {
                     fontSize: 13,
                   }}
                 >
-                  {pts} p
+                  {puanYaz(pts)} p
                 </Text>
               </TouchableOpacity>
             );

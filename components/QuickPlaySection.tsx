@@ -5,6 +5,9 @@ import StreakBar, { type SunucuTier } from "./StreakBar";
 import { apiFetch } from "../lib/apiFetch";
 import { t, useLang } from "../lib/i18n";
 import Colors from "../constants/colors";
+import { nowFromServer } from "../lib/serverTime";
+
+import { paketKilitAni, paketAcikMi } from "../lib/paketKilidi";
 
 type Props = {
   country?: string | null;
@@ -30,6 +33,13 @@ export default function QuickPlaySection({ country, userId }: Props) {
   const [singles, setSingles] = useState<PickFixture[]>([]);
   const [quad, setQuad] = useState<PickFixture[]>([]);
   const [quadBonus, setQuadBonus] = useState(0);
+  const [paketKilitISO, setPaketKilitISO] = useState<string | null>(null);
+  /* Kilit anını geçerken paket kendiliğinden kalksın diye yarım dakikalık tik. */
+  const [simdi, setSimdi] = useState(() => nowFromServer());
+  useEffect(() => {
+    const id = setInterval(() => setSimdi(nowFromServer()), 30_000);
+    return () => clearInterval(id);
+  }, []);
   const [streak, setStreak] = useState<StreakData | null>(null);
   const [loading, setLoading] = useState(true);
   const [predictedCount, setPredictedCount] = useState(0);
@@ -53,6 +63,7 @@ export default function QuickPlaySection({ country, userId }: Props) {
         if (quadR?.ok) {
           setQuad(quadR.matches || []);
           setQuadBonus(quadR.allCorrectBonus || 0);
+          setPaketKilitISO(quadR.paketKilitISO || null);
         }
         if (streakR?.ok) setStreak(streakR);
       } catch {}
@@ -76,7 +87,7 @@ export default function QuickPlaySection({ country, userId }: Props) {
   }
 
   const hasSingles = singles.length > 0;
-  const hasQuad = quad.length > 0;
+  const hasQuad = quad.length > 0 && paketAcikMi(paketKilitAni(paketKilitISO, quad), simdi);
 
   if (!hasSingles && !hasQuad) {
     return (

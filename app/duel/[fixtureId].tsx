@@ -13,6 +13,7 @@ import OzellikKapali from "../../components/OzellikKapali";
 import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
 import Konfeti from "../../components/Konfeti";
+import { lcYaz } from "../../lib/lcBicim";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -247,10 +248,10 @@ function ArenaCard({ duel, userId, myName, onAccept, onCancel, onRaise, onRaiseR
         </Text>
         <Text style={{ color: "#334155", fontSize: 13 }}>→</Text>
         <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 16 }}>
-          {kazanc(duel)} LC
+          {lcYaz(kazanc(duel))} LC
         </Text>
         {kasaPayi > 0 && (
-          <Text style={{ color: "#334155", fontSize: 10 }}>({kasaPayi} LC kasa)</Text>
+          <Text style={{ color: "#334155", fontSize: 10 }}>({lcYaz(kasaPayi)} LC kasa)</Text>
         )}
         <View style={{ position: "absolute", right: 12 }}>
           <View style={{
@@ -575,7 +576,7 @@ function DuelIcerik() {
   async function createDuel() {
     if (!fx || !userId) return;
     if (lcBalance !== null && lcBalance < selectedStake) {
-      showToast(`Yetersiz LC — bakiyen: ${lcBalance} LC`, false);
+      showToast(`Yetersiz LC — bakiyen: ${lcYaz(lcBalance)} LC`, false);
       return;
     }
     setCreating(true);
@@ -802,7 +803,7 @@ function DuelIcerik() {
               <View style={{ flex: 1, backgroundColor: "#0f172a", padding: 12, alignItems: "center" }}>
                 <Text style={{ color: "#475569", fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>{t("ifYouWin")}</Text>
                 <Text style={{ color: "#4ade80", fontWeight: "900", fontSize: 22, marginTop: 2 }}>
-                  {secilenOdul ? `${secilenOdul.winAmount} LC` : "—"}
+                  {secilenOdul ? `${lcYaz(secilenOdul.winAmount)} LC` : "—"}
                 </Text>
                 {!!secilenOdul && secilenOdul.houseCut > 0 && (
                   <Text style={{ color: "#334155", fontSize: 9, marginTop: 1 }}>

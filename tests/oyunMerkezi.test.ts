@@ -218,7 +218,16 @@ describe("HEMEN OYNA — kupon ve günün maçı merkezin İÇİNDE", () => {
 
   test("günün maçı yoksa Tek Maç kartı boş kalmıyor", () => {
     assert.match(GUNUN, /if \(!fixture\) return bosken \? <>\{bosken\}<\/> : null;/);
-    assert.match(MERKEZ, /bosken=\{\s*<Basinc onPress=\{tahmineGit\}/);
+    assert.match(MERKEZ, /bosken=\{\s*<Basinc onPress=\{tumMaclaraGit\}/);
+  });
+
+  test("'Tüm maçlar' MAÇ LİSTESİNE gider, parametresiz tahmin ekranına DEĞİL (2026-09-30)", () => {
+    /* Kullanıcı: "tüm maçlar sekmesi yanıltıcı... basınca o maçın detaylı
+     * tahminine gidiyor." Parametresiz predict kendisi bir maç seçiyordu. */
+    assert.doesNotMatch(MERKEZ, /router\.push\("\/\(tabs\)\/predict"/,
+      "merkezde parametresiz predict rotasi geri gelmis");
+    assert.match(MERKEZ, /onPress=\{tumMaclaraGit\}[^]*allMatchesLink/);
+    assert.match(EKRAN, /onTumMaclar=\{listeyeKaydir\}/);
   });
 
   test("kupon yokken 'hazırlanıyor' yalnız sunucu cevap verdiyse", () => {

@@ -15,6 +15,7 @@ import { macSaatiEtiketi } from "../../lib/macSaati";
 import { useUserId } from "../../lib/useUserId";
 import { auth } from "../../lib/firebase";
 import { usePolling } from "../../hooks/usePolling";
+import { lcYaz } from "../../lib/lcBicim";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -178,7 +179,7 @@ function MiniDuelRow({ duel, userId, myName, lcBalance, onAccepted, onError }: {
       {/* Stakes */}
       <View style={{ alignItems: "center", gap: 1 }}>
         <Text style={{ color: "#f59e0b", fontWeight: "900", fontSize: 12 }}>{duel.stake} LC</Text>
-        <Text style={{ color: "#1e3a5f", fontSize: 9 }}>→{prize}LC</Text>
+        <Text style={{ color: "#1e3a5f", fontSize: 9 }}>→{lcYaz(prize)}LC</Text>
       </View>
 
       {/* Empty seat / OTUR */}
@@ -449,7 +450,7 @@ function ArenaIcerik() {
               paddingHorizontal: 10, paddingVertical: 5,
             }}>
               <Text style={{ fontSize: 12 }}>🪙</Text>
-              <Text style={{ color: "#fbbf24", fontWeight: "700", fontSize: 12 }}>{lcBalance} LC</Text>
+              <Text style={{ color: "#fbbf24", fontWeight: "700", fontSize: 12 }}>{lcYaz(lcBalance)} LC</Text>
             </View>
           )}
           <View style={{

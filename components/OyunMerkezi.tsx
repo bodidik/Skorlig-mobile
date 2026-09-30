@@ -27,7 +27,7 @@
  *   3. DİĞER OYUNLAR — tek kart, satırlar: ikon, ad, açıklama, bedel, ›.
  *
  * ⚠️ HER MODUN ERİŞİM YOLU FARKLI, HEPSİ ROTA DEĞİL:
- *   tek maç   → /(tabs)/predict          (ayrı ekran)
+ *   tek maç   → aynı ekrandaki maç listesi (onTumMaclar); maça özel detay predict
  *   kupon     → /kupon                   (ayrı ekran)
  *   düello    → /(tabs)/arena            (açık düello lobisi)
  *   mini      → /mini/create             (ayrı ekran)
@@ -83,6 +83,16 @@ export type OyunMerkeziProps = {
   tam?: boolean;
   country?: string | null;
   userId?: string;
+  /**
+   * Aynı ekrandaki MAÇ LİSTESİNE götür (live.tsx kaydırır).
+   *
+   * ⚠️ KULLANICI BİLDİRİMİ (2026-09-30): *"Tek maç menüsünde tüm maçlar
+   * sekmesi yanıltıcı… Basınca o maçın detaylı tahminine gidiyor."* Bağlantı
+   * parametresiz `/(tabs)/predict`e gidiyordu; o ekran parametre yoksa
+   * kendisi bir maç SEÇİP detaylı tahmini açıyor. "Tüm maçlar" diyen
+   * bağlantı tek maça gidiyordu — aynı ad, farklı hedef.
+   */
+  onTumMaclar?: () => void;
 };
 
 type Mod = {
@@ -95,14 +105,19 @@ type Mod = {
 };
 
 export default function OyunMerkezi({
-  macBedeli, kuponBedeli, is1987, onMod, tam = false, country, userId,
+  macBedeli, kuponBedeli, is1987, onMod, tam = false, country, userId, onTumMaclar,
 }: OyunMerkeziProps) {
   useLang(); // dil değişince yeniden çizilsin
   const router = useRouter();
   const ozellik = useOzellikler();
 
   const bedelMetni = (n?: number | null) => (typeof n === "number" && n > 0 ? `${n} LC` : null);
-  const tahmineGit = () => router.push("/(tabs)/predict" as any);
+  /* Liste modundaysak listeye kaydır; değilsek (Benimkiler, Turnuvalar)
+   * önce maç listesi moduna geç. Rota push'u değil — bkz. başlıktaki not. */
+  const tumMaclaraGit = () => {
+    if (tam && onTumMaclar) onTumMaclar();
+    else onMod?.("open");
+  };
 
   /**
    * "ŞİMDİ" ŞERİDİ — kartlar aciliyetlerini buraya bildiriyor.
@@ -143,7 +158,7 @@ export default function OyunMerkezi({
     },
     tek: {
       ad: t("modeSingle"), aciklama: t("singleHeroSub"), bedel: bedelMetni(macBedeli),
-      Sanat: TekMacSanati, bas: tahmineGit,
+      Sanat: TekMacSanati, bas: tumMaclaraGit,
     },
     skor: {
       /* Skor Tahmini (2026-09-17) — ayrı oyun, sunucu bayrağına bağlı. */
@@ -252,7 +267,7 @@ export default function OyunMerkezi({
           ad={tanim.tek.ad}
           alt={[t("dailyMatchLbl"), tanim.tek.bedel].filter(Boolean).join(" · ")}
           sag={
-            <Basinc onPress={tahmineGit} scaleTo={0.94}>
+            <Basinc onPress={tumMaclaraGit} scaleTo={0.94}>
               <Text style={[parca.baglanti, { color: MOD_RENGI.tek }]}>{t("allMatchesLink")} ›</Text>
             </Basinc>
           }
@@ -263,7 +278,7 @@ export default function OyunMerkezi({
           country={country || undefined}
           userId={userId}
           bosken={
-            <Basinc onPress={tahmineGit} scaleTo={0.97}>
+            <Basinc onPress={tumMaclaraGit} scaleTo={0.97}>
               <View style={[s.dolguEylem, { backgroundColor: MOD_RENGI.tek }]}>
                 <Text style={s.dolguEylemYazi}>{t("pickAMatch")}</Text>
               </View>

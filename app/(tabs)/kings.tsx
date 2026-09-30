@@ -16,6 +16,7 @@ import { apiFetch as sharedApiFetch } from "../../lib/apiFetch";
 import { gorunenAd } from "../../lib/gorunenAd";
 import { suz, oneriler } from "../../lib/aramaSuzgeci";
 import AramaKutusu from "../../components/AramaKutusu";
+import { puanYaz } from "../../lib/lcBicim";
 
 // ====================
 // Backend modelleri
@@ -576,24 +577,33 @@ export default function KingsScreen() {
               const active = segment === s;
               const disabled = segmentDisabled[s];
               return (
+                /* ⚠️ RENKLER ÖLÇÜLEREK SEÇİLDİ (kullanıcı bildirimi 2026-09-30:
+                 * "krallarda benim takımım düğmesi renkten dolayı zor okunuyor").
+                 * Pasif çip AÇIK zemin (#f1f5f9) üstüne `Colors.slate900`
+                 * basıyordu — adına rağmen o renk AÇIK gri #e2e8f0: kontrast
+                 * 1.13. Aktif çipte beyaz yazı turuncu zeminde 2.15. Şimdi
+                 * pasif #cbd5e1/#1e293b 9.85 · aktif #0f172a/#f59e0b 8.31 ·
+                 * kapalı #94a3b8/#1e293b 5.71 (saydamlıkla soldurma yok). */
                 <TouchableOpacity
                   key={s}
                   onPress={() => !disabled && setSegment(s)}
                   disabled={disabled}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active, disabled }}
                   style={{
                     flex: 1,
-                    paddingVertical: 6,
+                    paddingVertical: 8,
                     borderRadius: 999,
-                    backgroundColor: active ? Colors.primary : "#f1f5f9",
-                    opacity: disabled ? 0.4 : 1,
+                    backgroundColor: active ? Colors.primary : "#1e293b",
                   }}
                 >
                   <Text
+                    numberOfLines={1}
                     style={{
                       textAlign: "center",
-                      fontSize: 11,
-                      fontWeight: active ? "700" : "500",
-                      color: active ? "#fff" : Colors.slate900,
+                      fontSize: 12,
+                      fontWeight: active ? "800" : "600",
+                      color: active ? "#0f172a" : disabled ? "#94a3b8" : "#cbd5e1",
                     }}
                   >
                     {segmentLabel(s)}
@@ -837,7 +847,7 @@ export default function KingsScreen() {
                             marginTop: 2,
                           }}
                         >
-                          {t("matchPenalty2", { m: row.matches, c: row.totalPenalty ?? 0 })}
+                          {t("matchPenalty2", { m: row.matches, c: puanYaz(row.totalPenalty ?? 0) })}
                         </Text>
                       </TouchableOpacity>
 

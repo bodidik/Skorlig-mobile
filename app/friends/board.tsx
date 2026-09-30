@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "../../constants/colors";
 import { getApiBase } from "../../lib/apiBase";
 import { getAuthHeaders, apiFetch as sharedApiFetch } from "../../lib/apiFetch";
+import { puanYaz } from "../../lib/lcBicim";
 
 type FriendRow = {
   userId: string;
@@ -220,7 +221,7 @@ export default function FriendsBoardScreen() {
               {/* Sağ: puan + arkadaş ekle */}
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={{ color: "#a3e635", fontWeight: "700", fontSize: 14 }}>
-                  {t("nPts", { n: String(pts) })}
+                  {t("nPts", { n: puanYaz(pts) })}
                 </Text>
 
                 {!isMe && !!uid && (

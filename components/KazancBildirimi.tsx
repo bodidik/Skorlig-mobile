@@ -6,6 +6,7 @@ import { apiFetch } from "../lib/apiFetch";
 import { useUserId } from "../lib/useUserId";
 import { t, useLang } from "../lib/i18n";
 import { titret } from "../lib/hisler";
+import { lcYaz } from "../lib/lcBicim";
 
 /**
  * KAZANDIN BİLDİRİMİ — kullanıcı yokken sonuçlanan kazançları kutlar.
@@ -87,7 +88,7 @@ export default function KazancBildirimi() {
           <Konfeti anahtar={toplam} />
           <Text style={{ fontSize: 44 }}>🏆</Text>
           <Text style={s.baslik}>{t("youWonTitle")}</Text>
-          <Text style={s.tutar}>+{toplam} LC</Text>
+          <Text style={s.tutar}>+{lcYaz(toplam)} LC</Text>
           <Text style={s.alt}>{t("youWonSub")}</Text>
           <TouchableOpacity onPress={kapat} style={s.dugme}>
             <Text style={s.dugmeYazi}>{t("collectBtn")}</Text>

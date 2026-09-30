@@ -38,8 +38,9 @@
 export function lcYaz(n: number | null | undefined): string {
   const x = Number(n);
   if (!Number.isFinite(x)) return "0";
-  /* İki basamak, sonra sondaki sıfırlar atılıyor: 38.00 → 38, 1.90 → 1.9 */
-  return String(Number(x.toFixed(2)));
+  /* TEK basamak (kullanıcı kararı 2026-09-30: "LC ve puan ondalık kısmını
+   * tek hane tut"), sonra sondaki sıfır atılıyor: 38.0 → 38, 1.95 → 2. */
+  return String(Number(x.toFixed(1)));
 }
 
 /**
@@ -65,6 +66,7 @@ export function puanYaz(n: number | null | undefined): string {
   const x = Number(n);
   if (!Number.isFinite(x)) return "0";
   /* Çok küçük artıklar sıfırdır: 5.7e-17 → "0" (yoksa "0.00" bile yazılmaz,
-   * toFixed bilimsel gösterimi 0.00'a çevirir ama biz sayıya döndürüyoruz). */
-  return String(Number(x.toFixed(2)));
+   * toFixed bilimsel gösterimi 0.0'a çevirir ama biz sayıya döndürüyoruz).
+   * TEK basamak — kullanıcı kararı 2026-09-30 (bkz. lcYaz). */
+  return String(Number(x.toFixed(1)));
 }
