@@ -15,6 +15,8 @@ import { flushPendingCountry } from "../lib/pendingCountry";
 import { flushPendingTeam } from "../lib/pendingTeam";
 import { flushPendingNickname } from "../lib/pendingNickname";
 import ErrorBoundary from "../components/ErrorBoundary";
+import { apiFetch } from "../lib/apiFetch";
+import { PLAY_ADRESI, PLAY_WEB, surumCoz, surumKarari, yerelSurumKodu } from "../lib/surum";
 import CountryBackfillPrompt from "../components/CountryBackfillPrompt";
 import NicknameBackfillPrompt from "../components/NicknameBackfillPrompt";
 import GeriEv, { GERIEV_ALANI } from "../components/GeriEv";
@@ -175,6 +177,33 @@ function AuthGuard() {
   return null;
 }
 
+/** Açılışta Play'de daha yeni sürüm varsa teklif eder (bkz. lib/surum.ts). */
+function GuncellemeTeklifi() {
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await apiFetch("/api/config");
+        const bilgi = surumCoz(await r.json());
+        const karar = surumKarari(yerelSurumKodu(), bilgi);
+        if (!alive || karar === "yok") return;
+        const ac = () => Linking.openURL(PLAY_ADRESI).catch(() => Linking.openURL(PLAY_WEB));
+        const goster = () => Alert.alert(
+          t("updTitle"),
+          bilgi?.notlar || t("updBody"),
+          karar === "zorunlu"
+            ? [{ text: t("updNow"), onPress: () => { ac(); setTimeout(goster, 800); } }]
+            : [{ text: t("updLater"), style: "cancel" }, { text: t("updNow"), onPress: ac }],
+          { cancelable: karar !== "zorunlu" },
+        );
+        goster();
+      } catch { /* ağ yoksa teklif yok — sessiz */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+  return null;
+}
+
 export default function RootLayout() {
   useLang(); // dil değişince yeniden çizilsin
   const insets = useSafeAreaInsets();
@@ -185,6 +214,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <AuthProvider>
         <AuthGuard />
+        <GuncellemeTeklifi />
         {/* ⚠️ GERİ/ANA SAYFA ÇUBUĞUNA YER AYRILIYOR — BİR KEZ, BURADA.
           * Çubuk mutlak konumlu ve her yığın ekranının üstüne biniyordu;
           * ölçüldü, sekme dışı 32 ekranın hiçbiri telafi etmiyordu ve
