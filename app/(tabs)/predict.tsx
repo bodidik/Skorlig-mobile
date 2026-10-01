@@ -726,6 +726,11 @@ export default function PredictScreen() {
     loadWalletSummary(userId);
   }, [userId]);
 
+  // Maç değişince (parametresiz otomatik maç yolu dahil) gönderim kartı kalkar
+  useEffect(() => {
+    setJustSubmitted(null);
+  }, [fixtureId]);
+
   useEffect(() => {
     checkExistingPrediction(fixtureId, userId);
     loadLiveState(fixtureId);
@@ -765,6 +770,13 @@ useEffect(() => {
     setRedSide(null);
     setPenaltyAny(null);
     setPenaltySide(null);
+    /* ⚠️ Sekme ekranı maçlar arasında SÖKÜLMÜYOR: bunlar sıfırlanmazsa
+     * önceki maçın "Kaydedildi" kartı gönder düğmesini gizli tutuyordu ve
+     * ekstra cevaplar (btts/üst) yeni maça taşınıyordu. */
+    setBtts(null);
+    setOver25(null);
+    setOver35(null);
+    setJustSubmitted(null);
 
     return;
   }
