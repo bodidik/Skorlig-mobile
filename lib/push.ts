@@ -11,6 +11,7 @@ export type PushPrefs = {
   result: boolean;
   duel: boolean;
   daily: boolean;
+  teamMatch: boolean;
 };
 
 export const DEFAULT_PREFS: PushPrefs = {
@@ -18,6 +19,7 @@ export const DEFAULT_PREFS: PushPrefs = {
   result: true,
   duel: true,
   daily: true,
+  teamMatch: true,
 };
 
 /** Uygulama ön plandayken de bildirim görünsün. */

@@ -2144,6 +2144,8 @@ export default function Me() {
               </Text>
 
               {([
+                { key: "teamMatch" as const, icon: "⚽", label: t("pushTeamMatch"),
+                  desc: t("pushTeamMatchD") },
                 { key: "matchStart" as const, icon: "⏱", label: t("pushMatchStart"),
                   desc: t("pushMatchStartD") },
                 { key: "result" as const, icon: "🏁", label: t("pushResult"),
