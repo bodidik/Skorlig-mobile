@@ -40,6 +40,12 @@ type Kural = {
 };
 type TabloSatiri = { sira: number; userId: string; userIdLower: string; displayName?: string | null; puan: number; tamSkor: number; mac: number };
 type SiraSatiri = { sira: number; userId: string; displayName?: string | null; home: number; away: number; puan: number };
+/** `/api/skor/gecmis` maçı — başlamış/bitmiş, tahmin yapılmış. */
+type GecmisMaci = {
+  fixtureId: string; home: string; away: string; kickoffISO: string | null;
+  katilimci: number; sonuclandi: boolean;
+  benim: { home: number; away: number; sonuc?: { puan?: number } | null } | null;
+};
 
 export default function SkorTahminiEkrani() {
   const ozellik = useOzellikler();
@@ -64,6 +70,15 @@ function Icerik() {
   const [maclarHata, setMaclarHata] = useState(false);
   const [tabloHata, setTabloHata] = useState(false);
   const [siralamaHata, setSiralamaHata] = useState(false);
+  /* GEÇMİŞ SIRALAMALAR (2026-10-01). Hafta değişince tablo boşalıyor ve eski
+   * hafta ekrandan kayboluyordu; başlamış maçlar da menüden çıktı (sunucu
+   * `/maclar` artık yalnız açık maç veriyor). Seçici ikisini birden yönetir:
+   * haftalık tablo + o haftanın başlamış/bitmiş maçları. `null` = bu hafta. */
+  const [hafta, setHafta] = useState<string | null>(null);
+  const [haftalar, setHaftalar] = useState<string[]>([]);
+  const [buHafta, setBuHafta] = useState<string | null>(null);
+  const [gecmis, setGecmis] = useState<GecmisMaci[] | null>(null);
+  const [gecmisHata, setGecmisHata] = useState(false);
 
   const yukle = useCallback(async () => {
     const j = await apiJson("/api/skor/maclar");
@@ -75,20 +90,51 @@ function Icerik() {
     }
   }, []);
 
-  const tabloYukle = useCallback(async (seg: "genel" | "1987") => {
+  const tabloYukle = useCallback(async (seg: "genel" | "1987", hf: string | null) => {
     setTablo(null);
-    /* Sabit yollar: şablon içinde koşullu yolu istemci↔sunucu uç eşleşme
-     * nöbetçisi (api tests/istemci-uc-eslesme) çözemiyor. */
-    const j = await apiJson(seg === "1987" ? "/api/skor/haftalik?segment=1987" : "/api/skor/haftalik");
+    /* Sorgu `${qs}` olarak — eğik çizgisiz `${...}` parçasını istemci↔sunucu
+     * uç eşleşme nöbetçisi (api tests/istemci-uc-eslesme) sorgu sayıyor. */
+    const p = new URLSearchParams();
+    if (seg === "1987") p.set("segment", "1987");
+    if (hf) p.set("hafta", hf);
+    const qs = p.toString() ? `?${p.toString()}` : "";
+    const j = await apiJson(`/api/skor/haftalik${qs}`);
     setTabloHata(!j?.ok);
     setTablo(j?.ok && Array.isArray(j.satirlar) ? j.satirlar : []);
+    if (j?.ok) {
+      if (Array.isArray(j.haftalar)) setHaftalar(j.haftalar);
+      if (!hf && typeof j.hafta === "string") setBuHafta(j.hafta);
+    }
+  }, []);
+
+  const gecmisYukle = useCallback(async (hf: string | null) => {
+    setGecmis(null);
+    const qs = hf ? `?hafta=${encodeURIComponent(hf)}` : "";
+    const j = await apiJson(`/api/skor/gecmis${qs}`);
+    setGecmisHata(!j?.ok);
+    setGecmis(j?.ok && Array.isArray(j.maclar) ? j.maclar : []);
   }, []);
 
   useEffect(() => {
     if (oturumYukleniyor) return;
     yukle();
   }, [oturumYukleniyor, user?.uid, yukle]);
-  useEffect(() => { tabloYukle(segment); }, [segment, tabloYukle]);
+  useEffect(() => { tabloYukle(segment, hafta); }, [segment, hafta, tabloYukle]);
+  useEffect(() => {
+    if (oturumYukleniyor) return;
+    gecmisYukle(hafta);
+  }, [oturumYukleniyor, user?.uid, hafta, gecmisYukle]);
+
+  /** "2026-W40" → "Bu hafta" / "Geçen hafta" / "40. hafta". */
+  function haftaAdi(h: string): string {
+    if (buHafta && h === buHafta) return t("skorThisWeek");
+    const n = Number(h.split("-W")[1]);
+    const bn = buHafta ? Number(buHafta.split("-W")[1]) : NaN;
+    if (buHafta && h.slice(0, 4) === buHafta.slice(0, 4) && n === bn - 1) return t("skorLastWeek");
+    return t("skorWeekN", { n: Number.isFinite(n) ? n : h });
+  }
+  /* Seçicide en az bu hafta görünsün (henüz hiç tahmin yoksa liste boş gelir). */
+  const seciciHaftalari = buHafta && !haftalar.includes(buHafta) ? [buHafta, ...haftalar] : haftalar;
 
   async function siralamaAc(fid: string) {
     if (acikMac === fid) { setAcikMac(null); return; }
@@ -102,12 +148,58 @@ function Icerik() {
 
   const benUid = String(user?.uid || "").toLowerCase();
 
+  /** Maç satırı + açılır sıralama — menü ve geçmiş maçlar AYNI satırı kullanır. */
+  function macSatiri(
+    m: { fixtureId: string; home: string; away: string; kickoffISO: string | null;
+         benim?: { home: number; away: number; sonuc?: { puan?: number } | null } | null },
+    i: number,
+    ek?: string,
+  ) {
+    return (
+      <View key={m.fixtureId} style={[s.macSatir, i > 0 && s.ayrac]}>
+        <Basinc onPress={() => siralamaAc(m.fixtureId)} scaleTo={0.98}>
+          <View style={s.macUst}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.macAd} numberOfLines={1}>{m.home} – {m.away}</Text>
+              <Text style={s.macAlt} numberOfLines={1}>
+                {m.kickoffISO ? macSaatiEtiketi(m.kickoffISO, { bugun: t("today"), yarin: t("tomorrow") }) : ""}
+                {m.benim ? ` · ${m.benim.home}-${m.benim.away}` : ""}
+                {typeof m.benim?.sonuc?.puan === "number" ? ` · ${puanIsaretli(m.benim.sonuc.puan)} p` : ""}
+                {ek ? ` · ${ek}` : ""}
+              </Text>
+            </View>
+            <Text style={[parca.baglanti, { color: RENK }]}>{t("skorSeeRank")} {acikMac === m.fixtureId ? "▾" : "›"}</Text>
+          </View>
+        </Basinc>
+        {acikMac === m.fixtureId && siralamaHata && (
+          <Text style={[s.macAlt, { marginTop: 8 }]}>{t("netErr")}</Text>
+        )}
+        {acikMac === m.fixtureId && siralama && (
+          siralama.sonuclandi ? (
+            <View style={s.siraKutu}>
+              {siralama.satirlar.slice(0, 10).map((r) => (
+                <View key={`${r.sira}-${r.userId}`} style={s.siraSatir}>
+                  <Text style={s.siraNo}>{r.sira}</Text>
+                  <Text style={s.siraAd} numberOfLines={1}>{gorunenAd(r)}</Text>
+                  <Text style={s.siraSkor}>{r.home}-{r.away}</Text>
+                  <Text style={s.siraPuan}>{r.puan}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={[s.macAlt, { marginTop: 8 }]}>{t("skorRankHidden", { n: siralama.katilimci })}</Text>
+          )
+        )}
+      </View>
+    );
+  }
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: Colors.bg }}
       contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
       refreshControl={<RefreshControl refreshing={yenileniyor} onRefresh={async () => {
-        setYenileniyor(true); await Promise.all([yukle(), tabloYukle(segment)]); setYenileniyor(false);
+        setYenileniyor(true); await Promise.all([yukle(), tabloYukle(segment, hafta), gecmisYukle(hafta)]); setYenileniyor(false);
       }} />}
     >
       <Text style={s.baslik}>{t("skorTitle")}</Text>
@@ -160,46 +252,36 @@ function Icerik() {
       <View style={[parca.kart, { paddingVertical: 6 }]}>
         {maclar.length === 0 ? (
           <Text style={[parca.aciklama, { marginTop: 8, marginBottom: 8 }]}>{maclarHata ? t("netErr") : t("skorNoMatch")}</Text>
-        ) : maclar.map((m, i) => (
-          <View key={m.fixtureId} style={[s.macSatir, i > 0 && s.ayrac]}>
-            <Basinc onPress={() => siralamaAc(m.fixtureId)} scaleTo={0.98}>
-              <View style={s.macUst}>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={s.macAd} numberOfLines={1}>{m.home} – {m.away}</Text>
-                  <Text style={s.macAlt} numberOfLines={1}>
-                    {macSaatiEtiketi(m.kickoffISO, { bugun: t("today"), yarin: t("tomorrow") })}
-                    {m.benim ? ` · ${m.benim.home}-${m.benim.away}` : ""}
-                    {typeof m.benim?.sonuc?.puan === "number" ? ` · ${puanIsaretli(m.benim.sonuc.puan)} p` : ""}
-                  </Text>
+        ) : maclar.map((m, i) => macSatiri(m, i))}
+      </View>
+
+      {/* Hafta seçici — geçmiş sıralamalar (tablo + o haftanın maçları) */}
+      {seciciHaftalari.length > 1 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingBottom: 10 }}>
+          {seciciHaftalari.map((h) => {
+            const secili = (hafta || buHafta) === h;
+            return (
+              <Basinc key={h} onPress={() => setHafta(h === buHafta ? null : h)} scaleTo={0.95}>
+                <View style={[s.sekme, secili && { backgroundColor: RENK }]}>
+                  <Text style={[s.sekmeYazi, secili && { color: DUGME_YAZISI }]}>{haftaAdi(h)}</Text>
                 </View>
-                <Text style={[parca.baglanti, { color: RENK }]}>{t("skorSeeRank")} {acikMac === m.fixtureId ? "▾" : "›"}</Text>
-              </View>
-            </Basinc>
-            {acikMac === m.fixtureId && siralamaHata && (
-              <Text style={[s.macAlt, { marginTop: 8 }]}>{t("netErr")}</Text>
-            )}
-            {acikMac === m.fixtureId && siralama && (
-              siralama.sonuclandi ? (
-                <View style={s.siraKutu}>
-                  {siralama.satirlar.slice(0, 10).map((r) => (
-                    <View key={`${r.sira}-${r.userId}`} style={s.siraSatir}>
-                      <Text style={s.siraNo}>{r.sira}</Text>
-                      <Text style={s.siraAd} numberOfLines={1}>{gorunenAd(r)}</Text>
-                      <Text style={s.siraSkor}>{r.home}-{r.away}</Text>
-                      <Text style={s.siraPuan}>{r.puan}</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <Text style={[s.macAlt, { marginTop: 8 }]}>{t("skorRankHidden", { n: siralama.katilimci })}</Text>
-              )
-            )}
-          </View>
-        ))}
+              </Basinc>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      {/* Geçmiş maçlar — başlamış/bitmiş, sıralamasıyla */}
+      <Text style={s.bolum}>{t("skorPastTitle")}</Text>
+      <View style={[parca.kart, { paddingVertical: 6 }]}>
+        {gecmis === null ? null : gecmis.length === 0 ? (
+          <Text style={[parca.aciklama, { marginTop: 8, marginBottom: 8 }]}>{gecmisHata ? t("netErr") : t("skorNoPast")}</Text>
+        ) : gecmis.map((m, i) => macSatiri(m, i, m.sonuclandi ? undefined : t("skorPending")))}
       </View>
 
       {/* Haftalık tablo */}
-      <Text style={s.bolum}>{t("skorWeeklyTitle")}</Text>
+      <Text style={s.bolum}>{t("skorWeeklyTitle")}{hafta ? ` · ${haftaAdi(hafta)}` : ""}</Text>
       <View style={parca.kart}>
         <View style={s.sekmeler}>
           {(["genel", "1987"] as const).map((sg) => (

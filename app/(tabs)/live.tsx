@@ -2044,9 +2044,30 @@ export default function LiveScreen() {
                 <GradyanZemin renkler={Gradyan.night} yon="capraz" />
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <Text style={{ fontSize: 22 }}>⚽</Text>
-                  <Text style={{ color: "#f8fafc", fontSize: 20, fontWeight: "900", letterSpacing: 0.5 }}>
+                  <Text style={{ flex: 1, color: "#f8fafc", fontSize: 20, fontWeight: "900", letterSpacing: 0.5 }}>
                     SkorLig
                   </Text>
+                  {/* CANLI SONUÇLAR — EN ÜSTTE, HER ZAMAN (kullanıcı isteği
+                    * 2026-10-01: "Canlı sonuçlar düğmesini giriş sayfasında
+                    * üstlerde sunalım"). Skor merkezi şeridi oyun merkezinin
+                    * ALTINDA ve veri yokken kendini gizliyor; oyun merkezinin
+                    * en üstte kalması ayrı bir karar (2026-08-31), o yüzden
+                    * düğme blok değil marka bandında — içeriği aşağı itmiyor. */}
+                  <TouchableOpacity
+                    onPress={() => router.push("/livescores")}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("liveScoresTitle")}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={{
+                      flexDirection: "row", alignItems: "center", gap: 6,
+                      backgroundColor: "#14532dcc", borderRadius: 999,
+                      borderWidth: 1, borderColor: "#22c55e88",
+                      paddingVertical: 7, paddingHorizontal: 12, minHeight: 32,
+                    }}
+                  >
+                    <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#22c55e" }} />
+                    <Text style={{ color: "#dcfce7", fontSize: 12, fontWeight: "900" }}>{t("liveScoresTitle")}</Text>
+                  </TouchableOpacity>
                 </View>
                 <Text style={{ color: "#93c5fd", fontSize: 11, marginTop: 3, fontWeight: "600" }}>
                   {t("appTagline")}
