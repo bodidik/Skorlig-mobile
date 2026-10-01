@@ -337,19 +337,35 @@ function LeagueSection({
 
 // ─── Promo kartları ───────────────────────────────────────────────────────────
 
+/** `/api/oneri` öğesi — yalnızca TAHMİNE AÇIK maç (bkz. api/lib/oneri.cjs). */
+type Oneri = {
+  fixtureId: string;
+  home: string;
+  away: string;
+  kickoffISO: string | null;
+  sebep: string;
+};
+
+/* ⚠️ CANLI MAÇ ÖNE ÇIKARILMAZ (1 Eki 2026). Kart eskiden ilk canlı maçı
+ * seçip "Tahmin Yap" diyordu; başlamış maça tahmin kapalı olduğu için
+ * girince "tahmin yapılamaz" çıkıyordu. Artık sunucunun kişiye göre seçtiği
+ * ilk AÇIK maç gösteriliyor; öneri yoksa kart hiç çizilmez. */
 function PromoCard({
-  hotMatch,
+  oneri,
   onTap,
 }: {
-  hotMatch: Match | null;
+  oneri: Oneri;
   onTap: () => void;
 }) {
-  const title = hotMatch
-    ? `${hotMatch.homeTeam} – ${hotMatch.awayTeam}`
-    : t("todaysMatches");
-  const sub = hotMatch?.isLive
-    ? t("livePromoLive")
+  const title = `${oneri.home} – ${oneri.away}`;
+  const ko = oneri.kickoffISO ? new Date(oneri.kickoffISO) : null;
+  const saatYazi = ko && Number.isFinite(ko.getTime())
+    ? ko.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" })
+    : "";
+  const ana = oneri.sebep === "takim" ? t("oneriTakim")
+    : oneri.sebep === "milli" ? t("oneriMilli")
     : t("livePromoIdle");
+  const sub = saatYazi ? `${saatYazi} · ${ana}` : ana;
 
   return (
     <TouchableOpacity
@@ -591,14 +607,22 @@ export default function LiveScoresScreen() {
       .filter((l) => l.matches.length > 0);
   }, [displayLeagues, aramaSonucu]);
 
-  // En sıcak canlı maç (promo için)
-  const hotMatch = useMemo(() => {
-    for (const l of displayLeagues) {
-      const m = l.matches.find((x) => x.isLive || x.isHT);
-      if (m) return m;
-    }
-    return displayLeagues[0]?.matches[0] ?? null;
-  }, [displayLeagues]);
+  // Tanıtım kartı: kişiye özel ilk AÇIK maç (bkz. PromoCard notu)
+  const [oneri, setOneri] = useState<Oneri | null>(null);
+  useEffect(() => {
+    let iptal = false;
+    (async () => {
+      try {
+        const r = await apiFetch("/api/oneri?limit=1");
+        const j = await r.json().catch(() => null);
+        const ilk = j?.ok && Array.isArray(j.items) ? j.items[0] : null;
+        if (!iptal) setOneri(ilk?.fixtureId ? ilk : null);
+      } catch {
+        if (!iptal) setOneri(null); // öneri yoksa kart yok — sessiz
+      }
+    })();
+    return () => { iptal = true; };
+  }, [userId]);
 
   /**
    * TIKLANAN MAÇIN tahmin ekranına götürür.
@@ -794,7 +818,15 @@ export default function LiveScoresScreen() {
         ) : (
           <>
             {/* Üst promo */}
-            <PromoCard hotMatch={hotMatch} onTap={() => goPredict(hotMatch ?? undefined)} />
+            {oneri && (
+              <PromoCard
+                oneri={oneri}
+                onTap={() => router.push({
+                  pathname: "/(tabs)/predict",
+                  params: { fixtureId: oneri.fixtureId, userId },
+                } as any)}
+              />
+            )}
 
             {gorunenLigler.map((league, idx) => (
               <View key={league.id}>
