@@ -35,6 +35,8 @@ type Kural = {
   tamSkor: number; taban: number; mesafeCezasi: number; sonucBonusu: number; enDusuk: number;
   oduller: { enAzPuan: number; bedelKati: number }[];
   /* Paylaşılan havuz (2026-09-30) — eski sunucu göndermez, blok çizilmez. */
+  /* Gol basamağı (2026-10-02) — eski sunucu göndermez, satır çizilmez. */
+  golBasamaklari?: { enAzGol: number; tam: number; teselli: number }[];
   havuz?: { tamPuan: number; teselliPuan: number; tamOran: number; teselliOran: number };
   ornek: { gercek: { home: number; away: number }; satirlar: { home: number; away: number; puan: number }[] };
 };
@@ -210,6 +212,13 @@ function Icerik() {
           <KartBasi modu="skor" Sanat={SkorSanati} ad={t("skorRulesTitle")} alt={bedel > 0 ? t("skorSub", { n: bedel }) : null} />
           <View style={s.kurallar}>
             <Text style={s.kural}>• {t("skorRuleExact", { n: kural.tamSkor })}</Text>
+            {kural.golBasamaklari?.length ? [
+              ...kural.golBasamaklari,
+            ].sort((a, b) => a.enAzGol - b.enAzGol).map((b, i, l) => (
+              <Text key={b.enAzGol} style={s.kural}>
+                {"   "}{t(i === l.length - 1 ? "skorRuleGolUstu" : "skorRuleGol", { g: b.enAzGol, n: kural.tamSkor + b.tam, s: b.teselli })}
+              </Text>
+            )) : null}
             <Text style={s.kural}>• {t("skorRuleBase", { t: kural.taban, m: kural.mesafeCezasi })}</Text>
             <Text style={s.kural}>• {t("skorRuleResult", { n: kural.sonucBonusu })}</Text>
             <Text style={s.kural}>• {t("skorRuleMin", { n: puanIsaretli(kural.enDusuk) })}</Text>

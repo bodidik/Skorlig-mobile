@@ -34,6 +34,7 @@ import { hataMesaji } from "../../lib/hataMesaji";
 import GroupHeader from "../../components/GroupHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { t, useLang } from "../../lib/i18n";
+import { saatGun } from "../../lib/sure";
 /* Skor Tahmini bölümü: mod rengi ve puan işareti tek kaynaktan — ikinci bir
  * renk/biçim kopyası, kart ile listenin ayrışması demekti. */
 import { MOD_RENGI } from "../../lib/oyunMerkezi";
@@ -655,7 +656,7 @@ const Item: React.FC<ItemProps> = ({ item, mode, onPredict, onRace, onDuel, hasP
               /* Kapının SEBEBİ ve ne zaman açılacağı: "Tahmin henüz açılmadı"
                  tek başına kullanıcıya yapabileceği bir şey söylemiyordu. */
               <Text style={{ color: "#f59e0b", fontSize: 11 }}>
-                {t("notOpenYet")} • {t("opensInH", { h: acilisaKalanSaat })}
+                {t("notOpenYet")} • {t("opensIn", { s: saatGun(acilisaKalanSaat, t as any) })}
               </Text>
             ) : (
               <Text style={{ color: Colors.muted, fontSize: 11 }}>{t("notOpenYet")}</Text>
@@ -3305,7 +3306,7 @@ export default function LiveScreen() {
                           const ms = kickoffMs(fx);
                           const diffH = ms ? Math.max(0, (ms - nowMs) / 3600000) : null;
                           const opensIn = diffH !== null && diffH > PREDICT_OPEN_AHEAD_HOURS
-                            ? t("opensInH", { h: Math.round(diffH - PREDICT_OPEN_AHEAD_HOURS) })
+                            ? t("opensIn", { s: saatGun(diffH - PREDICT_OPEN_AHEAD_HOURS, t as any) })
                             : t("opensSoon");
                           // Yer tutucu saati burada da basma — kickoffLabel ile aynı kural.
                           const timeStr = fiksturSaatEtiketi(fx, { bugun: t("today"), yarin: t("tomorrow") }) || null;

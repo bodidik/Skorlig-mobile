@@ -9,6 +9,7 @@ import { useUserId } from "../../lib/useUserId";
 import { useAuth } from "../../contexts/AuthContext";
 import { sharePrediction } from "../../lib/share";
 import { t, useLang } from "../../lib/i18n";
+import { saatGun } from "../../lib/sure";
 import { useOzellikler } from "../../hooks/useOzellikler";
 import { TIER_KEYS } from "../../components/StreakBar";
 import { hataMesaji } from "../../lib/hataMesaji";
@@ -109,9 +110,11 @@ const QUICK_SCORES: { h: number; a: number }[] = [
   { h: 1, a: 0 }, { h: 0, a: 1 }, { h: 1, a: 1 }, { h: 0, a: 0 },
   { h: 2, a: 0 }, { h: 0, a: 2 }, { h: 2, a: 1 }, { h: 1, a: 2 },
   { h: 2, a: 2 }, { h: 3, a: 0 }, { h: 0, a: 3 }, { h: 3, a: 1 },
-  { h: 1, a: 3 }, { h: 3, a: 2 }, { h: 2, a: 3 }, { h: 4, a: 0 },
-  { h: 0, a: 4 }, { h: 4, a: 1 }, { h: 1, a: 4 },
+  { h: 1, a: 3 }, { h: 3, a: 2 }, { h: 2, a: 3 }, { h: 3, a: 3 },
 ];
+/* Kullanıcı kararı (2 Eki 2026): çiplerde 0–3 golden ötesi YOK — liste
+ * sadeleşsin. 4 ve üstü aşağıdaki elle girişle verilir; puan kuralı aynı
+ * (gerçek skor saklanır, "4+" kategorisi bilerek kurulmadı). */
 
 /**
  * "Tahmin henüz açılmadı" cümlesi — kalan süreyi ve açılış anını söyler.
@@ -125,10 +128,10 @@ function acilisMetni(l: { opensAtISO?: string; acilisSaat?: number }): string {
   const saat = Number(l?.acilisSaat);
   const acilisMs = l?.opensAtISO ? new Date(l.opensAtISO).getTime() : NaN;
   if (!Number.isFinite(acilisMs)) {
-    return Number.isFinite(saat) && saat > 0 ? t("notOpenYetWindow", { s: saat }) : t("notOpenYet");
+    return Number.isFinite(saat) && saat > 0 ? t("notOpenYetWindow", { s: saatGun(saat, t as any) }) : t("notOpenYet");
   }
   const kalanSaat = Math.max(1, Math.round((acilisMs - nowFromServer()) / 3600000));
-  return t("notOpenYetIn", { h: kalanSaat });
+  return t("notOpenYetIn", { h: saatGun(kalanSaat, t as any) });
 }
 
 export default function PredictScreen() {

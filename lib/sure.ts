@@ -24,6 +24,18 @@ export type Sozluk = (anahtar: string, param?: Record<string, any>) => string;
  * i18n anahtarları (`daysHours` · `hoursMin` · `nMin` · `closedLower`)
  * birebir eski iki kopyadaki gibi.
  */
+/**
+ * Saati okunur metne: 48 saate kadar saat, üstü GÜN (kullanıcı, 2 Eki 2026:
+ * "48 saatin üzerini gün olarak ver, saat kafa karıştırıcı"). 96 → "4 gün",
+ * 60 → "2 gün 12 saat", 30 → "30 saat". Tahminin açılış metinleri kullanır.
+ */
+export function saatGun(saat: number, t: Sozluk): string {
+  const sa = Math.max(1, Math.round(Number(saat) || 0));
+  if (sa <= 48) return t("sureSaat", { h: sa });
+  const g = Math.floor(sa / 24), h = sa % 24;
+  return h ? t("sureGunSaat", { g, h }) : t("sureGun", { g });
+}
+
 export function sureMetni(saniye: number, t: Sozluk): string {
   const sn = Math.floor(Number(saniye) || 0);
   if (sn <= 0) return t("closedLower");

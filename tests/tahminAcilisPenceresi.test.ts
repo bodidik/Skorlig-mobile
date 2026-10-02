@@ -119,7 +119,8 @@ describe("pencere tek kaynakta — sunucu", () => {
 describe("ret sebebi ekranda", () => {
   test("liste satırı kaç saat sonra açılacağını yazıyor", () => {
     assert.match(LIVE_KOD, /acilisaKalanSaat/, "kalan süre hesaplanmıyor");
-    assert.match(LIVE_KOD, /opensInH/, "kalan süre ekrana basılmıyor");
+    /* 2026-10-02: 48 saatin üstü gün olarak (lib/sure saatGun). */
+    assert.match(LIVE_KOD, /t\("opensIn", \{ s: saatGun\(acilisaKalanSaat/, "kalan süre ekrana basılmıyor");
   });
 
   test("tahmin ekranı ayrı bir cümle söylüyor — 'kilitli' DEĞİL", () => {
