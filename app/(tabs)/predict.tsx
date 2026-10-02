@@ -227,7 +227,14 @@ export default function PredictScreen() {
   const [penaltySide, setPenaltySide] = useState<Side>(null);
 
   const [sending, setSending] = useState(false);
-  const [justSubmitted, setJustSubmitted] = useState<{ wasUpdate: boolean; gain: number } | null>(null);
+  const [gonderim, setJustSubmitted] = useState<{ wasUpdate: boolean; gain: number; fx: string } | null>(null);
+  /* ⚠️ KART MAÇA BAĞLI (2 Eki 2026, ekran görüntüsüyle ölçüldü): gönderim
+   * cüzdan/kayıt tazelenmesini BEKLEDİKTEN sonra kartı kuruyor; kullanıcı o
+   * arada başka maça geçerse sıfırlama zaten çalışmış oluyor ve önceki maçın
+   * "Kaydedildi" kartı yeni maçta gönder düğmesini gizliyordu (Letonya –
+   * Karadağ: kart "+2.4" diyordu, maçın puanı +6; sunucuda kayıt YOK). Kart
+   * yalnız gönderildiği maçta görünür. */
+  const justSubmitted = gonderim && gonderim.fx === fixtureId.trim() ? gonderim : null;
 
   // LC mini şerit durumu
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
@@ -1047,7 +1054,7 @@ useEffect(() => {
 
     const wasUpdate = hasPredByMe === true;
     const gain = sel.gain;
-    setJustSubmitted({ wasUpdate, gain });
+    setJustSubmitted({ wasUpdate, gain, fx });
   } catch (e: any) {
     Alert.alert(t("error"), hataMesaji(e));
   } finally {
