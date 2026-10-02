@@ -31,6 +31,7 @@ import { useHisler, hisAyarla, golSesiCal, titret } from "../../lib/hisler";
 import { gorunenAd } from "../../lib/gorunenAd";
 import { kisiAra, kimlikGibiMi, EN_AZ_HARF, type AramaKisi } from "../../lib/friendSearch";
 import LcSikke from "../../components/LcSikke";
+import SonucOzeti from "../../components/SonucOzeti";
 import { ilkUyeBildir } from "../../lib/ilkUye";
 
 /* Dil listesi render dışında: kapalı görünümdeki rozet de bu tablodan
@@ -969,6 +970,9 @@ export default function Me() {
     <ScrollView style={{ flex: 1, backgroundColor: Colors.bg }}>
       <View style={{ padding: 16, gap: 16 }}>
         <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.slate900 }}>{t("myProfile")}</Text>
+
+        {/* Sonuç özeti — kazanç/kayıp tek yerde, profilin en üstünde (2 Eki 2026) */}
+        <SonucOzeti userId={userId} />
 
         {/* Google hesap kartı + çıkış */}
         <View
