@@ -32,6 +32,7 @@ import { gorunenAd } from "../../lib/gorunenAd";
 import { kisiAra, kimlikGibiMi, EN_AZ_HARF, type AramaKisi } from "../../lib/friendSearch";
 import LcSikke from "../../components/LcSikke";
 import SonucOzeti from "../../components/SonucOzeti";
+import IzlemeModuSecici from "../../components/IzlemeModuSecici";
 import { ilkUyeBildir } from "../../lib/ilkUye";
 
 /* Dil listesi render dışında: kapalı görünümdeki rozet de bu tablodan
@@ -973,6 +974,9 @@ export default function Me() {
 
         {/* Sonuç özeti — kazanç/kayıp tek yerde, profilin en üstünde (2 Eki 2026) */}
         <SonucOzeti userId={userId} />
+
+        {/* Kişisel maç filtresi — yerel 40 / global 100 / global 456 (2 Eki 2026) */}
+        <IzlemeModuSecici userId={userId} />
 
         {/* Google hesap kartı + çıkış */}
         <View

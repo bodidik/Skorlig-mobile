@@ -67,10 +67,7 @@ const PROFILLER: Record<
     onAyar: boolean;
   }
 > = {
-  DEV_4_TEAMS: {
-    maxTeams: 4, maxLeagues: 1, label: "4 takımlı geliştirme modu", level: "DEV",
-    i18nUzun: "profDev4", i18nKisa: "profDev4Short", onAyar: true,
-  },
+  /* DEV_4_TEAMS KALDIRILDI (kullanıcı kararı 2026-10-02) — sunucu ön ayarı da yok. */
   /* ⚠️ ÇALIŞAN PROFİL BU TABLODA YOKTU (2026-09-07 TR40 denetimi).
    * Sunucu TR_40_TEAMS ile çalışırken `mapRuntimeStage` son dala düşüp
    * level:"CUSTOM" veriyordu ve ekranda "Custom profil: TR_40_TEAMS" yazıyordu

@@ -15,6 +15,7 @@
 
 const SOZLUK: Record<string, string> = {
   // ── Para / cüzdan ────────────────────────────────────────────────
+  IZLEME_MODU_GECERSIZ: "Bu maç filtresi tanınmadı. Uygulamayı güncelleyip yeniden dene.",
   LC_NOT_ENOUGH: "LC bakiyen yetersiz. Günlük hakkını alabilir ya da başka bir maç seçebilirsin.",
   DAILY_ALREADY_CLAIMED: "Günlük hakkını bugün zaten aldın. Yarın tekrar.",
   WALLET_NOT_FOUND: "Cüzdanın henüz oluşmamış. Bir tahmin yaptığında otomatik açılır.",

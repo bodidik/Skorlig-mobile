@@ -275,7 +275,6 @@ export default function AdminRuntimeScreen() {
         </Text>
 
         {([
-          { key: "DEV_4_TEAMS", label: t("prof4Teams"), desc: t("prof4TeamsDesc") },
           { key: "TR_30_TEAMS", label: t("profTr30"), desc: t("profTr30Desc") },
           { key: "GLOBAL_100_TEAMS", label: t("profG100"), desc: t("profG100Desc") },
           { key: "GLOBAL_456_TEAMS", label: t("profG456"), desc: t("profG456Desc") },
