@@ -8,6 +8,22 @@ import { apiFetch } from "../lib/apiFetch";
 import { hataMesaji } from "../lib/hataMesaji";
 import { t, useLang } from "../lib/i18n";
 
+/* Turnuva adayı: kişisel grup (sunucu, lib/oneri.cjs katmanı) taşır. */
+type Aday = PickFixture & { sebep?: string };
+
+/* Grup başlıkları — sunucunun `sebep` değerleri (lib/oneri.cjs SEBEP). */
+const GRUP_ADI: Record<string, "tourGrpTakim" | "tourGrpUlke" | "tourGrpMilli" | "tourGrpKuresel" | "tourGrpKita" | "tourGrpBuyuk" | "tourGrpDiger"> = {
+  takim: "tourGrpTakim", ulke: "tourGrpUlke", milli: "tourGrpMilli", kuresel: "tourGrpKuresel",
+  kita: "tourGrpKita", buyuk: "tourGrpBuyuk", diger: "tourGrpDiger", hazirlik: "tourGrpDiger",
+};
+
+function baslamaMetni(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  return d.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
+}
+
 type Props = {
   country?: string | null;
   userId: string;
@@ -17,7 +33,7 @@ type Props = {
 
 export default function TournamentCreate({ country, userId, onCreated, onClose }: Props) {
   useLang(); // dil değişince yeniden çizilsin
-  const [matches, setMatches] = useState<PickFixture[]>([]);
+  const [matches, setMatches] = useState<Aday[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [entryLC, setEntryLC] = useState("10");
   const [name, setName] = useState("");
@@ -29,8 +45,10 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
     let cancelled = false;
     async function load() {
       try {
-        const qs = country ? `?country=${encodeURIComponent(country)}&limit=8` : "?limit=8";
-        const r = await apiFetch(`/api/daily-picks/singles${qs}`);
+        /* 2026-10-02: turnuvaya özel aday ucu — 72 sa pencere, kişisel gruplar,
+         * 24 aday (eskiden hızlı oyunun 8 maçı, 4 güne yayılıyordu). */
+        const qs = country ? `?country=${encodeURIComponent(country)}` : "";
+        const r = await apiFetch(`/api/daily-picks/turnuva-adaylari${qs}`);
         const json = await r.json();
         if (!cancelled && json.ok) setMatches(json.picks || []);
       } catch {}
@@ -157,11 +175,16 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
         {t("pickMatchesN", { n: selected.size })}
       </Text>
 
-      {matches.map(m => {
+      {matches.map((m, i) => {
         const isSel = selected.has(m.fixtureId);
+        const grup = m.sebep || "diger";
+        const oncekiGrup = i > 0 ? (matches[i - 1].sebep || "diger") : null;
+        const baslik = GRUP_ADI[grup] || "tourGrpDiger";
+        const yeniGrup = oncekiGrup === null || (GRUP_ADI[oncekiGrup] || "tourGrpDiger") !== baslik;
         return (
+          <React.Fragment key={m.fixtureId}>
+          {yeniGrup && <Text style={s.grupBaslik}>{t(baslik)}</Text>}
           <TouchableOpacity
-            key={m.fixtureId}
             onPress={() => toggleMatch(m.fixtureId)}
             style={[s.matchRow, isSel && s.matchRowSelected]}
           >
@@ -170,9 +193,10 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.matchTeams}>{m.home} vs {m.away}</Text>
-              <Text style={s.matchMeta}>{m.league} • {m.odds.home.toFixed(2)} / {m.odds.draw.toFixed(2)} / {m.odds.away.toFixed(2)}</Text>
+              <Text style={s.matchMeta}>{baslamaMetni(m.kickoffISO)} • {m.league} • {m.odds.home.toFixed(2)} / {m.odds.draw.toFixed(2)} / {m.odds.away.toFixed(2)}</Text>
             </View>
           </TouchableOpacity>
+          </React.Fragment>
         );
       })}
 
@@ -204,6 +228,7 @@ export default function TournamentCreate({ country, userId, onCreated, onClose }
 }
 
 const s = StyleSheet.create({
+  grupBaslik: { color: "#a3e635", fontSize: 12, fontWeight: "800", marginTop: 12, marginBottom: 4, letterSpacing: 0.5 },
   container: { flex: 1, padding: 16 },
   loadingBox: { padding: 40, alignItems: "center" },
   loadingText: { color: "#64748b", marginTop: 8, fontSize: 12 },
