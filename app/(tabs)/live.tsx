@@ -42,8 +42,9 @@ import { puanIsaretli } from "../../lib/skorTahmini";
 import { useOzellikler } from "../../hooks/useOzellikler";
 import { fiksturSaatEtiketi } from "../../lib/macSaati";
 import { ulkeAdi, ligEtiketi, ligSiraAnahtari } from "../../lib/ulkeler";
-import { lcYaz } from "../../lib/lcBicim";
+import { lcYaz, puanYaz } from "../../lib/lcBicim";
 import LcSikke from "../../components/LcSikke";
+import BirikimKarti from "../../components/BirikimKarti";
 const t2 = t; // turnuva map(t) golgelemesi icin takma ad
 
 type FxStatus = "NS" | "LIVE" | "HT" | "FT" | "PEN" | "ABANDONED";
@@ -369,25 +370,38 @@ const SettleSummaryStrip: React.FC<{ points: number; detail: any }> = ({ points,
   const posColor = "#22c55e";
   const negColor = "#f87171";
   const total = Number(points) || 0;
+  /* Görünüm 2026-10-03 (kullanıcı: "daha gösterişli sunuş"): toplam iri
+   * rozet + ikon, kategoriler renkli hap. Sayılar puanYaz'dan (tek basamak,
+   * tek kaynak) — burada ayrı bir 2 basamaklı yuvarlama vardı. */
+  const kazandi = total > 0;
   return (
     <View style={{
-      flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5,
-      paddingHorizontal: 10, paddingVertical: 6,
-      borderTopWidth: 1, borderTopColor: Colors.cardInner, backgroundColor: Colors.card,
+      flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6,
+      paddingHorizontal: 10, paddingVertical: 8,
+      borderTopWidth: 1, borderTopColor: Colors.cardInner,
+      backgroundColor: kazandi ? "#14532d22" : total < 0 ? "#7f1d1d22" : Colors.card,
     }}>
       <View style={{
-        paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
-        backgroundColor: total >= 0 ? "#14532d55" : "#7f1d1d44",
+        flexDirection: "row", alignItems: "center", gap: 5,
+        paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1,
+        backgroundColor: total >= 0 ? "#14532d" : "#7f1d1d",
+        borderColor: total >= 0 ? posColor : negColor,
       }}>
-        <Text style={{ color: total >= 0 ? posColor : negColor, fontWeight: "900", fontSize: 12 }}>
-          {total > 0 ? "+" : ""}{Math.round(total * 100) / 100} {t("points")}
+        <Text style={{ color: Colors.text, fontSize: 14 }}>{kazandi ? "⭐" : total < 0 ? "💔" : "➖"}</Text>
+        <Text style={{ color: total >= 0 ? "#4ade80" : negColor, fontWeight: "900", fontSize: 16, fontVariant: ["tabular-nums"] }}>
+          {(kazandi ? "+" : "") + puanYaz(total)}
         </Text>
+        <Text style={{ color: total >= 0 ? "#86efac" : "#fca5a5", fontWeight: "700", fontSize: 11 }}>{t("points")}</Text>
       </View>
       {chips.map((c) => (
-        <View key={c.label} style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-          <Text style={{ color: "#64748b", fontSize: 10 }}>{c.label}</Text>
-          <Text style={{ color: c.pts > 0 ? posColor : negColor, fontSize: 10, fontWeight: "800" }}>
-            {c.pts > 0 ? "✓" : "✗"}{c.pts > 0 ? `+${Math.round(c.pts * 100) / 100}` : Math.round(c.pts * 100) / 100}
+        <View key={c.label} style={{
+          flexDirection: "row", alignItems: "center", gap: 3,
+          paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8,
+          backgroundColor: c.pts > 0 ? "#22c55e22" : "#ef444422",
+        }}>
+          <Text style={{ color: Colors.mutedOnCard, fontSize: 11, fontWeight: "700" }}>{c.label}</Text>
+          <Text style={{ color: c.pts > 0 ? posColor : negColor, fontSize: 11, fontWeight: "900" }}>
+            {(c.pts > 0 ? "✓ +" : "✗ ") + puanYaz(c.pts)}
           </Text>
         </View>
       ))}
@@ -2434,6 +2448,9 @@ export default function LiveScreen() {
             {mode === "mine" && (
               <View style={{ gap: 8, marginTop: 4 }}>
                 {myPredsLoading && <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("loading")}</Text>}
+
+                {/* BİRİKİM — toplam puan + LC; artış gözle görünür sayar (2026-10-03). */}
+                <BirikimKarti userId={userId.trim()} puan={userPoints} lc={lcBalance} />
                 {/* Boş durum ALTTA, ListEmptyComponent içinde (eylem düğmeli).
                     Burada ikinci bir "henüz tahmin yok" metni göstermek,
                     aşağıdaki kartla birlikte iki kez tekrar demekti. */}
