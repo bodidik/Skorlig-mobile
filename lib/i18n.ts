@@ -113,6 +113,8 @@ const strings = {
     simdiGit:               "Git",
     // Benimkiler: skor tahminleri (ayrı defter, bkz. live.tsx mySkor notu)
     mySkorPreds:            "Skor tahminlerim ({n})",
+    skorRozet:              "Skor {h}–{a}",
+    skorRozetA11y:          "Skor tahminin {h}–{a}, Skor Tahmini ekranını aç",
     mySkorUnavailable:      "Skor tahminlerin şu an okunamadı. Aşağı çekip yenileyebilirsin.",
     // onboarding + geri doldurma: kullanıcı adı
     pickYourNickname: "Kullanıcı adını seç",
@@ -1790,6 +1792,8 @@ const strings = {
     simdiMacBasliyor:       "Today's match starts in {s} — no prediction yet",
     simdiGit:               "Go",
     mySkorPreds:            "My score predictions ({n})",
+    skorRozet:              "Score {h}–{a}",
+    skorRozetA11y:          "Your score prediction {h}–{a}, open Score Prediction",
     mySkorUnavailable:      "Your score predictions could not be loaded. Pull down to refresh.",
     pickYourNickname: "Pick your username",
     yourNickname:     "Your name: {n}",

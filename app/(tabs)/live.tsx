@@ -998,6 +998,18 @@ export default function LiveScreen() {
    * "oynanan" tarafına düşer: düzenleme düğmesi göstermek sunucunun
    * reddedeceği bir kapı açmak olurdu.
    * ⚠️ Zamana bağlı: `nowFromServer()` her çizimde okunuyor, saklanmıyor. */
+  /* Skor Tahmini ↔ maç tahmini aynı maçta TEK satır: maç tahmini olan maçın
+   * skoru o satırda rozet; yalnız skor girilen maç Skor bölümünde (🏁 ile). */
+  const skorByFid = useMemo(
+    () => new Map(mySkor.map((s) => [String(s.fixtureId), s] as const)),
+    [mySkor]
+  );
+  const yalnizSkor = useMemo(() => {
+    /* Yalnız `current`: eski satırlar ayrı JSX'le çiziliyor, rozet taşımıyor —
+     * oradaki maçı buradan düşürmek skoru görünmez yapardı. */
+    const macTahminli = new Set(myPreds.current.map((p) => String(p.fixtureId)));
+    return mySkor.filter((s) => !macTahminli.has(String(s.fixtureId)));
+  }, [mySkor, myPreds]);
   const guncelBolunmus = (() => {
     const simdi = nowFromServer();
     const kilitMs = (typeof lockBeforeMin === "number" ? lockBeforeMin : 10) * 60000;
@@ -1865,8 +1877,14 @@ export default function LiveScreen() {
    * demekti (deponun kayıtlı "iki gerçeklik" sınıfı).
    *
    * `duzenlenebilir` yalnızca tahmin HÂLÂ değiştirilebiliyorsa true.
+   *
+   * SKOR TAHMİNİ AYNI SATIRDA (kullanıcı kararı 2026-10-05): aynı maç iki
+   * listeye bölünüyordu; yalnız Skor Tahmini yapan oyuncu Skor bölümünde
+   * maçı görüp yarışa gidemiyordu. Skor Tahmini ayrı oyun olarak kalır —
+   * rozet onun ekranına götürür; burada yalnız GÖSTERİLİR.
    */
   const benimTahminSatiri = (mp: MyPredItem, duzenlenebilir: boolean) => {
+                  const skorKaydi = skorByFid.get(String(mp.fixtureId));
                   const isFT = String(mp.status || "").toUpperCase() === "FT";
                   const isLive = ["1H","HT","2H","LIVE"].includes(String(mp.status || "").toUpperCase());
                   const chips = buildPredChips(mp.pred);
@@ -1901,6 +1919,19 @@ export default function LiveScreen() {
                           </View>
                         ) : (
                           <Text style={{ color: "#475569", fontSize: 10, fontStyle: "italic" }}>—</Text>
+                        )}
+
+                        {skorKaydi && (
+                          <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel={t("skorRozetA11y", { h: skorKaydi.tahmin.home, a: skorKaydi.tahmin.away })}
+                            onPress={() => router.push("/skor-tahmini" as any)}
+                            style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: MOD_RENGI.skor + "66", backgroundColor: MOD_RENGI.skor + "22" }}
+                          >
+                            <Text style={{ color: MOD_RENGI.skor, fontWeight: "800", fontSize: 11 }}>
+                              {t("skorRozet", { h: skorKaydi.tahmin.home, a: skorKaydi.tahmin.away })}
+                            </Text>
+                          </TouchableOpacity>
                         )}
 
                         {/* status / skor + sonuç rozeti */}
@@ -2530,11 +2561,13 @@ export default function LiveScreen() {
                 {guncelBolunmus.oynanan.map((mp) => benimTahminSatiri(mp, false))}
 
                 {/* SKOR TAHMİNLERİM — ayrı defter, ayrı bölüm (bkz. mySkor notu). */}
-                {(mySkor.length > 0 || skorOkunamadi) && (
+                {/* Maç tahmini de olan maç yukarıdaki satırda rozetle duruyor;
+                    burada yalnız SKOR-TEK maçlar (yarış düğmesiyle). */}
+                {(yalnizSkor.length > 0 || skorOkunamadi) && (
                   <>
                     <View style={{ paddingVertical: 10, borderTopWidth: 1, borderTopColor: Colors.border, marginTop: 4 }}>
                       <Text style={{ color: Colors.muted, fontSize: 12, fontWeight: "700" }}>
-                        {t("mySkorPreds", { n: mySkor.length })}
+                        {t("mySkorPreds", { n: yalnizSkor.length })}
                       </Text>
                     </View>
                     {skorOkunamadi ? (
@@ -2543,9 +2576,9 @@ export default function LiveScreen() {
                       <Text style={{ color: "#f59e0b", fontSize: 12, paddingBottom: 8 }} accessibilityRole="alert">
                         {t("mySkorUnavailable")}
                       </Text>
-                    ) : mySkor.map((sp) => (
+                    ) : yalnizSkor.map((sp) => (
+                      <View key={`skor-${sp.fixtureId}`} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                       <TouchableOpacity
-                        key={`skor-${sp.fixtureId}`}
                         onPress={() => router.push("/skor-tahmini" as any)}
                         /* ⚠️ `StyleSheet.hairlineWidth` DEĞİL: bu dosya
                          * `StyleSheet`i react-native'den içe aktarmıyor ve
@@ -2553,7 +2586,7 @@ export default function LiveScreen() {
                          * yalnızca bunun uğruna yeni bir içe aktarım
                          * eklemek yerine sabit 1 — çevredeki satırlar da
                          * `borderTopWidth: 1` kullanıyor. */
-                        style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 9, borderTopWidth: 1, borderTopColor: Colors.border }}
+                        style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 9, borderTopWidth: 1, borderTopColor: Colors.border }}
                       >
                         <Text style={{ flex: 1, color: "#cbd5e1", fontSize: 13 }} numberOfLines={1}>
                           {sp.home && sp.away ? `${sp.home} – ${sp.away}` : sp.fixtureId}
@@ -2567,6 +2600,15 @@ export default function LiveScreen() {
                           </Text>
                         )}
                       </TouchableOpacity>
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={t("raceBtn")}
+                        onPress={() => goRace({ fixtureId: sp.fixtureId, home: sp.home, away: sp.away, league: sp.league, kickoffISO: sp.kickoffISO } as any)}
+                        style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "#f59e0b22", borderWidth: 1, borderColor: "#f59e0b55" }}
+                      >
+                        <Text style={{ color: "#f59e0b", fontSize: 11, fontWeight: "800" }}>🏁</Text>
+                      </TouchableOpacity>
+                      </View>
                     ))}
                   </>
                 )}
