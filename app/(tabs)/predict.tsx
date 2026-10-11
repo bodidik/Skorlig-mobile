@@ -998,6 +998,13 @@ useEffect(() => {
     }
     h = hh;
     a = aa;
+    /* Sunucu skor varken sonucu SKORDAN türetir; seçili sonuç skorla
+     * çelişiyorsa ekrandaki seçim sessizce değişirdi ("H" + 0-2 → "A"). */
+    const skordan: Outcome = hh > aa ? "H" : hh < aa ? "A" : "D";
+    if (outcome !== null && outcome !== skordan) {
+      Alert.alert("SkorLig", t("scoreOutcomeConflict"));
+      return;
+    }
   }
 
   const body: any = {
