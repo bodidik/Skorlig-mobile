@@ -134,6 +134,7 @@ const REGION_TO_COUNTRY: Record<string, string> = {
   VN: "Vietnam",
   XK: "Kosovo",
   ZA: "South Africa",
+  ZM: "Zambia",
   ZW: "Zimbabwe",
 };
 
