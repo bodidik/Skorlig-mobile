@@ -192,6 +192,7 @@ const SOZLUK: Record<string, string> = {
   MICRO_LOCKED_PENALTY: "Penaltı verildiği için bu tahmin kapandı.",
   SCORE_MUST_BE_NUMBERS: "Skor alanlarına sayı gir.",
   SCORE_OUT_OF_RANGE: "Skor 0 ile 30 arasında tam sayı olmalı.",
+  TEAM_NAME_TOO_LONG: "Takım adı en fazla 60 karakter olabilir.",
   FORBIDDEN_OTHER_USER: "Yalnızca kendi kaydına erişebilirsin.",
   INVALID_INPUT: "Girilen bilgi geçersiz.",
 
