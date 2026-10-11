@@ -34,13 +34,14 @@ import Basinc from "./Basinc";
 import IskeletBlok from "./Iskelet";
 import { SkorSanati } from "./OyunSanati";
 import { KartBasi, parca } from "./OyunKartParcalari";
+import { ilkTahminYapildi } from "../lib/ilkOyun";
 
 const RENK = MOD_RENGI.skor;
 
 export default function SkorTahminiKarti() {
   useLang();
   const router = useRouter();
-  const { user, loading: oturumYukleniyor } = useAuth();
+  const { user, loading: oturumYukleniyor, signInWithGoogle } = useAuth();
   const uid = user?.uid || null;
   const [maclar, setMaclar] = useState<SkorMaci[] | null>(null);
   const [bedel, setBedel] = useState<number>(0);
@@ -59,6 +60,9 @@ export default function SkorTahminiKarti() {
     setHata(null);
     setBedel(Number(j.bedel) || 0);
     setMaclar(j.maclar as SkorMaci[]);
+    /* Daha önce tahmin yapmış oyuncu (yeni cihaz / yeniden kurulum) sade
+     * "ilk oyun" ekranında tutulmasın. */
+    if ((j.maclar as SkorMaci[]).some((m) => m?.benim)) ilkTahminYapildi();
   }, []);
 
   useEffect(() => {
@@ -116,6 +120,15 @@ export default function SkorTahminiKarti() {
 
   async function gonder() {
     if (!secili || gonderiliyor || (durum !== "gonder" && durum !== "guncelle")) return;
+    /* Misafir: sunucu 401 dönerdi ve oyuncu "hata" görürdü. Tahmin ekranıyla
+     * aynı girişi öner; taslak skor kartta kalır, girişten sonra tek dokunuş. */
+    if (!uid) {
+      Alert.alert(t("loginNeededTitle"), t("loginNeededMsg"), [
+        { text: t("cancel"), style: "cancel" },
+        { text: t("signInGoogle2"), onPress: () => { signInWithGoogle().catch(() => {}); } },
+      ]);
+      return;
+    }
     setGonderiliyor(true);
     try {
       const r = await apiFetch("/api/skor/tahmin", {
@@ -128,6 +141,7 @@ export default function SkorTahminiKarti() {
         Alert.alert(t("skorErr"), hataMesaji(j?.error));
       } else {
         titret("gol");
+        ilkTahminYapildi();
         await yukle();
       }
     } catch {

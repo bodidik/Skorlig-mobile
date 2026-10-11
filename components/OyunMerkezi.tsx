@@ -61,6 +61,7 @@ import { enAcil, type Acil } from "../lib/acilDurum";
 import KuponKarti from "./KuponKarti";
 import DailyMatchCard from "./DailyMatchCard";
 import SkorTahminiKarti from "./SkorTahminiKarti";
+import { ilkTahminAboneOl, ilkTahminYapildiMi } from "../lib/ilkOyun";
 import { IkonKutusu, KartBasi, parca, type SanatBileseni } from "./OyunKartParcalari";
 import {
   DuelloSanati, GsSanati, HavuzSanati, KuponSanati, MiniSanati, SkorSanati, TekMacSanati,
@@ -138,6 +139,19 @@ export default function OyunMerkezi({
    * altına hook koymak sessiz değil, gürültülü bir çökme.
    */
   const [aciller, setAciller] = React.useState<Partial<Record<ModAnahtari, Acil | null>>>({});
+
+  /* İLK OYUN (bkz. lib/ilkOyun.ts): ilk tahmin yapılana kadar yalnız Skor
+   * Tahmini tam boy, öteki oyunlar tek satırda katlı. `null` = henüz
+   * okunmadı → eski düzen çizilir (ekran zıplamasın diye sade düzene ancak
+   * bayrak "yok" diye okununca geçilir). */
+  const [yeniOyuncu, setYeniOyuncu] = React.useState<boolean | null>(null);
+  const [digerAcik, setDigerAcik] = React.useState(false);
+  React.useEffect(() => {
+    let canli = true;
+    ilkTahminYapildiMi().then((yapti) => { if (canli) setYeniOyuncu(!yapti); });
+    const birak = ilkTahminAboneOl(() => { if (canli) setYeniOyuncu(false); });
+    return () => { canli = false; birak(); };
+  }, []);
   const bildir = React.useCallback((k: ModAnahtari) => (a: Acil | null) => {
     setAciller((o) => {
       /* ⚠️ DEĞİŞMEDİYSE DURUMA HİÇ DOKUNMA: kartlar odakta her yenilemede
@@ -289,6 +303,46 @@ export default function OyunMerkezi({
     ),
   };
 
+  /* İLK OYUN DÜZENİ — tek kart, tek eylem. Skor kartı kapalıysa (sunucu
+   * bayrağı) sade düzen anlamsız: normal düzene düşülür. */
+  const sadeDuzen = yeniOyuncu === true && !!anaKartlar.skor && acik("skor");
+  if (sadeDuzen) {
+    const otekiAnalar = MOD_SIRASI.filter((k) => k !== "skor" && anaKartlar[k] && acik(k));
+    const otekiSayi = otekiAnalar.length + diger.length;
+    return (
+      <View style={s.kok}>
+        <Text style={s.baslik}>{t("hookTitle")}</Text>
+        <Text style={s.kanca}>{t("hookSub")}</Text>
+        {anaKartlar.skor!()}
+        {otekiSayi > 0 && (
+          <Basinc onPress={() => setDigerAcik((x) => !x)} scaleTo={0.98}>
+            <View
+              accessibilityRole="button"
+              accessibilityState={{ expanded: digerAcik }}
+              style={s.digerAc}
+            >
+              <Text style={s.digerAcYazi}>
+                {t("otherGames")} ({otekiSayi}) {digerAcik ? "▾" : "▸"}
+              </Text>
+            </View>
+          </Basinc>
+        )}
+        {digerAcik && (
+          <>
+            {otekiAnalar.map((k) => (
+              <React.Fragment key={k}>{anaKartlar[k]!()}</React.Fragment>
+            ))}
+            {diger.length > 0 && (
+              <View style={[parca.kart, s.liste]}>
+                {diger.map((m, i) => <ModSatiri key={m.key} m={m} ilk={i === 0} />)}
+              </View>
+            )}
+          </>
+        )}
+      </View>
+    );
+  }
+
   return (
     <View style={s.kok}>
       <Text style={s.baslik}>{t("whatToPlay")}</Text>
@@ -368,6 +422,11 @@ const s = StyleSheet.create({
   kok: { marginBottom: 6 },
   baslik: { color: METIN_ANA, fontSize: 21, fontWeight: "800", marginBottom: 12 },
   bolum: { color: METIN_SOLUK, fontSize: 13, fontWeight: "800", marginBottom: 8, marginTop: 2 },
+  /* İlk oyun düzeni: başlığın altında tek cümle, kartın altında katlı satır.
+   * Dokunma hedefi ≥44px (paddingVertical 13 + 15px yazı). */
+  kanca: { color: METIN_IKINCIL, fontSize: 14, marginTop: -6, marginBottom: 12 },
+  digerAc: { marginTop: 4, marginBottom: 8, paddingVertical: 13, alignItems: "center" },
+  digerAcYazi: { color: METIN_SOLUK, fontSize: 15, fontWeight: "800" },
 
   altBaglanti: { marginTop: 12 },
   dolguEylem: { marginTop: 14, borderRadius: 999, paddingVertical: 13, alignItems: "center" },
