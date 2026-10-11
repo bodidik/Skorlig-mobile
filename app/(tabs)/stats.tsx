@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,9 @@ import {
   Alert,
   Modal,
   TextInput,
+  Animated,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { hataMesaji } from "../../lib/hataMesaji";
 import { useUserId } from "../../lib/useUserId";
@@ -232,10 +234,44 @@ export default function StatsScreen() {
    */
   const [benSira, setBenSira] = useState<BenSira | null>(null);
 
+  /**
+   * SON BAKIŞTAN BERİ DEĞİŞİM — kullanıcı kararı (2026-10-11): "yarışı ön
+   * planda oynatmamız lazım… sıralama ekranı, animasyonları". Önceki sıra
+   * kapsam başına cihazda saklanır; ekran açıldığında fark rozet olarak
+   * gösterilir ve sıra numarası bir kez zıplar. Fark yoksa rozet yok.
+   * İlk açılış (saklı sıra yok) fark sayılmaz.
+   */
+  const [siraFarki, setSiraFarki] = useState(0);
+  const [siraAnahtari, setSiraAnahtari] = useState<string | null>(null);
+  const ziplama = useRef(new Animated.Value(1)).current;
+
   // Sıralama kapsamı: kendi ülken mi, tüm dünya mı.
   // Varsayılan "country" — oyuncu önce kendi ülkesinde yarıştığını görmeli;
   // küresel liste 1280 botla birlikte ilk açılışta ulaşılmaz görünüyor.
   const [scope, setScope] = useState<ScopeKey>("country");
+
+  useEffect(() => {
+    const sira = benSira?.rank;
+    if (typeof sira !== "number" || !(sira > 0) || !siraAnahtari) { setSiraFarki(0); return; }
+    const anahtar = `skorlig.sonSira.${siraAnahtari}`;
+    let canli = true;
+    (async () => {
+      let once: number | null = null;
+      try { const v = await AsyncStorage.getItem(anahtar); once = v ? Number(v) : null; } catch {}
+      if (!canli) return;
+      const fark = once != null && Number.isFinite(once) ? once - sira : 0; // + = yükseldi
+      setSiraFarki(fark);
+      if (fark !== 0) {
+        ziplama.setValue(1);
+        Animated.sequence([
+          Animated.timing(ziplama, { toValue: 1.35, duration: 180, useNativeDriver: true }),
+          Animated.spring(ziplama, { toValue: 1, friction: 4, useNativeDriver: true }),
+        ]).start();
+      }
+      try { await AsyncStorage.setItem(anahtar, String(sira)); } catch {}
+    })();
+    return () => { canli = false; };
+  }, [benSira?.rank, siraAnahtari, ziplama]);
   const [myCountry, setMyCountry] = useState<string | null>(null);
   // Sunucu ülkeyi çözemediyse (kullanıcı henüz ülke seçmemiş) küresele düşer;
   // sekmede bunu göstermek yerine sessizce küresel aktif görünsün.
@@ -470,6 +506,10 @@ export default function StatsScreen() {
          * sessizce `undefined` verirdi — kullanıcının bildirdiği kusur bu
          * ("arayıp bulma olmaz"). */
         setBenSira(j?.ben ?? null);
+        /* Sıranın HANGİ kapsamda alındığı sırayla AYNI ANDA yazılır: kapsam
+         * düğmesine basılınca yeni yanıt gelene kadar eski sıra yeni kapsamın
+         * anahtarına yazılmasın. Arşiv sezonu "son bakış" sayılmaz. */
+        setSiraAnahtari(j?.scope?.isCurrentSeason === false ? null : scope);
       } else {
         setTotalsRows([]);
         setUpdatedAtTotals(null);
@@ -1489,9 +1529,21 @@ export default function StatsScreen() {
           </Text>
           {benSira.rank != null ? (
             <>
-              <Text style={{ color: "#e2e8f0", fontSize: 15, fontWeight: "900" }}>
+              <Animated.Text style={{ color: "#e2e8f0", fontSize: 15, fontWeight: "900", transform: [{ scale: ziplama }] }}>
                 #{benSira.rank}
-              </Text>
+              </Animated.Text>
+              {siraFarki !== 0 && (
+                <Text
+                  style={{
+                    color: "#020617", backgroundColor: siraFarki > 0 ? "#22c55e" : "#f87171",
+                    fontSize: 11, fontWeight: "900", paddingHorizontal: 6, paddingVertical: 1,
+                    borderRadius: 999, overflow: "hidden",
+                  }}
+                  accessibilityLabel={t(siraFarki > 0 ? "rankUpSince" : "rankDownSince", { n: Math.abs(siraFarki) })}
+                >
+                  {siraFarki > 0 ? "↑" : "↓"}{Math.abs(siraFarki)}
+                </Text>
+              )}
               <Text style={{ color: Colors.muted, fontSize: 11 }}>
                 / {benSira.poolSize}
               </Text>
