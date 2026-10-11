@@ -1390,8 +1390,9 @@ useEffect(() => {
                 <Text style={{ color: Colors.muted, fontSize: 10, marginBottom: 3, textAlign: "center" }}>{homeName}</Text>
                 <TextInput
                   value={homeScore}
-                  onChangeText={setHomeScore}
-                  keyboardType="numeric"
+                  onChangeText={(v) => setHomeScore(v.replace(/\D/g, ""))}
+                  keyboardType="number-pad"
+                  maxLength={2}
                   style={{ borderWidth: 1.5, borderColor: homeScore !== "" ? Colors.accent : Colors.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 10, fontSize: 22, fontWeight: "800", textAlign: "center", color: "#e2e8f0", backgroundColor: homeScore !== "" ? "#0f2040" : "#0a1120" }}
                 />
               </View>
@@ -1400,8 +1401,9 @@ useEffect(() => {
                 <Text style={{ color: Colors.muted, fontSize: 10, marginBottom: 3, textAlign: "center" }}>{awayName}</Text>
                 <TextInput
                   value={awayScore}
-                  onChangeText={setAwayScore}
-                  keyboardType="numeric"
+                  onChangeText={(v) => setAwayScore(v.replace(/\D/g, ""))}
+                  keyboardType="number-pad"
+                  maxLength={2}
                   style={{ borderWidth: 1.5, borderColor: awayScore !== "" ? Colors.accent : Colors.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 10, fontSize: 22, fontWeight: "800", textAlign: "center", color: "#e2e8f0", backgroundColor: awayScore !== "" ? "#0f2040" : "#0a1120" }}
                 />
               </View>
