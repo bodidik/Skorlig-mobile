@@ -8,7 +8,16 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
+
+/* Eski mimaride Android LayoutAnimation'ı açıkça istemeli; yeni mimaride
+ * (bridgeless) bu çağrı yok sayılır. */
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch {}
+}
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { usePolling } from "../../hooks/usePolling";
 import Colors from "../../constants/colors";
@@ -115,6 +124,12 @@ const LIVE_STATUSES = new Set(["1H", "HT", "2H", "ET", "BT", "P", "LIVE", "INT"]
 const POLL_MS = 20000;
 const PRE_POLL_MS = 60000;
 
+/** Sıralamanın kimlik dizisi — yalnız SIRA değişimini algılamak için
+ *  (puan değişip sıra aynı kalırsa animasyon kurulmaz). */
+function siraImzasi(top?: RaceRow[] | null): string {
+  return Array.isArray(top) ? top.map((r) => String(r?.userId || "").toLowerCase()).join("|") : "";
+}
+
 export default function MatchRaceScreen() {
   useLang(); // dil değişince ekran yeniden çizilsin
   const router = useRouter();
@@ -123,6 +138,7 @@ export default function MatchRaceScreen() {
   const userId = String(qUserId || "demo1").trim();
 
   const [data, setData] = useState<RaceResp | null>(null);
+  const dataRef = useRef<RaceResp | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notifyOn, setNotifyOn] = useState(false);
@@ -140,6 +156,16 @@ export default function MatchRaceScreen() {
       const r = await apiFetch(
         `/api/rt/match-race?fixtureId=${encodeURIComponent(fixtureId)}&userId=${encodeURIComponent(userId)}&top=50`
       ).then((x) => x.json());
+      /* SIRA DEĞİŞTİYSE SATIRLAR KAYARAK YER DEĞİŞTİRİR. Kullanıcı kararı
+       * (2026-10-11): yarış ön planda, sıralama hareketi görünmeli. Yalnız
+       * sıra gerçekten değişince: her yoklamada animasyon kurmak sabit
+       * listeyi de oynatırdı. */
+      const eskiSira = siraImzasi(dataRef.current?.top);
+      const yeniSira = siraImzasi(r?.top);
+      if (eskiSira && yeniSira && eskiSira !== yeniSira) {
+        LayoutAnimation.configureNext(LayoutAnimation.create(450, "easeInEaseOut", "opacity"));
+      }
+      dataRef.current = r;
       setData(r);
     } catch (e: any) {
       setData({ ok: false, error: hataMesaji(e) });
@@ -272,7 +298,10 @@ export default function MatchRaceScreen() {
       : `${index + 1}.`;
     return (
       <TouchableOpacity
-        key={uid + index}
+        /* ⚠️ ANAHTAR YALNIZ KİMLİK: `uid + index` idi — sıra değişince anahtar
+         * da değişiyor, satır yeniden KURULUYOR ve kayma animasyonu
+         * imkânsızlaşıyordu. Kimlik listede tekil. */
+        key={uid}
         activeOpacity={0.7}
         onPress={() => !isMe && openProfile(uid)}
         style={{
@@ -284,6 +313,8 @@ export default function MatchRaceScreen() {
           backgroundColor: isMe ? "#0f172a" : "#020617",
           borderWidth: 1,
           borderColor: isMe ? Colors.accent : Colors.border,
+          /* Skoru artık tutamayan geri çekilir; kendi satırın her zaman net. */
+          opacity: extra?.inRace === false && !isMe ? 0.5 : 1,
         }}
       >
         <Text style={{ color: Colors.muted, fontWeight: "600", width: 34, fontSize: 12 }}>{label}</Text>
