@@ -13,6 +13,7 @@ import { saatGun } from "../../lib/sure";
 import { useOzellikler } from "../../hooks/useOzellikler";
 import { TIER_KEYS } from "../../components/StreakBar";
 import { hataMesaji } from "../../lib/hataMesaji";
+import { ilkTahminYapildi } from "../../lib/ilkOyun";
 
 type Outcome = "H" | "D" | "A" | null;
 type Side = "H" | "A" | null;
@@ -1056,10 +1057,15 @@ useEffect(() => {
     }
 
     if (!res.ok || !j?.ok) {
-      Alert.alert(t("error"), j?.error || `TAHMIN_KAYIT_HATASI (HTTP ${res.status})`);
+      /* Ham kod (ör. SCORE_OUT_OF_RANGE) oyuncuya basılıyordu; Türkçe
+       * karşılığı hataMesaji'nda. Bilinmeyen kod yedek metinde kalır. */
+      Alert.alert(t("error"), hataMesaji(j?.error));
       return;
     }
 
+    /* İlk tahmin hangi oyundan yapılırsa yapılsın ana ekran normal düzene
+     * döner (bkz. lib/ilkOyun.ts). */
+    ilkTahminYapildi();
     await Promise.all([loadWalletSummary(uid), checkExistingPrediction(fx, uid)]);
 
     const wasUpdate = hasPredByMe === true;
