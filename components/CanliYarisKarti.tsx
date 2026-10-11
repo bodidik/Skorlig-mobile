@@ -83,16 +83,15 @@ export default function CanliYarisKarti({ userId }: { userId: string }) {
     if (!r?.ok) return;
     setYaris(r as Yaris);
 
-    /* Sıra yükseldiyse rozet + titreşim. Aynı maçta ölçülür; maç değişince sıfır. */
+    /* Sıra yükseldiyse rozet + titreşim — YALNIZ o turda. Rozet bir sonraki
+     * tazelemede kalkar: 20 dk sonra hâlâ "↑2" yazması yanıltıcı olurdu.
+     * Aynı maçta ölçülür; maç değişince karşılaştırma yok. */
     const sira = Number(r?.me?.rank);
     const once = oncekiSira.current;
     if (Number.isFinite(sira) && sira > 0) {
-      if (once && once.fid === canliMac.fixtureId && sira < once.rank) {
-        setYukselis(once.rank - sira);
-        titret("gol");
-      } else if (!once || once.fid !== canliMac.fixtureId) {
-        setYukselis(0);
-      }
+      const yukseldi = !!once && once.fid === canliMac.fixtureId && sira < once.rank;
+      setYukselis(yukseldi ? once!.rank - sira : 0);
+      if (yukseldi) titret("gol");
       oncekiSira.current = { fid: canliMac.fixtureId, rank: sira };
     }
   }, [uid]);
