@@ -19,6 +19,7 @@ import { withAdminHeaders } from "../../lib/adminToken";
 import DailyMenuStrip from "../../components/DailyMenuStrip";
 import QuickPlaySection from "../../components/QuickPlaySection";
 import OyunMerkezi from "../../components/OyunMerkezi";
+import CanliYarisKarti from "../../components/CanliYarisKarti";
 import KrallarOzeti from "../../components/KrallarOzeti";
 import TournamentCreate from "../../components/TournamentCreate";
 import TournamentJoin from "../../components/TournamentJoin";
@@ -2152,6 +2153,10 @@ export default function LiveScreen() {
                 İkisi çakışınca sonraki bildirim kazandı; skor merkezi hâlâ
                 maç listesinin ÜSTÜNDE ve canlı maçları taşıdığı için
                 "altında yakın tarihli popüler maçlar" isteğini de karşılıyor. */}
+            {/* CANLI YARIŞIN — tahmin ettiğin maç oynanırken (ya da 3 saat
+                içinde başlayacakken) en üstte. Yoksa hiç çizilmez.
+                Kullanıcı kararı 2026-10-11: "tahmin et ve yarışı takip et". */}
+            {!!userId.trim() && <CanliYarisKarti userId={userId} />}
             <OyunMerkezi
               macBedeli={macBedeli}
               kuponBedeli={kuponBedeli}
