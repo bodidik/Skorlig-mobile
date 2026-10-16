@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState, useCallback } from "react";
+﻿import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -344,6 +344,7 @@ export default function Me() {
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
+  const walletVarRef = useRef(false);
 
   // Davet sistemi
   const [inviteCode, setInviteCode] = useState<string | null>(null);
@@ -386,22 +387,28 @@ export default function Me() {
 
   const loadWalletSummary = useCallback(async (uid: string) => {
     try {
-      setWalletLoading(true);
+      /* Yenilemede eski bakiye ekranda KALIR; dönen çark yalnız ilk yüklemede. */
+      if (!walletVarRef.current) setWalletLoading(true);
       const r = await apiFetch(`/api/rt/lc-wallet/summary?userId=${encodeURIComponent(uid)}`).then((x) => x.json());
 
       if (r?.ok && r.user && r.daily) {
-        const summary: WalletSummary = {
+        /* ⚠️ monthly · premium · premiumMonthly da TAŞINIR. Eskiden yalnız dört
+         * alan kopyalanıyordu; aşağıdaki aylık katılım kartı ve premium satırı
+         * `wallet.monthly`/`wallet.premium` okuyor ve HİÇ çizilmiyordu. */
+        const summary = {
+          ...r,
           user: r.user as WalletUser,
           daily: r.daily as WalletDaily,
           pricing: r.pricing || null,
           updatedAt: r.updatedAt || null,
-        };
+        } as WalletSummary;
+        walletVarRef.current = true;
         setWallet(summary);
       } else {
         setWallet(null);
       }
     } catch {
-      setWallet(null);
+      // ağ hatasında eldeki bakiye silinmez
     } finally {
       setWalletLoading(false);
     }
@@ -497,6 +504,12 @@ export default function Me() {
   }, []);
 
   const load = useCallback(async () => {
+    /* ⚠️ CÜZDAN ZİNCİRİN BAŞINDA, BEKLENMEDEN. Eskiden yönetici kontrolü →
+     * profil → gruplar → sıralama → arkadaşlar SIRAYLA bekleniyor, cüzdan
+     * ancak beşinci istekten sonra soruluyordu (kullanıcı 2026-10-16:
+     * "profili açınca cüzdan bilgisi gecikiyor"). Cüzdan hiçbirine bağlı
+     * değil; paralel başlıyor. */
+    const cuzdanSozu = loadWalletSummary(userId);
     try {
       const remote = await loadIsAdmin(userId);
       const isEff = remote || isAdminLocal;
@@ -542,7 +555,7 @@ export default function Me() {
         setFriendItems([]);
       }
 
-      await loadWalletSummary(userId);
+      await cuzdanSozu;
       await loadPredCount(userId);
       loadInviteCode(userId);
 

@@ -15,7 +15,7 @@
  * ⚠️ Kütüphane yok, RN `Animated` yeterli (reanimated kurulu değil).
  */
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, Animated, Easing, AccessibilityInfo, type ViewStyle } from "react-native";
+import { View, Text, Animated, Easing, AccessibilityInfo, TouchableOpacity, type ViewStyle } from "react-native";
 
 type AnimStil = Animated.WithAnimatedObject<ViewStyle>;
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -28,8 +28,10 @@ import { t, useLang } from "../lib/i18n";
 
 const ALTIN = "#f59e0b";
 
-export default function BirikimKarti({ userId, puan, lc }: {
+export default function BirikimKarti({ userId, puan, lc, onLcPress }: {
   userId: string; puan: number | null; lc: number | null;
+  /** LC yarısına dokununca cüzdan (kullanıcı 2026-10-16). */
+  onLcPress?: () => void;
 }) {
   useLang();
   const [gPuan, setGPuan] = useState<number | null>(null);
@@ -112,8 +114,8 @@ export default function BirikimKarti({ userId, puan, lc }: {
 
   return (
     <View
-      accessible
-      accessibilityLabel={t("birikimA11y", { puan: puanYaz(fark.yeni.puan), lc: lcYaz(fark.yeni.lc) })}
+      /* Kart tek erişilebilir öge DEĞİL: LC yarısı ayrı bir düğme (cüzdan),
+       * `accessible` dıştaysa ekran okuyucu düğmeye ulaşamazdı. */
       style={{
         flexDirection: "row", gap: 12, backgroundColor: Colors.card, borderRadius: 16,
         borderWidth: 1, borderColor: oynuyor ? "#f59e0b88" : Colors.cardBorder,
@@ -121,7 +123,8 @@ export default function BirikimKarti({ userId, puan, lc }: {
       }}
     >
       {/* PUAN */}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }} accessible
+        accessibilityLabel={t("birikimA11y", { puan: puanYaz(fark.yeni.puan), lc: lcYaz(fark.yeni.lc) })}>
         <Text style={{ color: Colors.mutedOnCard, fontSize: 11, fontWeight: "800", letterSpacing: 0.6 }}>
           ⭐ {t("birikimPuan")}
         </Text>
@@ -142,8 +145,14 @@ export default function BirikimKarti({ userId, puan, lc }: {
 
       <View style={{ width: 1, backgroundColor: Colors.cardInner }} />
 
-      {/* LC — tek sikke + sayaç */}
-      <View style={{ flex: 1 }}>
+      {/* LC — tek sikke + sayaç; dokununca cüzdan */}
+      <TouchableOpacity
+        style={{ flex: 1 }}
+        disabled={!onLcPress}
+        onPress={onLcPress}
+        accessibilityRole={onLcPress ? "button" : undefined}
+        accessibilityLabel={onLcPress ? t("cuzdanAc") : undefined}
+      >
         <Text style={{ color: Colors.mutedOnCard, fontSize: 11, fontWeight: "800", letterSpacing: 0.6 }}>
           {t("birikimLc")}
         </Text>
@@ -159,8 +168,9 @@ export default function BirikimKarti({ userId, puan, lc }: {
               <Text style={{ color: ALTIN, fontWeight: "900", fontSize: 13 }}>+{lcYaz(fark.lcArti)}</Text>
             </Animated.View>
           )}
+          {onLcPress ? <Text style={{ color: Colors.mutedOnCard, fontSize: 18, marginLeft: "auto" }}>›</Text> : null}
         </View>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }

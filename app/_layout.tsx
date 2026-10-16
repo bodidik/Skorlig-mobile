@@ -3,7 +3,7 @@ import { t, useLang } from "../lib/i18n";
 import { duelloBildirimHedefi } from "../lib/ozellikler";
 import { ozellikAnlik } from "../hooks/useOzellikler";
 import { useEffect, useRef, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, AppState } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "../constants/colors";
 import * as Notifications from "expo-notifications";
@@ -16,7 +16,7 @@ import { flushPendingTeam } from "../lib/pendingTeam";
 import { flushPendingNickname } from "../lib/pendingNickname";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { apiFetch } from "../lib/apiFetch";
-import { PLAY_ADRESI, PLAY_WEB, surumCoz, surumKarari, yerelSurumKodu } from "../lib/surum";
+import { denetle, guncellemeyiAc } from "../lib/guncelleme";
 import CountryBackfillPrompt from "../components/CountryBackfillPrompt";
 import NicknameBackfillPrompt from "../components/NicknameBackfillPrompt";
 import GeriEv, { GERIEV_ALANI } from "../components/GeriEv";
@@ -177,29 +177,43 @@ function AuthGuard() {
   return null;
 }
 
-/** Açılışta Play'de daha yeni sürüm varsa teklif eder (bkz. lib/surum.ts). */
+/**
+ * Play'de daha yeni sürüm varsa teklif eder (karar: lib/surum.ts, durum:
+ * lib/guncelleme.ts).
+ *
+ * ⚠️ HER AÇILIŞTA (kullanıcı 2026-10-16): yalnız soğuk başlatmada değil,
+ * uygulama arka plandan her döndüğünde de sorar — Android süreci günlerce
+ * yaşayabiliyor ve test kullanıcısı teklifi hiç görmüyordu. Aynı anda tek
+ * uyarı (`acikRef`); "Sonra" deyince ana ekrandaki şerit kalır.
+ */
 function GuncellemeTeklifi() {
+  const acikRef = useRef(false);
   useEffect(() => {
     let alive = true;
-    (async () => {
-      try {
-        const r = await apiFetch("/api/config");
-        const bilgi = surumCoz(await r.json());
-        const karar = surumKarari(yerelSurumKodu(), bilgi);
-        if (!alive || karar === "yok") return;
-        const ac = () => Linking.openURL(PLAY_ADRESI).catch(() => Linking.openURL(PLAY_WEB));
-        const goster = () => Alert.alert(
+    const sor = async () => {
+      const { karar, bilgi } = await denetle();
+      if (!alive || karar === "yok" || acikRef.current) return;
+      const goster = () => {
+        acikRef.current = true;
+        Alert.alert(
           t("updTitle"),
           bilgi?.notlar || t("updBody"),
           karar === "zorunlu"
-            ? [{ text: t("updNow"), onPress: () => { ac(); setTimeout(goster, 800); } }]
-            : [{ text: t("updLater"), style: "cancel" }, { text: t("updNow"), onPress: ac }],
-          { cancelable: karar !== "zorunlu" },
+            ? [{ text: t("updNow"), onPress: () => { guncellemeyiAc(); setTimeout(goster, 800); } }]
+            : [
+                { text: t("updLater"), style: "cancel", onPress: () => { acikRef.current = false; } },
+                { text: t("updNow"), onPress: () => { acikRef.current = false; guncellemeyiAc(); } },
+              ],
+          { cancelable: karar !== "zorunlu", onDismiss: () => { acikRef.current = false; } },
         );
-        goster();
-      } catch { /* ağ yoksa teklif yok — sessiz */ }
-    })();
-    return () => { alive = false; };
+      };
+      goster();
+    };
+    sor();
+    const abone = AppState.addEventListener("change", (durum) => {
+      if (durum === "active") sor();
+    });
+    return () => { alive = false; abone.remove(); };
   }, []);
   return null;
 }

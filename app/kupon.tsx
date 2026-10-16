@@ -27,6 +27,7 @@ import { t, useLang } from "../lib/i18n";
 import { ulkeAdi } from "../lib/ulkeler";
 import { kuponBasligi, kuponAltMetni } from "../lib/kuponBaslik";
 import { sureMetni } from "../lib/sure";
+import { lcYaz, puanYaz } from "../lib/lcBicim";
 
 type Mac = {
   fixtureId: string;
@@ -50,6 +51,11 @@ type KuponT = {
   katildiMi: boolean;
   tahminlerim: Record<string, "H" | "D" | "A"> | null;
   kalanSaniye: number;
+  /** Sonuçlanınca: maç → gerçek 1X2 (kısmi sonuçta eksik maç yok). */
+  sonuclar?: Record<string, "H" | "D" | "A">;
+  iadeEdildi?: boolean;
+  /** Oyuncunun katılım sonucu — yalnız sonuçlanmış kuponda (sunucu /aktif). */
+  sonucum?: { dogru: number; toplam: number; puan: number; odulLc: number; iadeLc: number } | null;
 };
 
 /* Renkler uygulamanın geri kalanıyla BİREBİR: DailyMatchCard ve predict'te
@@ -191,6 +197,10 @@ export default function KuponEkrani() {
         const secim = secimler[k.id] || {};
         const dolu = k.fixtureIds.filter((f) => secim[f]).length;
         const acik = k.durum === "open";
+        /* ⚠️ SONUÇLANMIŞ ≠ KİLİTLİ. Eskiden ikisi de "kapandı · maçlar bitince
+         * sonucun görünecek" basıyordu; sonuçlanmış hafta kullanıcıya hiç
+         * kapanmamış görünüyordu (2026-10-16). */
+        const sonuclandi = k.durum === "settled";
         /* ⚠️ Başlık TEK KAYNAKTAN (lib/kuponBaslik.ts): burada ve
          * KuponKarti.tsx içinde aynı üçlü ifade KOPYAYDI ve ikisi birlikte
          * bozuldu — ORTAK kupon "⚽  Ligi" diye adsız çiziliyordu. */
@@ -201,8 +211,8 @@ export default function KuponEkrani() {
             <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: "#1f2937" }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <Text style={{ color: Colors.text, fontSize: 16, fontWeight: "800" }}>{baslik}</Text>
-                <Text style={{ color: acik ? Colors.accent : Colors.muted, fontSize: 11, fontWeight: "700" }}>
-                  {acik ? sureMetni(k.kalanSaniye, t) : t("closedLower")}
+                <Text style={{ color: acik ? Colors.accent : sonuclandi ? "#22c55e" : Colors.muted, fontSize: 11, fontWeight: "700" }}>
+                  {acik ? sureMetni(k.kalanSaniye, t) : sonuclandi ? t("settledLower") : t("closedLower")}
                 </Text>
               </View>
               <Text style={{ color: Colors.muted, fontSize: 11, marginTop: 4 }}>
@@ -211,7 +221,7 @@ export default function KuponEkrani() {
               </Text>
               {/* Kullanıcı "ilk maça kadar var" sanmasın: kilit 1 saat önce. */}
               <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 2 }}>
-                {acik ? t("joinCloses1h") : t("joinClosedLong")}
+                {acik ? t("joinCloses1h") : sonuclandi ? t("kuponSettledLong") : t("joinClosedLong")}
               </Text>
             </View>
 
@@ -242,6 +252,8 @@ export default function KuponEkrani() {
 
                 {k.maclar.map((m) => {
                   const bosMu = !secim[m.fixtureId];
+                  const gercek = sonuclandi ? k.sonuclar?.[m.fixtureId] : undefined;
+                  const tuttu = !!gercek && secim[m.fixtureId] === gercek;
                   return (
                   <View
                     key={m.fixtureId}
@@ -249,7 +261,7 @@ export default function KuponEkrani() {
                       marginBottom: 10, padding: 10, borderRadius: 10,
                       backgroundColor: "#0f172a",
                       borderWidth: 1,
-                      borderColor: bosMu && acik ? "#f59e0b44" : "#1f2937",
+                      borderColor: gercek ? (tuttu ? "#22c55e88" : "#ef444488") : bosMu && acik ? "#f59e0b44" : "#1f2937",
                     }}
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
@@ -264,6 +276,7 @@ export default function KuponEkrani() {
                     <View style={{ flexDirection: "row", gap: 8 }}>
                       {SECIM.map((s) => {
                         const secili = secim[m.fixtureId] === s.k;
+                        const dogruSik = !!gercek && gercek === s.k;
                         return (
                           <TouchableOpacity
                             key={s.k}
@@ -272,18 +285,24 @@ export default function KuponEkrani() {
                             style={{
                               flex: 1, paddingVertical: 11, borderRadius: 8, alignItems: "center",
                               backgroundColor: secili ? s.renk : "#111827",
-                              borderWidth: 1.5, borderColor: secili ? s.renk : "#1f2937",
+                              borderWidth: dogruSik ? 2.5 : 1.5,
+                              borderColor: dogruSik ? "#22c55e" : secili ? s.renk : "#1f2937",
                               opacity: acik ? 1 : 0.6,
                               ...(secili ? { shadowColor: s.renk, shadowOpacity: 0.5, shadowRadius: 6, elevation: 4 } : {}),
                             }}
                           >
                             <Text style={{ color: secili ? "#ffffff" : s.renk, fontWeight: "800", fontSize: 15 }}>
-                              {s.etiket}
+                              {s.etiket}{dogruSik ? " ✓" : ""}
                             </Text>
                           </TouchableOpacity>
                         );
                       })}
                     </View>
+                    {sonuclandi && !gercek && !k.iadeEdildi ? (
+                      <Text style={{ color: Colors.muted, fontSize: 10, marginTop: 6, textAlign: "center" }}>
+                        {t("kuponMacSayilmadi")}
+                      </Text>
+                    ) : null}
                   </View>
                   );
                 })}
@@ -298,6 +317,15 @@ export default function KuponEkrani() {
                       {islemde === k.id ? "..." : t("savePreds")}
                     </Text>
                   </TouchableOpacity>
+                ) : sonuclandi && k.sonucum ? (
+                  <Text style={{ color: k.iadeEdildi ? Colors.muted : "#22c55e", fontSize: 13, fontWeight: "700", textAlign: "center", marginTop: 6 }}>
+                    {k.iadeEdildi
+                      ? t("kuponIadeOzet", { lc: lcYaz(k.sonucum.iadeLc || k.girisBedeli) })
+                      : t("kuponSonucOzet", {
+                          d: k.sonucum.dogru, n: k.sonucum.toplam,
+                          p: puanYaz(k.sonucum.puan), lc: lcYaz(k.sonucum.odulLc),
+                        })}
+                  </Text>
                 ) : (
                   <Text style={{ color: Colors.muted, fontSize: 12, textAlign: "center", marginTop: 6 }}>
                     {t("kuponClosedResult")}

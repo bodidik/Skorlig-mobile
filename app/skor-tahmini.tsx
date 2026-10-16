@@ -37,6 +37,8 @@ type Kural = {
   /* Paylaşılan havuz (2026-09-30) — eski sunucu göndermez, blok çizilmez. */
   /* Gol basamağı (2026-10-02) — eski sunucu göndermez, satır çizilmez. */
   golBasamaklari?: { enAzGol: number; tam: number; teselli: number }[];
+  /* Puan havuzu payı (2026-10-16) — eski sunucu göndermez, satır çizilmez. */
+  havuzPay?: number;
   havuz?: { tamPuan: number; teselliPuan: number; tamOran: number; teselliOran: number };
   ornek: { gercek: { home: number; away: number }; satirlar: { home: number; away: number; puan: number }[] };
 };
@@ -222,6 +224,9 @@ function Icerik() {
             <Text style={s.kural}>• {t("skorRuleBase", { t: kural.taban, m: kural.mesafeCezasi })}</Text>
             <Text style={s.kural}>• {t("skorRuleResult", { n: kural.sonucBonusu })}</Text>
             <Text style={s.kural}>• {t("skorRuleMin", { n: puanIsaretli(kural.enDusuk) })}</Text>
+            {/* Puan havuzu (2026-10-16): yukarıdaki puan artık PAY AĞIRLIĞI. Pay sunucudan
+              * (kural.havuzPay); eski sunucu göndermezse satır çizilmez. */}
+            {kural.havuzPay ? <Text style={s.kural}>• {t("skorRuleHavuz", { p: kural.havuzPay })}</Text> : null}
           </View>
 
           <Text style={s.altBaslik}>{t("skorExampleTitle", { g: `${kural.ornek.gercek.home}-${kural.ornek.gercek.away}` })}</Text>

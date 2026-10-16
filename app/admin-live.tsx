@@ -130,6 +130,9 @@ export default function AdminLiveScreen() {
   const [penaltyAny, setPenaltyAny] = useState(false);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  /* Tabelanın GERÇEKTE gösterdiği durum (data/live): elle kilit ve kaynağın
+   * o an gördüğü skor. Yönetici "elle 1-1, kaynak 1-0" farkını görebilsin. */
+  const [canli, setCanli] = useState<any>(null);
 
   // ── Maç listesini yükle ───────────────────────────────
   const loadFixtures = useCallback(async () => {
@@ -202,17 +205,24 @@ export default function AdminLiveScreen() {
     try {
       const r = await apiFetch(`/api/rt/admin-live-gs?fixtureId=${encodeURIComponent(String(fx.fixtureId))}`).then(x => x.json());
       const st = r?.state;
-      if (st) {
-        setMinute(String(st.minute ?? 0));
-        setStatus(String(st.status ?? "NS"));
-        setHomeGoals(String(st.homeGoals ?? 0));
-        setAwayGoals(String(st.awayGoals ?? 0));
-        setHtHome(st.htHome != null ? String(st.htHome) : "");
-        setHtAway(st.htAway != null ? String(st.htAway) : "");
-        setFirstGoal(String(st.firstGoal ?? ""));
-        setRedHome(!!st.redHome);
-        setRedAway(!!st.redAway);
-        setPenaltyAny(!!st.penaltyAny);
+      /* ⚠️ SKOR/DURUM TABELADAN. Yönetici modeli (rt-live-gs.json) yalnız
+       * elle yazıldığında güncellenir; kaynak sonra ilerlediyse form ESKİ
+       * skorla açılıyor ve "Güncelle" tabelayı geri alıyordu. */
+      const c = r?.canli || null;
+      setCanli(c);
+      if (st || c) {
+        const kay = c && c.status ? c : st;
+        setMinute(String(kay?.minute ?? 0));
+        setStatus(String(kay?.status ?? "NS"));
+        setHomeGoals(String(kay?.homeGoals ?? 0));
+        setAwayGoals(String(kay?.awayGoals ?? 0));
+        const ht = c?.htScore || null;
+        setHtHome(st?.htHome != null ? String(st.htHome) : ht ? String(ht.home) : "");
+        setHtAway(st?.htAway != null ? String(st.htAway) : ht ? String(ht.away) : "");
+        setFirstGoal(String(c?.firstGoal ?? st?.firstGoal ?? ""));
+        setRedHome(!!(c?.redHome ?? st?.redHome));
+        setRedAway(!!(c?.redAway ?? st?.redAway));
+        setPenaltyAny(!!(c?.penaltyAny ?? st?.penaltyAny));
       } else {
         // Yeni maç — fixture bilgisinden doldur
         setMinute("0");
@@ -276,6 +286,7 @@ export default function AdminLiveScreen() {
         if (st.htAway != null) setHtAway(String(st.htAway));
       }
       setNote("");
+      setCanli((onceki: any) => ({ ...(onceki || {}), elle: { at: new Date().toISOString() }, status: st?.status ?? onceki?.status }));
       // Listeyi de yenile (skor badge güncellenir)
       await loadFixtures();
     } catch (e: any) {
@@ -284,6 +295,27 @@ export default function AdminLiveScreen() {
       setSaving(false);
     }
   }, [selected, minute, status, homeGoals, awayGoals, htHome, htAway, firstGoal, redHome, redAway, penaltyAny, note, loadFixtures]);
+
+  /* Elle kilidi kaldır: sonraki senkron turunda kaynağın skoru geri gelir
+   * (ör. yazılan gol VAR'la iptal edildi). */
+  const kaynagaBirak = async () => {
+    if (!selected) return;
+    try {
+      setSaving(true);
+      const r = await apiFetch("/api/rt/admin-live-gs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fixtureId: String(selected.fixtureId), elleBirak: true }),
+      }).then(x => x.json());
+      if (!r?.ok) { Alert.alert(t("error"), r?.error || "POST_FAILED"); return; }
+      setCanli(r.canli || null);
+      Alert.alert(t("kaynagaBirak"), t("kaynagaBirakildi"));
+    } catch (e: any) {
+      Alert.alert(t("error"), String(e?.message || e));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const quickStatus = (s: string) => {
     if (s === "HT") {
@@ -625,6 +657,27 @@ export default function AdminLiveScreen() {
           paddingHorizontal: 10, paddingVertical: 8, fontSize: 12, marginBottom: 12, minHeight: 50,
         }}
       />
+
+      {/* Elle tabela kilidi — kaynak yetişene kadar elle yazılan korunur. */}
+      {canli?.elle ? (
+        <View style={{ padding: 10, borderRadius: 10, marginBottom: 8, backgroundColor: "#1e293b", borderWidth: 1, borderColor: "#f59e0b" }}>
+          <Text style={{ color: "#fcd34d", fontWeight: "800", fontSize: 13 }}>{t("elleTabelaAktif")}</Text>
+          {canli?.kaynakSkor ? (
+            <Text style={{ color: "#cbd5e1", fontSize: 12, marginTop: 2 }}>
+              {t("elleKaynakGoruyor", { h: canli.kaynakSkor.home, a: canli.kaynakSkor.away, s: String(canli.kaynakDurum || "") })}
+            </Text>
+          ) : null}
+          <Text style={{ color: "#94a3b8", fontSize: 11, marginTop: 2 }}>{t("elleTabelaAciklama")}</Text>
+          <TouchableOpacity
+            onPress={kaynagaBirak}
+            disabled={saving}
+            accessibilityRole="button"
+            style={{ marginTop: 8, paddingVertical: 10, borderRadius: 8, backgroundColor: "#334155", alignItems: "center" }}
+          >
+            <Text style={{ color: "#f8fafc", fontWeight: "800" }}>{t("kaynagaBirak")}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       {/* Kaydet */}
       <TouchableOpacity

@@ -45,6 +45,7 @@ import { fiksturSaatEtiketi } from "../../lib/macSaati";
 import { ulkeAdi, ligEtiketi, ligSiraAnahtari } from "../../lib/ulkeler";
 import { lcYaz, puanYaz } from "../../lib/lcBicim";
 import LcSikke from "../../components/LcSikke";
+import GuncellemeSeridi from "../../components/GuncellemeSeridi";
 import BirikimKarti from "../../components/BirikimKarti";
 const t2 = t; // turnuva map(t) golgelemesi icin takma ad
 
@@ -787,6 +788,10 @@ export default function LiveScreen() {
   const { isAnonymous, linkWithGoogle } = useAuth();
 
   const userId = useUserId(qUserId);
+  const cuzdaniAc = useCallback(() => {
+    const uid = userId.trim();
+    if (uid) router.push({ pathname: "/lc-ledger", params: { userId: uid } } as any);
+  }, [router, userId]);
   const adminMode = useMemo(() => String(qAdmin || "").trim() === "1", [qAdmin]);
   const flatListRef = useRef<any>(null);
   /* Maç listesinin başladığı yer (başlık bileşeni içindeki y). "Tüm maçlar"
@@ -2080,6 +2085,8 @@ export default function LiveScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
         ListHeaderComponent={
           <View style={{ marginBottom: 12 }}>
+            {/* Yeni sürüm varken EN TEPEDE kalıcı şerit (kullanıcı 2026-10-16). */}
+            <GuncellemeSeridi />
             {/* ===== MARKA BANDI ===== stadyum gecesi gradyanı üstünde logo.
                 Ekran başlıksız başlıyordu — uygulamanın "yüzü" yoktu. */}
             {(mode === "schedule" || mode === "open") && (
@@ -2325,13 +2332,20 @@ export default function LiveScreen() {
             {(lcBalance !== null || userPoints !== null) && (
               <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
                 {lcBalance !== null && (
-                  <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0f2027", borderRadius: 10, borderWidth: 1, borderColor: "#f59e0b55", paddingHorizontal: 12, paddingVertical: 8 }}>
+                  /* Dokununca cüzdan (kullanıcı 2026-10-16: "LC kısmına basınca cüzdan bilgisine gidelim"). */
+                  <TouchableOpacity
+                    onPress={cuzdaniAc}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("cuzdanAc")}
+                    style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0f2027", borderRadius: 10, borderWidth: 1, borderColor: "#f59e0b55", paddingHorizontal: 12, paddingVertical: 8 }}
+                  >
                     <LcSikke boyut={24} />
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={{ color: "#f59e0b", fontWeight: "900", fontSize: 16 }}>{lcYaz(lcBalance)} LC</Text>
                       <Text style={{ color: "#78716c", fontSize: 9 }}>KASA</Text>
                     </View>
-                  </View>
+                    <Text style={{ color: "#78716c", fontSize: 18 }}>›</Text>
+                  </TouchableOpacity>
                 )}
                 {userPoints !== null && (
                   <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0f1f2a", borderRadius: 10, borderWidth: 1, borderColor: "#3b82f655", paddingHorizontal: 12, paddingVertical: 8 }}>
@@ -2486,7 +2500,7 @@ export default function LiveScreen() {
                 {myPredsLoading && <Text style={{ color: Colors.muted, fontSize: 12 }}>{t("loading")}</Text>}
 
                 {/* BİRİKİM — toplam puan + LC; artış gözle görünür sayar (2026-10-03). */}
-                <BirikimKarti userId={userId.trim()} puan={userPoints} lc={lcBalance} />
+                <BirikimKarti userId={userId.trim()} puan={userPoints} lc={lcBalance} onLcPress={cuzdaniAc} />
                 {/* Boş durum ALTTA, ListEmptyComponent içinde (eylem düğmeli).
                     Burada ikinci bir "henüz tahmin yok" metni göstermek,
                     aşağıdaki kartla birlikte iki kez tekrar demekti. */}
