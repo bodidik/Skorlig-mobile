@@ -110,6 +110,11 @@ const SOZLUK: Record<string, string> = {
   SKOR_GECERSIZ: "Skor her takım için 0 ile 15 gol arasında olmalı.",
   SKOR_MACI_DEGIL: "Bu maç skor tahminine açık değil. Listeden bir maç seç.",
   TAHMIN_KILITLI: "Bu maç için tahminler kapandı.",
+  GUNUN_MACI_DEGISTI: "Günün maçı az önce değişti. Kart yenilendi, yeni maça tahmin yapabilirsin.",
+  GUNUN_MACI_KILITLI: "İlk tahmin geldi; günün maçı artık değiştirilemez.",
+  MAC_O_GUNDE_DEGIL: "Bu maç seçilen günde oynanmıyor.",
+  GUN_GECERSIZ: "Gün okunamadı. Ekranı yenileyip tekrar dene.",
+  MAC_BASLAMIS: "Bu maç başlamış ya da tahmine kapanmış.",
 
   // ── Kimlik / yetki ───────────────────────────────────────────────
   UNAUTHORIZED: "Bu işlem için giriş yapman gerekiyor.",

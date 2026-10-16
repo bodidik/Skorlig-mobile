@@ -1225,6 +1225,13 @@ export default function Me() {
             </View>
 
             <TouchableOpacity
+              onPress={() => nav.push("/admin-gunun-maci" as any)}
+              style={{ paddingVertical: 10, borderRadius: 999, backgroundColor: Colors.headerBlue }}
+            >
+              <Text style={{ textAlign: "center", color: Colors.slate900, fontWeight: "900" }}>{t("gmAdmMenu")}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               onPress={() => nav.push("/admin-add")}
               style={{
                 paddingVertical: 12,

@@ -61,6 +61,7 @@ import { enAcil, type Acil } from "../lib/acilDurum";
 import KuponKarti from "./KuponKarti";
 import DailyMatchCard from "./DailyMatchCard";
 import SkorTahminiKarti from "./SkorTahminiKarti";
+import GununMaciKarti from "./GununMaciKarti";
 import { ilkTahminAboneOl, ilkTahminYapildiMi } from "../lib/ilkOyun";
 import { IkonKutusu, KartBasi, parca, type SanatBileseni } from "./OyunKartParcalari";
 import {
@@ -279,7 +280,7 @@ export default function OyunMerkezi({
           modu="tek"
           Sanat={TekMacSanati}
           ad={tanim.tek.ad}
-          alt={[t("dailyMatchLbl"), tanim.tek.bedel].filter(Boolean).join(" · ")}
+          alt={tanim.tek.bedel || null}
           sag={
             <Basinc onPress={tumMaclaraGit} scaleTo={0.94}>
               <Text style={[parca.baglanti, { color: MOD_RENGI.tek }]}>{t("allMatchesLink")} ›</Text>
@@ -313,6 +314,8 @@ export default function OyunMerkezi({
       <View style={s.kok}>
         <Text style={s.baslik}>{t("hookTitle")}</Text>
         <Text style={s.kanca}>{t("hookSub")}</Text>
+        {/* GÜNÜN MAÇI: yayında maç yoksa kendini çizmez. */}
+        <GununMaciKarti />
         {anaKartlar.skor!()}
         {otekiSayi > 0 && (
           <Basinc onPress={() => setDigerAcik((x) => !x)} scaleTo={0.98}>
@@ -357,6 +360,9 @@ export default function OyunMerkezi({
           if (typeof bas === "function") bas();
         }}
       />
+
+      {/* GÜNÜN MAÇI — herkes aynı maçta; yayında maç yoksa kendini çizmez. */}
+      <GununMaciKarti />
 
       {/* ANA KARTLAR — sıra MOD_SIRASI'ndan. Kapalı ya da tanımsız mod atlanır. */}
       {MOD_SIRASI.filter((k) => anaKartlar[k] && acik(k)).map((k) => (

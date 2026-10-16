@@ -36,6 +36,8 @@ function routeForNotification(data: any): string | null {
       return fid ? `/match-race/${encodeURIComponent(fid)}` : "/(tabs)/live";
     case "predict":
       return fid ? `/(tabs)/predict?fixtureId=${encodeURIComponent(fid)}` : "/(tabs)/predict";
+    case "admin-gunun-maci":
+      return data.gun ? `/admin-gunun-maci?gun=${encodeURIComponent(String(data.gun))}` : "/admin-gunun-maci";
     case "duel":
       // Düello kapalıyken de sonuç/iade bildirimi gelir — o zaman LC geçmişine.
       return duelloBildirimHedefi(ozellikAnlik());
